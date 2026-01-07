@@ -1,0 +1,185 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Global Button Default Styles - Remove Colors */
+button,
+.btn,
+.button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  background-color: transparent !important;
+  color: inherit !important;
+  border: 1px solid #d1d5db !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Global Button Hover Styles */
+button:hover,
+.btn:hover,
+.button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover {
+  background-color: #fbbf24 !important;
+  color: #1f2937 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Global Button Active/Clicked Styles - Stay Yellow Permanently */
+button:active,
+.btn:active,
+.button:active,
+input[type="button"]:active,
+input[type="submit"]:active,
+input[type="reset"]:active,
+button.clicked,
+.btn.clicked,
+.button.clicked,
+button.active,
+.btn.active,
+.button.active {
+  background-color: #fbbf24 !important;
+  color: #1f2937 !important;
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(251, 191, 36, 0.4) !important;
+}
+
+/* Ensure clicked buttons stay yellow even when not hovering */
+button.clicked,
+.btn.clicked,
+.button.clicked,
+button.active,
+.btn.active,
+.button.active {
+  background-color: #fbbf24 !important;
+  color: #1f2937 !important;
+}
+
+/* Exception for logout button to maintain red theme */
+.sidebar-logout {
+  background: transparent !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+}
+
+.sidebar-logout:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #b91c1c !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.15) !important;
+}
+
+/* Exception for close buttons to maintain their theme */
+.close-button,
+.sidebar-close {
+  background: transparent !important;
+  color: #475569 !important;
+
+}
+
+.close-button:hover,
+.sidebar-close:hover {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+/* Exception for menu toggle button */
+.menu-toggle {
+  background: transparent !important;
+  color: #1e293b !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.menu-toggle:hover {
+  background: #f1f5f9 !important;
+  color: #1e293b !important;
+}
+
+/* Ensure text remains readable on yellow background */
+button:hover *,
+.btn:hover *,
+.button:hover * {
+  color: #1f2937 !important;
+}
+
+/* Mobile Responsiveness - Global Styles */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  /* Make buttons more touch-friendly on mobile */
+  button,
+  .btn,
+  .button,
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    min-height: 44px !important;
+    padding: 8px 16px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Adjust spacing for mobile */
+  .container {
+    padding: 16px !important;
+  }
+  
+  /* Make text inputs more touch-friendly */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  select,
+  textarea {
+    min-height: 44px !important;
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    font-size: 13px;
+  }
+  
+  /* Even smaller screens */
+  button,
+  .btn,
+  .button {
+    font-size: 13px !important;
+    padding: 6px 12px !important;
+  }
+  
+  h1 {
+    font-size: 24px !important;
+  }
+  
+  h2 {
+    font-size: 20px !important;
+  }
+  
+  h3 {
+    font-size: 18px !important;
+  }
+}

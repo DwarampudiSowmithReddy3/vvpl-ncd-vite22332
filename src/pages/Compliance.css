@@ -1,0 +1,408 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+.compliance-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.compliance-header {
+  margin-bottom: 32px;
+}
+
+.header-content h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.header-content p {
+  font-size: 16px;
+  color: #64748b;
+  margin: 0;
+}
+
+.coming-soon {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.coming-soon svg {
+  color: #64748b;
+  margin-bottom: 24px;
+  opacity: 0.7;
+}
+
+.coming-soon h2 {
+  font-size: 28px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+.coming-soon p {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 40px;
+}
+
+.features-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.feature-item svg {
+  color: #1e40af;
+  font-size: 20px;
+}
+
+@media (max-width: 768px) {
+  .compliance-container {
+    padding: 16px;
+  }
+  
+  .coming-soon {
+    padding: 60px 20px;
+  }
+  
+  .coming-soon svg {
+    font-size: 60px;
+  }
+  
+  .coming-soon h2 {
+    font-size: 24px;
+  }
+}
+
+/* Compliance Sections */
+.compliance-section {
+  margin-bottom: 48px;
+}
+
+.section-header {
+  margin-bottom: 24px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.section-icon {
+  font-size: 24px;
+}
+
+.red-theme .section-icon {
+  color: #ef4444;
+}
+
+.orange-theme .section-icon {
+  color: #f97316;
+}
+
+.green-theme .section-icon {
+  color: #22c55e;
+}
+
+.section-subtitle {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Series Grid - 3 per row */
+.series-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Series Cards */
+.series-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.series-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+/* Red theme cards */
+.red-card {
+  border-left: 4px solid #ef4444;
+}
+
+.red-card:hover {
+  border-left-color: #dc2626;
+}
+
+/* Orange theme cards */
+.orange-card {
+  border-left: 4px solid #f97316;
+}
+
+.orange-card:hover {
+  border-left-color: #ea580c;
+}
+
+/* Green theme cards */
+.green-card {
+  border-left: 4px solid #22c55e;
+}
+
+.green-card:hover {
+  border-left-color: #16a34a;
+}
+
+/* Card Content */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.series-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.status-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.status-tag {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-tag.red {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.status-tag.orange {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.status-tag.green {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.frequency-tag {
+  padding: 2px 6px;
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.interest-rate {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 8px;
+}
+
+.series-stats {
+  margin-bottom: 16px;
+}
+
+.investors-count {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.funds-progress {
+  margin-bottom: 16px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #f1f5f9;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.red {
+  background: #ef4444;
+}
+
+.progress-fill.orange {
+  background: #f97316;
+}
+
+.progress-fill.green {
+  background: #22c55e;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.series-details {
+  margin-bottom: 16px;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.detail-value {
+  font-size: 12px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+/* View Details Buttons with proper hover colors */
+.view-details-button {
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  margin-top: 16px;
+}
+
+/* Red button for yet-to-be-submitted */
+.red-button {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.red-button:hover {
+  background: #dc2626 !important;
+  color: white !important;
+  border-color: #dc2626 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* Orange button for pending */
+.orange-button {
+  background: #fff7ed;
+  color: #ea580c;
+  border: 1px solid #fed7aa;
+}
+
+.orange-button:hover {
+  background: #ea580c !important;
+  color: white !important;
+  border-color: #ea580c !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+}
+
+/* Green button for submitted */
+.green-button {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+.green-button:hover {
+  background: #16a34a !important;
+  color: white !important;
+  border-color: #16a34a !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .series-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .compliance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .series-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .section-title {
+    font-size: 20px;
+  }
+  
+  .card-header {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .status-tags {
+    align-items: flex-start;
+  }
+}

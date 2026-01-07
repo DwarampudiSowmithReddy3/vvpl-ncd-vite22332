@@ -1,0 +1,144 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+.layout-content {
+  margin-left: 240px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.layout-header {
+  background: white;
+  padding: 32px 32px; /* Increased from 16px to 32px for desktop */
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.header-logo {
+  height: 40px;
+  width: auto;
+  display: none;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #1e293b;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.menu-toggle:hover {
+  background: #f1f5f9;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+.user-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.logout-button {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.logout-button:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.layout-main {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+.layout-footer {
+  padding: 24px 32px;
+  text-align: center;
+  margin-top: auto;
+}
+
+.footer-text {
+  font-size: 14px;
+  color: #94a3b8; /* Lighter than #64748b */
+  margin: 0;
+  font-weight: 400;
+}
+
+@media (max-width: 768px) {
+  .layout-content {
+    margin-left: 0;
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .header-logo {
+    display: block;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .layout-header {
+    padding: 12px 16px; /* Keep original mobile padding */
+    position: relative;
+  }
+
+  .layout-main {
+    padding: 16px;
+  }
+  
+  .layout-footer {
+    padding: 16px;
+  }
+  
+  .footer-text {
+    font-size: 12px;
+  }
+
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99;
+  }
+}

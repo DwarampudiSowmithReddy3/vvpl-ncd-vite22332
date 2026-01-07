@@ -1,0 +1,330 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useData } from '../context/DataContext';
+import Layout from '../components/Layout';
+import ComplianceTracker from '../components/ComplianceTracker';
+import './Compliance.css';
+import { 
+  MdSecurity, 
+  MdVerifiedUser, 
+  MdGavel, 
+  MdFileDownload, 
+  MdAdd,
+  MdWarning,
+  MdCheckCircle,
+  MdSchedule,
+  MdInfo
+} from "react-icons/md";
+import { HiOutlineEye, HiOutlineDocumentText } from "react-icons/hi";
+
+const Compliance = () => {
+  const navigate = useNavigate();
+  const { series } = useData();
+  const [selectedSeries, setSelectedSeries] = useState(null);
+  const [showComplianceTracker, setShowComplianceTracker] = useState(false);
+
+  // Fixed compliance data - stable across page visits
+  const complianceSeries = [
+    // Yet to be Submitted (4 series)
+    { id: 'comp-1', name: 'Series A NCD', interestRate: 8.5, interestFrequency: 'Quarterly', investors: 45, fundsRaised: 25000000, targetAmount: 100000000, issueDate: '2024-01-15', maturityDate: '2027-01-15', status: 'yet-to-be-submitted' },
+    { id: 'comp-2', name: 'Series B NCD', interestRate: 9.0, interestFrequency: 'Half-Yearly', investors: 32, fundsRaised: 18000000, targetAmount: 75000000, issueDate: '2024-02-01', maturityDate: '2027-02-01', status: 'yet-to-be-submitted' },
+    { id: 'comp-3', name: 'Series D NCD', interestRate: 8.75, interestFrequency: 'Annually', investors: 28, fundsRaised: 15000000, targetAmount: 60000000, issueDate: '2024-03-10', maturityDate: '2027-03-10', status: 'yet-to-be-submitted' },
+    { id: 'comp-4', name: 'Series E NCD', interestRate: 9.25, interestFrequency: 'Quarterly', investors: 38, fundsRaised: 22000000, targetAmount: 80000000, issueDate: '2024-04-05', maturityDate: '2027-04-05', status: 'yet-to-be-submitted' },
+    
+    // Pending (4 series)
+    { id: 'comp-5', name: 'Series F NCD', interestRate: 8.8, interestFrequency: 'Half-Yearly', investors: 52, fundsRaised: 45000000, targetAmount: 90000000, issueDate: '2024-01-20', maturityDate: '2027-01-20', status: 'pending' },
+    { id: 'comp-6', name: 'Series G NCD', interestRate: 9.1, interestFrequency: 'Quarterly', investors: 41, fundsRaised: 35000000, targetAmount: 70000000, issueDate: '2024-02-15', maturityDate: '2027-02-15', status: 'pending' },
+    { id: 'comp-7', name: 'Series H NCD', interestRate: 8.9, interestFrequency: 'Annually', investors: 47, fundsRaised: 40000000, targetAmount: 85000000, issueDate: '2024-03-01', maturityDate: '2027-03-01', status: 'pending' },
+    { id: 'comp-8', name: 'Series I NCD', interestRate: 9.3, interestFrequency: 'Half-Yearly', investors: 36, fundsRaised: 30000000, targetAmount: 65000000, issueDate: '2024-04-12', maturityDate: '2027-04-12', status: 'pending' },
+    
+    // Submitted (4 series)
+    { id: 'comp-9', name: 'Series J NCD', interestRate: 8.6, interestFrequency: 'Quarterly', investors: 65, fundsRaised: 85000000, targetAmount: 100000000, issueDate: '2024-01-10', maturityDate: '2027-01-10', status: 'submitted' },
+    { id: 'comp-10', name: 'Series K NCD', interestRate: 9.2, interestFrequency: 'Half-Yearly', investors: 58, fundsRaised: 70000000, targetAmount: 90000000, issueDate: '2024-02-08', maturityDate: '2027-02-08', status: 'submitted' },
+    { id: 'comp-11', name: 'Series L NCD', interestRate: 8.95, interestFrequency: 'Annually', investors: 72, fundsRaised: 95000000, targetAmount: 120000000, issueDate: '2024-03-05', maturityDate: '2027-03-05', status: 'submitted' },
+    { id: 'comp-12', name: 'Series M NCD', interestRate: 9.4, interestFrequency: 'Quarterly', investors: 61, fundsRaised: 80000000, targetAmount: 110000000, issueDate: '2024-04-18', maturityDate: '2027-04-18', status: 'submitted' }
+  ];
+
+  // Categorize series by compliance status - each series appears only once
+  const categorizedSeries = {
+    'yet-to-be-submitted': complianceSeries.filter(s => s.status === 'yet-to-be-submitted'),
+    'pending': complianceSeries.filter(s => s.status === 'pending'),
+    'submitted': complianceSeries.filter(s => s.status === 'submitted')
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount >= 10000000) {
+      return `₹${(amount / 10000000).toFixed(1)} Cr`;
+    }
+    return `₹${(amount / 100000).toFixed(2)} L`;
+  };
+
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 'yet-to-be-submitted':
+        return { label: 'Yet to be Submitted', color: 'red', icon: <MdWarning /> };
+      case 'pending':
+        return { label: 'Pending', color: 'orange', icon: <MdSchedule /> };
+      case 'submitted':
+        return { label: 'Submitted', color: 'green', icon: <MdCheckCircle /> };
+      default:
+        return { label: 'Unknown', color: 'gray', icon: <MdInfo /> };
+    }
+  };
+
+  const handleViewDetails = (series) => {
+    setSelectedSeries(series);
+    setShowComplianceTracker(true);
+  };
+
+  // Mock compliance data for the dashboard
+  const complianceData = {
+    totalRequirements: 45,
+    completed: 32,
+    pending: 8,
+    notApplicable: 5,
+    preCompliance: [
+      { requirement: 'Board Resolution for NCD Issue', reference: 'Companies Act 2013, Section 42', status: 'RECEIVED' },
+      { requirement: 'Credit Rating Certificate', reference: 'SEBI (ICDR) Regulations 2018', status: 'PENDING' },
+      { requirement: 'Debenture Trust Deed', reference: 'Companies Act 2013, Section 71', status: 'IN RECORDS' },
+      { requirement: 'Prospectus Filing', reference: 'Companies Act 2013, Section 26', status: 'RECEIVED' },
+      { requirement: 'SEBI Approval Letter', reference: 'SEBI (ICDR) Regulations 2018', status: 'PENDING' }
+    ],
+    criticalDeadlines: [
+      { item: 'Debenture Trust Deed', deadline: '2024-01-15', daysLeft: 9 },
+      { item: 'MCA Filings', deadline: '2024-01-20', daysLeft: 14 },
+      { item: 'SEBI Compliance Report', deadline: '2024-01-25', daysLeft: 19 }
+    ],
+    allotmentStatus: [
+      { item: 'Allotment Letter Issued', completed: true },
+      { item: 'Demat Credit Completed', completed: true },
+      { item: 'Listing Application Filed', completed: false },
+      { item: 'Trading Approval Received', completed: false }
+    ],
+    recurringObligations: [
+      { item: 'Interest Payment Confirmations', frequency: 'Monthly', nextDue: '2024-02-01' },
+      { item: 'Quarterly Reports to Trustees', frequency: 'Quarterly', nextDue: '2024-03-31' },
+      { item: 'Annual Compliance Certificate', frequency: 'Yearly', nextDue: '2024-12-31' }
+    ]
+  };
+
+  return (
+    <Layout>
+      <div className="compliance-container">
+        <div className="compliance-header">
+          <div className="header-content">
+            <h1>Compliance Management</h1>
+            <p>Monitor regulatory compliance status across all NCD series</p>
+          </div>
+        </div>
+
+        {/* Yet to be Submitted - Red Theme */}
+        <div className="compliance-section red-theme">
+          <div className="section-header">
+            <h2 className="section-title">
+              <MdWarning className="section-icon" />
+              Yet to be Submitted ({categorizedSeries['yet-to-be-submitted'].length})
+            </h2>
+            <p className="section-subtitle">Series with many pending document submissions</p>
+          </div>
+          <div className="series-grid">
+            {categorizedSeries['yet-to-be-submitted'].map((s) => {
+              const progress = (s.fundsRaised / s.targetAmount) * 100;
+              const statusInfo = getStatusInfo('yet-to-be-submitted');
+              return (
+                <div key={s.id} className="series-card red-card">
+                  <div className="card-header">
+                    <h3 className="series-name">{s.name}</h3>
+                    <div className="status-tags">
+                      <span className={`status-tag ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                      <span className="frequency-tag">{s.interestFrequency}</span>
+                    </div>
+                  </div>
+                  <div className="interest-rate">
+                    {s.interestRate}%
+                  </div>
+                  <div className="series-stats">
+                    <span className="investors-count">{s.investors} investors</span>
+                  </div>
+                  <div className="funds-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className={`progress-fill ${statusInfo.color}`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="progress-text">
+                      {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                    </div>
+                  </div>
+                  <div className="series-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Issue Date:</span>
+                      <span className="detail-value">{s.issueDate}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Maturity Date:</span>
+                      <span className="detail-value">{s.maturityDate}</span>
+                    </div>
+                  </div>
+                  <button 
+                    className="view-details-button red-button"
+                    onClick={() => handleViewDetails(s)}
+                  >
+                    <HiOutlineEye size={18} /> View Details
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Pending - Orange Theme */}
+        <div className="compliance-section orange-theme">
+          <div className="section-header">
+            <h2 className="section-title">
+              <MdSchedule className="section-icon" />
+              Pending ({categorizedSeries['pending'].length})
+            </h2>
+            <p className="section-subtitle">Series with moderate compliance progress</p>
+          </div>
+          <div className="series-grid">
+            {categorizedSeries['pending'].map((s) => {
+              const progress = (s.fundsRaised / s.targetAmount) * 100;
+              const statusInfo = getStatusInfo('pending');
+              return (
+                <div key={s.id} className="series-card orange-card">
+                  <div className="card-header">
+                    <h3 className="series-name">{s.name}</h3>
+                    <div className="status-tags">
+                      <span className={`status-tag ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                      <span className="frequency-tag">{s.interestFrequency}</span>
+                    </div>
+                  </div>
+                  <div className="interest-rate">
+                    {s.interestRate}%
+                  </div>
+                  <div className="series-stats">
+                    <span className="investors-count">{s.investors} investors</span>
+                  </div>
+                  <div className="funds-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className={`progress-fill ${statusInfo.color}`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="progress-text">
+                      {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                    </div>
+                  </div>
+                  <div className="series-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Issue Date:</span>
+                      <span className="detail-value">{s.issueDate}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Maturity Date:</span>
+                      <span className="detail-value">{s.maturityDate}</span>
+                    </div>
+                  </div>
+                  <button 
+                    className="view-details-button orange-button"
+                    onClick={() => handleViewDetails(s)}
+                  >
+                    <HiOutlineEye size={18} /> View Details
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Submitted - Green Theme */}
+        <div className="compliance-section green-theme">
+          <div className="section-header">
+            <h2 className="section-title">
+              <MdCheckCircle className="section-icon" />
+              Submitted ({categorizedSeries['submitted'].length})
+            </h2>
+            <p className="section-subtitle">Series with complete compliance documentation</p>
+          </div>
+          <div className="series-grid">
+            {categorizedSeries['submitted'].map((s) => {
+              const progress = (s.fundsRaised / s.targetAmount) * 100;
+              const statusInfo = getStatusInfo('submitted');
+              return (
+                <div key={s.id} className="series-card green-card">
+                  <div className="card-header">
+                    <h3 className="series-name">{s.name}</h3>
+                    <div className="status-tags">
+                      <span className={`status-tag ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                      <span className="frequency-tag">{s.interestFrequency}</span>
+                    </div>
+                  </div>
+                  <div className="interest-rate">
+                    {s.interestRate}%
+                  </div>
+                  <div className="series-stats">
+                    <span className="investors-count">{s.investors} investors</span>
+                  </div>
+                  <div className="funds-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className={`progress-fill ${statusInfo.color}`}
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    <div className="progress-text">
+                      {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                    </div>
+                  </div>
+                  <div className="series-details">
+                    <div className="detail-item">
+                      <span className="detail-label">Issue Date:</span>
+                      <span className="detail-value">{s.issueDate}</span>
+                    </div>
+                    <div className="detail-item">
+                      <span className="detail-label">Maturity Date:</span>
+                      <span className="detail-value">{s.maturityDate}</span>
+                    </div>
+                  </div>
+                  <button 
+                    className="view-details-button green-button"
+                    onClick={() => handleViewDetails(s)}
+                  >
+                    <HiOutlineEye size={18} /> View Details
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Compliance Tracker Modal - Dynamic for each series */}
+        {showComplianceTracker && selectedSeries && (
+          <ComplianceTracker 
+            onClose={() => setShowComplianceTracker(false)} 
+            seriesData={{
+              seriesName: selectedSeries.name,
+              trusteeCompany: 'SBICAP Trustee Co. Ltd.',
+              stats: {
+                totalRequirements: 42,
+                receivedCompleted: selectedSeries.status === 'submitted' ? 38 : selectedSeries.status === 'pending' ? 25 : 12,
+                pendingActions: selectedSeries.status === 'submitted' ? 4 : selectedSeries.status === 'pending' ? 15 : 25,
+                notApplicable: selectedSeries.status === 'submitted' ? 0 : selectedSeries.status === 'pending' ? 2 : 5
+              }
+            }}
+          />
+        )}
+      </div>
+    </Layout>
+  );
+};
+
+export default Compliance;
