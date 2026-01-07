@@ -51,6 +51,15 @@ function App() {
       <DataProvider>
         <Router>
           <Routes>
+            <Route path="/" element={<Login />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute requireAdmin={true}>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/login" element={<Login />} />
             <Route 
               path="/dashboard" 
