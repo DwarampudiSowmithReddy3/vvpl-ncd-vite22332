@@ -57,7 +57,7 @@ const Login = () => {
       </div>
 
       <div className="login-card">
-        <img className="login-title" src="public\logo_lf_ncd.png" alt="NCD Platform Logo" />
+        <img className="login-title" src="/logo_lf_ncd.png" alt="NCD Platform Logo" />
         <hr className='login-hr'></hr>
         <p className="login-subtitle">Sign in to your account</p>
         <form onSubmit={handleSubmit} className="login-form">
