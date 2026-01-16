@@ -5,18 +5,37 @@
 
 .dashboard-header {
   margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.header-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  align-items: flex-start;
+}
+
+.header-right {
+  flex-shrink: 0;
 }
 
 .dashboard-title {
   font-size: 32px;
   font-weight: bold;
   color: #1e293b;
-  margin-bottom: 8px;
+  margin-bottom: 0px;
+  line-height: 1.1;
 }
 
 .dashboard-subtitle {
   font-size: 16px;
   color: #64748b;
+  margin: -8px 0 0 0;
+  line-height: 1.2;
 }
 
 .dashboard-cards {
@@ -163,9 +182,9 @@
 }
 
 .view-all-button {
-  background: none;
-  border: none;
-  color: #2563eb;
+  background: none !important;
+  border: none !important;
+  color: #2563eb !important;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
@@ -173,16 +192,17 @@
   align-items: center;
   gap: 4px;
   transition: all 0.3s ease;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  text-decoration: none;
 }
 
 .view-all-button:hover {
-  background: #fbbf24 !important;
-  color: #1f2937 !important;
-  text-decoration: none !important;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
+  color: #1d4ed8 !important;
+  text-decoration: underline !important;
+  background: none !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .calendar-icon {
@@ -265,16 +285,19 @@
 }
 
 .kyc-badge {
-  padding: 6px 0;
-  width: 100px;              /* ✅ SAME WIDTH FOR ALL */
-  text-align: center;        /* ✅ TEXT CENTER */
-  border-radius: 25px;
+  padding: 6px 20px;
+  width: auto;              /* ✅ AUTO WIDTH TO FIT CONTENT */
+  min-width: 100px;         /* ✅ INCREASED MINIMUM WIDTH */
+  height: 28px;             /* ✅ DECREASED HEIGHT */
+  text-align: center;       /* ✅ TEXT CENTER */
+  border-radius: 14px;      /* ✅ ADJUSTED BORDER RADIUS FOR NEW HEIGHT */
   font-size: 12px;
   font-weight: 600;
   text-transform: capitalize;
-  display: inline-flex;      /* ✅ PERFECT ALIGNMENT */
+  display: inline-flex;     /* ✅ PERFECT ALIGNMENT */
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;   /* ✅ INCLUDE PADDING IN HEIGHT */
 }
 
 /* KYC Completed - Green */
@@ -460,6 +483,19 @@
     gap: 4px;
   }
 
+  .payout-date-container {
+    align-items: center;
+    gap: 2px;
+  }
+
+  .payout-date {
+    font-size: 12px;
+  }
+
+  .payout-days-left {
+    font-size: 10px;
+  }
+
   .investor-name,
   .payout-series {
     font-size: 11px;
@@ -471,9 +507,11 @@
   }
 
   .kyc-badge {
-    width: 80px;
+    min-width: 85px;
+    height: 24px;
     font-size: 10px;
-    padding: 4px 0;
+    padding: 4px 16px;
+    border-radius: 12px;
   }
 }
 
@@ -700,5 +738,49 @@
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
+  }
+}
+/* Payout Date Container Styles */
+.payout-date-container {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.payout-date {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.payout-days-left {
+  font-size: 12px;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+/* Mobile responsive adjustments for header */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  
+  .header-right {
+    align-self: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  
+  .header-right {
+    align-self: center;
   }
 }

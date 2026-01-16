@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import './SeriesDetails.css';
 import { 
@@ -24,7 +25,10 @@ import 'jspdf-autotable';
 const SeriesDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { series = [], investors = [] } = useData();
+  const { series = [], investors = [], addAuditLog } = useData();
+  const { user } = useAuth();
+  const [showFundsModal, setShowFundsModal] = useState(false);
+  const [showInvestorsModal, setShowInvestorsModal] = useState(false);
 
   // Check if we came from investor details by looking at the referrer or state
   const handleBackNavigation = () => {
@@ -142,12 +146,81 @@ const SeriesDetails = () => {
     if (foundSeries) {
       seriesData = {
         ...foundSeries,
-        status: foundSeries.status === 'active' ? 'Active' : foundSeries.status,
+        status: foundSeries.status === 'DRAFT' ? 'Yet to be approved' : 
+                foundSeries.status === 'upcoming' ? 'Releasing soon' :
+                foundSeries.status === 'active' ? 'Active' : foundSeries.status,
         progress: Math.round((foundSeries.fundsRaised / foundSeries.targetAmount) * 100),
-        payouts: defaultSeries.payouts,
-        transactions: defaultSeries.transactions
+        payouts: [], // No fake payouts - will be calculated from real data
+        transactions: [] // Will be populated from actual investments
       };
     }
+  }
+
+  // Get actual investors for this series
+  const seriesInvestors = investors.filter(inv => 
+    inv.series && Array.isArray(inv.series) && inv.series.includes(seriesData.name)
+  );
+
+  // Generate real transactions from investments array
+  const realTransactions = [];
+  seriesInvestors.forEach(inv => {
+    if (inv.investments && Array.isArray(inv.investments)) {
+      const seriesInvestments = inv.investments.filter(investment => investment.seriesName === seriesData.name);
+      seriesInvestments.forEach(investment => {
+        realTransactions.push({
+          date: investment.date,
+          timestamp: investment.timestamp,
+          investor: inv.name,
+          investorId: inv.investorId,
+          type: 'subscription',
+          amount: investment.amount,
+          addedBy: investment.addedBy || 'Admin',
+          addedByRole: investment.addedByRole || 'Admin'
+        });
+      });
+    }
+  });
+
+  // Sort transactions by timestamp (newest first)
+  realTransactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  // Update seriesData with real transactions only
+  if (realTransactions.length > 0) {
+    seriesData.transactions = realTransactions;
+  } else {
+    // No transactions for new series - set empty array
+    seriesData.transactions = [];
+  }
+
+  // Calculate investment per investor for this series using investments array
+  const investorDetails = seriesInvestors.map(inv => {
+    let investmentInThisSeries = 0;
+    
+    // Use investments array if available (per-series tracking)
+    if (inv.investments && Array.isArray(inv.investments)) {
+      const seriesInvestments = inv.investments.filter(investment => investment.seriesName === seriesData.name);
+      investmentInThisSeries = seriesInvestments.reduce((sum, investment) => sum + investment.amount, 0);
+    } else {
+      // Fallback to old calculation
+      investmentInThisSeries = inv.series.length > 0 ? inv.investment / inv.series.length : 0;
+    }
+    
+    return {
+      name: inv.name,
+      investorId: inv.investorId,
+      amount: Math.round(investmentInThisSeries),
+      kycStatus: inv.kycStatus
+    };
+  });
+
+  // Recalculate actual funds raised from investors
+  const actualFundsRaised = investorDetails.reduce((sum, inv) => sum + inv.amount, 0);
+  
+  // Update seriesData with actual calculated values
+  if (seriesInvestors.length > 0) {
+    seriesData.fundsRaised = actualFundsRaised;
+    seriesData.investors = seriesInvestors.length;
+    seriesData.progress = Math.round((actualFundsRaised / seriesData.targetAmount) * 100);
   }
 
   const formatCurrency = (amount) => {
@@ -283,23 +356,36 @@ const SeriesDetails = () => {
       doc.text('Recent Transactions', 20, yPosition);
       yPosition += 15;
       
-      doc.setFontSize(12);
-      doc.text('Latest Transaction Activity:', 20, yPosition);
-      yPosition += 10;
-      
-      seriesData.transactions.forEach((transaction, index) => {
-        if (yPosition > pageHeight - 25) {
-          doc.addPage();
-          yPosition = 20;
-        }
+      if (seriesData.transactions && seriesData.transactions.length > 0) {
+        doc.setFontSize(12);
+        doc.text('Latest Transaction Activity:', 20, yPosition);
+        yPosition += 10;
         
-        doc.setFontSize(10);
-        doc.setTextColor(60, 60, 60);
-        doc.text((index + 1) + '. ' + transaction.date + ' - ' + transaction.investor, 25, yPosition);
-        yPosition += 6;
-        doc.text('   Type: ' + transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1) + ', Amount: ' + formatCurrencyFull(transaction.amount), 30, yPosition);
-        yPosition += 12;
-      });
+        seriesData.transactions.forEach((transaction, index) => {
+          if (yPosition > pageHeight - 25) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.setFontSize(10);
+          doc.setTextColor(60, 60, 60);
+          doc.text((index + 1) + '. ' + transaction.date + ' - ' + transaction.investor, 25, yPosition);
+          yPosition += 6;
+          doc.text('   Type: ' + transaction.type + ', Amount: ₹' + transaction.amount.toLocaleString('en-IN'), 30, yPosition);
+          yPosition += 12;
+        });
+      } else {
+        doc.setFontSize(12);
+        doc.setTextColor(100, 100, 100);
+        if (seriesData.status === 'Yet to be approved') {
+          doc.text('No transactions available - Series pending board approval', 20, yPosition);
+        } else if (seriesData.status === 'Releasing soon') {
+          doc.text('No transactions available - Series not yet released', 20, yPosition);
+        } else {
+          doc.text('No transactions available', 20, yPosition);
+        }
+        yPosition += 15;
+      }
       
       yPosition += 15;
       
@@ -377,6 +463,21 @@ const SeriesDetails = () => {
       const fileName = seriesData.name.replace(/\s+/g, '_') + '_Report_' + new Date().toISOString().split('T')[0] + '.pdf';
       doc.save(fileName);
       
+      // Add audit log for document download
+      addAuditLog({
+        action: 'Downloaded Report',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Downloaded Series Report for "${seriesData.name}" (PDF format)`,
+        entityType: 'Series',
+        entityId: seriesData.name,
+        changes: {
+          documentType: 'Series Report',
+          fileName: fileName,
+          format: 'PDF'
+        }
+      });
+      
       console.log('Series PDF generated successfully:', fileName);
     } catch (error) {
       console.error('Error generating series PDF:', error);
@@ -413,10 +514,9 @@ const SeriesDetails = () => {
             <div className="series-title-section">
               <h1 className="series-name">{seriesData.name}</h1>
               <div className="series-meta">
-                <span className={`status-badge ${seriesData.status.toLowerCase()}`}>
+                <span className={`status-badge ${seriesData.status.toLowerCase().replace(/\s+/g, '-')}`}>
                   {seriesData.status}
                 </span>
-                <p className="series-subtitle">Detailed information and analytics.</p>
               </div>
             </div>
           </div>
@@ -427,7 +527,7 @@ const SeriesDetails = () => {
 
         {/* Key Metrics Cards */}
         <div className="metrics-grid">
-          <div className="metric-card">
+          <div className="metric-card clickable-card" onClick={() => setShowFundsModal(true)}>
             <div className="metric-icon green">
               <MdCurrencyRupee size={24} />
             </div>
@@ -436,7 +536,7 @@ const SeriesDetails = () => {
               <span className="metric-value">{formatCurrency(seriesData.fundsRaised)}</span>
             </div>
           </div>
-          <div className="metric-card">
+          <div className="metric-card clickable-card" onClick={() => setShowInvestorsModal(true)}>
             <div className="metric-icon grey">
               <FiUsers size={24} />
             </div>
@@ -473,18 +573,22 @@ const SeriesDetails = () => {
             <div className="details-list">
               <div className="detail-row">
                 <div className="detail-item">
-                  <HiOutlineCalendar className="detail-icon" />
                   <div className="detail-content">
-                    <span className="detail-label">Issue Date</span>
+                    <div className="detail-label-with-icon">
+                      <HiOutlineCalendar className="detail-icon" />
+                      <span className="detail-label">Issue Date</span>
+                    </div>
                     <span className="detail-value">{seriesData.issueDate}</span>
                   </div>
                 </div>
               </div>
               <div className="detail-row">
                 <div className="detail-item">
-                  <HiOutlineCalendar className="detail-icon" />
                   <div className="detail-content">
-                    <span className="detail-label">Maturity Date</span>
+                    <div className="detail-label-with-icon">
+                      <HiOutlineCalendar className="detail-icon" />
+                      <span className="detail-label">Maturity Date</span>
+                    </div>
                     <span className="detail-value">{seriesData.maturityDate}</span>
                   </div>
                 </div>
@@ -528,22 +632,38 @@ const SeriesDetails = () => {
           <div className="details-card">
             <h2 className="card-title">Payout Schedule</h2>
             <div className="payouts-list">
-              {seriesData.payouts.map((payout) => (
-                <div key={payout.id} className="payout-card">
-                  <div className="payout-header">
-                    <div className="payout-title">
-                      <HiOutlineCalendar className="payout-icon" />
-                      <span>Payout {payout.id}</span>
+              {seriesData.payouts && seriesData.payouts.length > 0 ? (
+                seriesData.payouts.map((payout) => (
+                  <div key={payout.id} className="payout-card">
+                    <div className="payout-header">
+                      <div className="payout-title">
+                        <HiOutlineCalendar className="payout-icon" />
+                        <span>Payout {payout.id}</span>
+                      </div>
+                      <span className={`payout-status ${payout.status}`}>
+                        {payout.status}
+                      </span>
                     </div>
-                    <span className={`payout-status ${payout.status}`}>
-                      {payout.status}
-                    </span>
+                    <div className="payout-date">{payout.date}</div>
+                    <div className="payout-details">{payout.investors} investors</div>
+                    <div className="payout-amount">{formatCurrencyFull(payout.amount)}</div>
                   </div>
-                  <div className="payout-date">{payout.date}</div>
-                  <div className="payout-details">{payout.investors} investors</div>
-                  <div className="payout-amount">{formatCurrencyFull(payout.amount)}</div>
+                ))
+              ) : (
+                <div className="no-payouts">
+                  <HiOutlineCalendar size={48} style={{ opacity: 0.3 }} />
+                  <p>No payout schedule available</p>
+                  {seriesData.status === 'Yet to be approved' && (
+                    <p className="draft-message">Series is pending board approval. Payout schedule will be generated after release.</p>
+                  )}
+                  {seriesData.status === 'Releasing soon' && (
+                    <p className="draft-message">Series is approved but not yet released. Payout schedule will be generated after release date.</p>
+                  )}
+                  {seriesData.status === 'Active' && seriesData.fundsRaised === 0 && (
+                    <p className="draft-message">No investments yet. Payout schedule will be generated once investments are made.</p>
+                  )}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -552,32 +672,152 @@ const SeriesDetails = () => {
         <div className="transactions-section">
           <h2 className="section-title">Recent Transactions</h2>
           <div className="transactions-table-card">
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Investor</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {seriesData.transactions.map((transaction, index) => (
-                  <tr key={index}>
-                    <td>{transaction.date}</td>
-                    <td>{transaction.investor}</td>
-                    <td>
-                      <span className={`type-badge ${transaction.type}`}>
-                        {transaction.type}
-                      </span>
-                    </td>
-                    <td className="amount-cell">{formatCurrencyFull(transaction.amount)}</td>
+            {seriesData.transactions && seriesData.transactions.length > 0 ? (
+              <table className="transactions-table">
+                <thead>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Investor Name</th>
+                    <th>Investor ID</th>
+                    <th>Type</th>
+                    <th>Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {seriesData.transactions.map((transaction, index) => (
+                    <tr key={index}>
+                      <td>
+                        <div className="date-time-cell">
+                          <div className="date">{transaction.date}</div>
+                          {transaction.timestamp && (
+                            <div className="time">
+                              {new Date(transaction.timestamp).toLocaleTimeString('en-IN', { 
+                                hour: '2-digit', 
+                                minute: '2-digit',
+                                hour12: true 
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td>{transaction.investor}</td>
+                      <td>
+                        <span className="investor-id-badge">{transaction.investorId}</span>
+                      </td>
+                      <td>
+                        <span className={`type-badge ${transaction.type}`}>
+                          {transaction.type}
+                        </span>
+                      </td>
+                      <td className="amount-cell">{formatCurrencyFull(transaction.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="no-transactions">
+                <p>No transactions available</p>
+                {seriesData.status === 'Yet to be approved' && (
+                  <p className="draft-message">Series is pending board approval. Transactions will appear after release.</p>
+                )}
+                {seriesData.status === 'Releasing soon' && (
+                  <p className="draft-message">Series is approved but not yet released. Transactions will appear after release date.</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Funds Raised Modal */}
+        {showFundsModal && (
+          <div className="modal-overlay" onClick={() => setShowFundsModal(false)}>
+            <div className="modal-content funds-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Funds Raised - {seriesData.name}</h2>
+                <button className="close-button" onClick={() => setShowFundsModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="modal-summary">
+                  <p><strong>Total Funds Raised:</strong> {formatCurrency(seriesData.fundsRaised)}</p>
+                  <p><strong>Total Investors:</strong> {investorDetails.length}</p>
+                </div>
+                <table className="modal-table">
+                  <thead>
+                    <tr>
+                      <th>Investor Name</th>
+                      <th>Investor ID</th>
+                      <th>Amount Invested</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investorDetails.map((inv, index) => (
+                      <tr key={index}>
+                        <td>{inv.name}</td>
+                        <td>{inv.investorId}</td>
+                        <td>₹{inv.amount.toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                    {investorDetails.length === 0 && (
+                      <tr>
+                        <td colSpan="3" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
+                          No investors yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Investors Modal */}
+        {showInvestorsModal && (
+          <div className="modal-overlay" onClick={() => setShowInvestorsModal(false)}>
+            <div className="modal-content investors-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Investors - {seriesData.name}</h2>
+                <button className="close-button" onClick={() => setShowInvestorsModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="modal-summary">
+                  <p><strong>Total Investors:</strong> {investorDetails.length}</p>
+                </div>
+                <table className="modal-table">
+                  <thead>
+                    <tr>
+                      <th>Investor Name</th>
+                      <th>Investor ID</th>
+                      <th>KYC Status</th>
+                      <th>Investment Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investorDetails.map((inv, index) => (
+                      <tr key={index}>
+                        <td>{inv.name}</td>
+                        <td>{inv.investorId}</td>
+                        <td>
+                          <span className={`status-badge ${inv.kycStatus.toLowerCase()}`}>
+                            {inv.kycStatus}
+                          </span>
+                        </td>
+                        <td>₹{inv.amount.toLocaleString('en-IN')}</td>
+                      </tr>
+                    ))}
+                    {investorDetails.length === 0 && (
+                      <tr>
+                        <td colSpan="4" style={{textAlign: 'center', padding: '20px', color: '#64748b'}}>
+                          No investors yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

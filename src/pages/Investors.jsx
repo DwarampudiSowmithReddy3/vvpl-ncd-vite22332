@@ -1,24 +1,42 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import './Investors.css';
-import { MdOutlineFileDownload } from "react-icons/md";
+import { MdOutlineFileDownload, MdTrendingUp, MdCurrencyRupee } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
 import { FiFilter } from "react-icons/fi";
 import { FaEye } from "react-icons/fa";
 import { TiUserAdd } from "react-icons/ti";
-import { HiOutlineDocumentText } from "react-icons/hi";
+import { HiOutlineDocumentText, HiOutlineMail, HiOutlinePhone, HiOutlineCalendar, HiOutlineChartBar, HiOutlineArrowRight } from "react-icons/hi";
 import { FiUpload } from "react-icons/fi";
 
 
 
 const Investors = () => {
   const navigate = useNavigate();
-  const { investors, getTotalInvestors, getKYCCompleted, getKYCRejected, getPendingKYC, addInvestor } = useData();
+  const { showCreateButton, showEditButton, canEdit } = usePermissions();
+  const { user } = useAuth();
+  const { investors, series, getTotalInvestors, getKYCCompleted, getKYCRejected, getPendingKYC, addInvestor, updateInvestor, updateSeries, addAuditLog } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showKYCDropdown, setShowKYCDropdown] = useState(false);
+  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+  const [selectedKYCFilter, setSelectedKYCFilter] = useState('all');
+  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState('all');
   const [showAddInvestorModal, setShowAddInvestorModal] = useState(false);
+  const [showAddInvestmentModal, setShowAddInvestmentModal] = useState(false);
+  const [showInvestorDetails, setShowInvestorDetails] = useState(false);
+  const [showSeriesSelection, setShowSeriesSelection] = useState(false);
+  const [showInvestmentForm, setShowInvestmentForm] = useState(false);
+  const [selectedInvestor, setSelectedInvestor] = useState(null);
+  const [selectedSeries, setSelectedSeries] = useState(null);
+  const [investorSearchTerm, setInvestorSearchTerm] = useState('');
+  const [investmentAmount, setInvestmentAmount] = useState('');
+  const [investmentDocument, setInvestmentDocument] = useState(null);
   const [formData, setFormData] = useState({
     // Applicant's Personal Information
     fullName: '',
@@ -33,11 +51,6 @@ const Investors = () => {
     bankName: '',
     accountNumber: '1234567890123456',
     ifscCode: 'SBIN0001234',
-    
-    // Investment Information
-    investmentAmount: '',
-    paymentMode: 'NEFT',
-    transferDate: '',
     
     // KYC Information
     occupation: '',
@@ -75,11 +88,16 @@ const Investors = () => {
         investor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         investor.investorId.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesFilter = filterStatus === 'all' || investor.kycStatus === filterStatus;
+      // KYC Status filter
+      const matchesKYCFilter = selectedKYCFilter === 'all' || investor.kycStatus === selectedKYCFilter;
       
-      return matchesSearch && matchesFilter;
+      // Series filter
+      const matchesSeriesFilter = selectedSeriesFilter === 'all' || 
+        (investor.series && investor.series.includes(selectedSeriesFilter));
+      
+      return matchesSearch && matchesKYCFilter && matchesSeriesFilter;
     });
-  }, [investors, searchTerm, filterStatus]);
+  }, [investors, searchTerm, selectedKYCFilter, selectedSeriesFilter]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -99,9 +117,9 @@ const Investors = () => {
       case 'Completed':
         return 'Completed';
       case 'Pending':
-        return 'Pending ';  // Add space to match length
+        return 'Pending';
       case 'Rejected':
-        return 'Rejected ';  // Add space to match length
+        return 'Rejected';
       default:
         return status;
     }
@@ -126,8 +144,85 @@ const Investors = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'investors.csv';
+    const fileName = 'investors.csv';
+    a.download = fileName;
     a.click();
+    
+    // Add audit log for document download
+    addAuditLog({
+      action: 'Downloaded Report',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Downloaded Investors List (${filteredInvestors.length} investors, CSV format)`,
+      entityType: 'Investor',
+      entityId: 'All Investors',
+      changes: {
+        documentType: 'Investors List',
+        fileName: fileName,
+        format: 'CSV',
+        recordCount: filteredInvestors.length
+      }
+    });
+  };
+
+  // Filter handlers
+  const handleFilterToggle = () => {
+    setShowFilterDropdown(!showFilterDropdown);
+    setShowKYCDropdown(false);
+    setShowSeriesDropdown(false);
+  };
+
+  const handleKYCFilterToggle = () => {
+    setShowKYCDropdown(!showKYCDropdown);
+    setShowSeriesDropdown(false);
+  };
+
+  const handleSeriesFilterToggle = () => {
+    setShowSeriesDropdown(!showSeriesDropdown);
+    setShowKYCDropdown(false);
+  };
+
+  const handleKYCFilterSelect = (status) => {
+    setSelectedKYCFilter(status);
+    setShowKYCDropdown(false);
+    setShowFilterDropdown(false);
+  };
+
+  const handleSeriesFilterSelect = (seriesName) => {
+    setSelectedSeriesFilter(seriesName);
+    setShowSeriesDropdown(false);
+    setShowFilterDropdown(false);
+  };
+
+  const clearFilters = () => {
+    setSelectedKYCFilter('all');
+    setSelectedSeriesFilter('all');
+    setShowFilterDropdown(false);
+    setShowKYCDropdown(false);
+    setShowSeriesDropdown(false);
+  };
+
+  // Get unique series names from investors
+  const getUniqueSeriesFromInvestors = () => {
+    const allSeries = investors.flatMap(investor => investor.series || []);
+    return [...new Set(allSeries)];
+  };
+
+  // Map series names to IDs for navigation
+  const getSeriesId = (seriesName) => {
+    const seriesMap = {
+      'Series A': '1',
+      'Series B': '2',
+      'Series C': '3',
+      'Series D': '4',
+      'Series E': '5'
+    };
+    return seriesMap[seriesName] || '1'; // Default to '1' if not found
+  };
+
+  const handleSeriesClick = (seriesName) => {
+    const seriesId = getSeriesId(seriesName);
+    navigate(`/ncd-series/${seriesId}`);
   };
 
   const handleDragOver = (e) => {
@@ -170,6 +265,56 @@ const Investors = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Create KYC documents array from uploaded files
+    const kycDocuments = [];
+    const uploadDate = new Date().toLocaleDateString('en-GB');
+    
+    if (formData.panDocument) {
+      kycDocuments.push({
+        name: 'PAN Card',
+        uploadedDate: uploadDate,
+        status: formData.kycStatus,
+        fileName: formData.panDocument.name
+      });
+    }
+    
+    if (formData.aadhaarDocument) {
+      kycDocuments.push({
+        name: 'Aadhaar Card',
+        uploadedDate: uploadDate,
+        status: formData.kycStatus,
+        fileName: formData.aadhaarDocument.name
+      });
+    }
+    
+    if (formData.cancelledCheque) {
+      kycDocuments.push({
+        name: 'Cancelled Cheque',
+        uploadedDate: uploadDate,
+        status: formData.kycStatus,
+        fileName: formData.cancelledCheque.name
+      });
+    }
+    
+    if (formData.form15G15H) {
+      kycDocuments.push({
+        name: 'Form 15G/15H',
+        uploadedDate: uploadDate,
+        status: formData.kycStatus,
+        fileName: formData.form15G15H.name
+      });
+    }
+    
+    if (formData.digitalSignature) {
+      kycDocuments.push({
+        name: 'Digital Signature',
+        uploadedDate: uploadDate,
+        status: formData.kycStatus,
+        fileName: formData.digitalSignature.name
+      });
+    }
+    
     const newInvestor = {
       name: formData.fullName,
       investorId: generateInvestorId(),
@@ -181,10 +326,38 @@ const Investors = () => {
       kycStatus: formData.kycStatus,
       active: formData.active,
       series: [],
-      investment: parseInt(formData.investmentAmount) || 0,
-      dateJoined: new Date().toLocaleDateString('en-GB')
+      investment: 0,
+      dateJoined: new Date().toLocaleDateString('en-GB'),
+      bankAccountNumber: formData.accountNumber,
+      ifscCode: formData.ifscCode,
+      bankName: formData.bankName,
+      kycDocuments: kycDocuments
     };
-    addInvestor(newInvestor);
+    
+    const success = addInvestor(newInvestor);
+    if (!success) {
+      return; // Don't close modal if duplicate ID
+    }
+    
+    // Add audit log for investor creation
+    addAuditLog({
+      action: 'Created Investor',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Created new investor "${formData.fullName}" (ID: ${newInvestor.investorId}) with KYC status: ${formData.kycStatus}`,
+      entityType: 'Investor',
+      entityId: newInvestor.investorId,
+      changes: {
+        investorName: formData.fullName,
+        investorId: newInvestor.investorId,
+        email: formData.email,
+        phone: formData.phone,
+        kycStatus: formData.kycStatus,
+        bankName: formData.bankName,
+        documentsUploaded: kycDocuments.length
+      }
+    });
+    
     setShowAddInvestorModal(false);
     // Reset form
     setFormData({
@@ -198,9 +371,6 @@ const Investors = () => {
       bankName: '',
       accountNumber: '1234567890123456',
       ifscCode: 'SBIN0001234',
-      investmentAmount: '',
-      paymentMode: 'NEFT',
-      transferDate: '',
       occupation: '',
       sourceOfFunds: '',
       nomineeName: '',
@@ -219,6 +389,110 @@ const Investors = () => {
     });
   };
 
+  // Investment flow handlers
+  const handleInvestorSearch = () => {
+    const investor = investors.find(inv => inv.investorId === investorSearchTerm.trim());
+    if (investor) {
+      setSelectedInvestor(investor);
+      setShowInvestorDetails(true);
+    } else {
+      alert('Investor not found. Please check the Investor ID.');
+    }
+  };
+
+  const handleProceedToSeries = () => {
+    setShowInvestorDetails(false);
+    setShowSeriesSelection(true);
+  };
+
+  const handleSeriesSelect = (series) => {
+    setSelectedSeries(series);
+    setShowSeriesSelection(false);
+    setShowInvestmentForm(true);
+  };
+
+  const handleInvestmentSubmit = () => {
+    if (!investmentAmount || !investmentDocument) {
+      alert('Please fill all required fields and upload document.');
+      return;
+    }
+    
+    // Ensure series is an array
+    const currentSeries = Array.isArray(selectedInvestor.series) ? selectedInvestor.series : [];
+    const currentInvestments = Array.isArray(selectedInvestor.investments) ? selectedInvestor.investments : [];
+    
+    // Check if this is a new investment in this series
+    const isNewSeriesForInvestor = !currentSeries.includes(selectedSeries.name);
+    
+    // Create new investment record with admin who made the change
+    const newInvestment = {
+      seriesName: selectedSeries.name,
+      amount: parseInt(investmentAmount),
+      date: new Date().toLocaleDateString('en-GB'),
+      timestamp: new Date().toISOString(),
+      addedBy: user ? user.name : 'Admin',
+      addedByRole: user ? user.displayRole : 'Admin'
+    };
+    
+    // Update investor's investment and series data
+    const updatedInvestor = {
+      ...selectedInvestor,
+      investment: selectedInvestor.investment + parseInt(investmentAmount),
+      series: currentSeries.includes(selectedSeries.name) 
+        ? currentSeries 
+        : [...currentSeries, selectedSeries.name],
+      investments: [...currentInvestments, newInvestment]
+    };
+    
+    updateInvestor(selectedInvestor.id, updatedInvestor);
+    
+    // Update series data (increase funds raised and investor count)
+    const updatedSeries = {
+      ...selectedSeries,
+      fundsRaised: selectedSeries.fundsRaised + parseInt(investmentAmount),
+      investors: isNewSeriesForInvestor ? selectedSeries.investors + 1 : selectedSeries.investors
+    };
+    
+    updateSeries(selectedSeries.id, updatedSeries);
+    
+    alert(`Investment of ₹${parseInt(investmentAmount).toLocaleString('en-IN')} added successfully for ${selectedInvestor.name} in ${selectedSeries.name}`);
+    
+    // Reload page to refresh all data
+    window.location.reload();
+  };
+
+  // Reset functions for modal closing
+  const handleCloseInvestmentModal = () => {
+    setShowAddInvestmentModal(false);
+    setInvestorSearchTerm('');
+  };
+
+  const handleCloseInvestorDetails = () => {
+    setShowInvestorDetails(false);
+    setSelectedInvestor(null);
+  };
+
+  const handleCloseSeriesSelection = () => {
+    setShowSeriesSelection(false);
+    setSelectedSeries(null);
+  };
+
+  const handleCloseInvestmentForm = () => {
+    setShowInvestmentForm(false);
+    setInvestmentAmount('');
+    setInvestmentDocument(null);
+  };
+
+  const formatCurrency = (amount) => {
+    if (amount >= 10000000) {
+      return `₹${(amount / 10000000).toFixed(1)} Cr`;
+    }
+    return `₹${(amount / 100000).toFixed(2)} L`;
+  };
+
+  // Filter series for investment (upcoming and ready to release)
+  const availableSeries = series.filter(s => s.status === 'upcoming' || s.status === 'active');
+
   return (
     <Layout>
       <div className="investors-page">
@@ -227,9 +501,18 @@ const Investors = () => {
             <h1 className="page-title">Investors</h1>
             <p className="page-subtitle">Manage investor profiles and KYC status.</p>
           </div>
-          <button className="add-investor-button" onClick={() => setShowAddInvestorModal(true)}>
-            <TiUserAdd size={20} /> Add Investor
-          </button>
+          <div className="header-buttons">
+            {showCreateButton('investors') && (
+              <>
+                <button className="add-investment-button" onClick={() => setShowAddInvestmentModal(true)}>
+                  <MdTrendingUp size={20} /> Add Investment
+                </button>
+                <button className="add-investor-button" onClick={() => setShowAddInvestorModal(true)}>
+                  <TiUserAdd size={20} /> Add Investor
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="investors-summary-cards">
@@ -265,9 +548,87 @@ const Investors = () => {
                   className="search-input"
                 />
               </div>
-              <button className="filter-button">
-                <FiFilter size={16} />
-              </button>
+              <div className="filter-container">
+                <button className="filter-button" onClick={handleFilterToggle}>
+                  <FiFilter size={16} />
+                  {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
+                    <span className="filter-indicator"></span>
+                  )}
+                </button>
+                
+                {showFilterDropdown && (
+                  <div className="filter-dropdown">
+                    <div className="filter-section">
+                      <div className="filter-option" onClick={handleKYCFilterToggle}>
+                        <span>KYC Status</span>
+                        <span className="dropdown-arrow">▶</span>
+                      </div>
+                      {showKYCDropdown && (
+                        <div className="sub-dropdown kyc-dropdown">
+                          <div 
+                            className={`sub-option ${selectedKYCFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleKYCFilterSelect('all')}
+                          >
+                            All Status
+                          </div>
+                          <div 
+                            className={`sub-option ${selectedKYCFilter === 'Pending' ? 'active' : ''}`}
+                            onClick={() => handleKYCFilterSelect('Pending')}
+                          >
+                            Pending
+                          </div>
+                          <div 
+                            className={`sub-option ${selectedKYCFilter === 'Completed' ? 'active' : ''}`}
+                            onClick={() => handleKYCFilterSelect('Completed')}
+                          >
+                            Completed
+                          </div>
+                          <div 
+                            className={`sub-option ${selectedKYCFilter === 'Rejected' ? 'active' : ''}`}
+                            onClick={() => handleKYCFilterSelect('Rejected')}
+                          >
+                            Rejected
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="filter-section">
+                      <div className="filter-option" onClick={handleSeriesFilterToggle}>
+                        <span>Series</span>
+                        <span className="dropdown-arrow">▶</span>
+                      </div>
+                      {showSeriesDropdown && (
+                        <div className="sub-dropdown series-dropdown">
+                          <div 
+                            className={`sub-option ${selectedSeriesFilter === 'all' ? 'active' : ''}`}
+                            onClick={() => handleSeriesFilterSelect('all')}
+                          >
+                            All Series
+                          </div>
+                          {getUniqueSeriesFromInvestors().map((seriesName) => (
+                            <div 
+                              key={seriesName}
+                              className={`sub-option ${selectedSeriesFilter === seriesName ? 'active' : ''}`}
+                              onClick={() => handleSeriesFilterSelect(seriesName)}
+                            >
+                              {seriesName}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
+                      <div className="filter-actions">
+                        <button className="clear-filters-btn" onClick={clearFilters}>
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <button onClick={handleExport} className="export-button">
                 <MdOutlineFileDownload size={18} /> Export
               </button>
@@ -309,9 +670,23 @@ const Investors = () => {
         {/* Series */}
         <div className="cell series">
           <div className="series-tags">
-            {investor.series.map((s, idx) => (
-              <span key={idx} className="series-tag">{s}</span>
-            ))}
+            {investor.series && investor.series.length > 0 ? (
+              investor.series
+                .filter(s => s && typeof s === 'string' && s.startsWith('Series'))
+                .map((s, idx) => (
+                  <span 
+                    key={idx} 
+                    className="series-tag clickable-series-tag"
+                    onClick={() => handleSeriesClick(s)}
+                    title={`View ${s} details`}
+                  >
+                    {s}
+                  </span>
+                ))
+            ) : null}
+            {(!investor.series || investor.series.length === 0 || investor.series.filter(s => s && typeof s === 'string' && s.startsWith('Series')).length === 0) && (
+              <span style={{ color: '#94a3b8', fontSize: '13px' }}>No series yet</span>
+            )}
           </div>
         </div>
 
@@ -385,9 +760,23 @@ const Investors = () => {
                   <div className="mobile-detail-item">
                     <span className="mobile-detail-label">Series</span>
                     <div className="mobile-series-tags">
-                      {investor.series.map((s, idx) => (
-                        <span key={idx} className="series-tag">{s}</span>
-                      ))}
+                      {investor.series && investor.series.length > 0 ? (
+                        investor.series
+                          .filter(s => s && typeof s === 'string' && s.startsWith('Series'))
+                          .map((s, idx) => (
+                            <span 
+                              key={idx} 
+                              className="series-tag clickable-series-tag"
+                              onClick={() => handleSeriesClick(s)}
+                              title={`View ${s} details`}
+                            >
+                              {s}
+                            </span>
+                          ))
+                      ) : null}
+                      {(!investor.series || investor.series.length === 0 || investor.series.filter(s => s && typeof s === 'string' && s.startsWith('Series')).length === 0) && (
+                        <span style={{ color: '#94a3b8', fontSize: '11px' }}>No series yet</span>
+                      )}
                     </div>
                   </div>
                   
@@ -618,60 +1007,6 @@ const Investors = () => {
                   </div>
                 </div>
 
-                {/* Investment Information */}
-                <div className="form-section">
-                  <h3 className="section-title">Investment Information</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Amount to be Invested (in multiples of INR 1,00,000/-)*</label>
-                      <input
-                        type="number"
-                        value={formData.investmentAmount}
-                        onChange={(e) => setFormData({ ...formData, investmentAmount: e.target.value })}
-                        required
-                        placeholder="100000"
-                        min="100000"
-                        step="100000"
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Mode of Payment*</label>
-                      <select
-                        value={formData.paymentMode}
-                        onChange={(e) => setFormData({ ...formData, paymentMode: e.target.value })}
-                        required
-                      >
-                        <option value="NEFT">NEFT</option>
-                        <option value="RTGS">RTGS</option>
-                        <option value="Cheque">Cheque</option>
-                        <option value="DD">Demand Draft</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Date of Transfer (DD-MM-YYYY)*</label>
-                      <input
-                        type="date"
-                        value={formData.transferDate}
-                        onChange={(e) => setFormData({ ...formData, transferDate: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>KYC Status</label>
-                      <select
-                        value={formData.kycStatus}
-                        onChange={(e) => setFormData({ ...formData, kycStatus: e.target.value })}
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Know Your Customer (KYC) */}
                 <div className="form-section">
                   <h3 className="section-title">Know Your Customer (KYC)</h3>
@@ -686,6 +1021,19 @@ const Investors = () => {
                         placeholder="Enter occupation"
                       />
                     </div>
+                    <div className="form-group">
+                      <label>KYC Status</label>
+                      <select
+                        value={formData.kycStatus}
+                        onChange={(e) => setFormData({ ...formData, kycStatus: e.target.value })}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
                     <div className="form-group">
                       <label>Source of Funds*</label>
                       <select
@@ -787,11 +1135,13 @@ const Investors = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, 'panDocument')}
+                          onClick={() => document.getElementById('panDocument').click()}
+                          style={{ cursor: 'pointer' }}
                         >
                           <div className="upload-content">
                             <FiUpload size={24} className="upload-icon" />
                             <div className="upload-text">
-                              <p>Drag and drop PAN document here</p>
+                              <p>Click to upload or drag and drop PAN document here</p>
                               <p className="file-limit">Limit 200MB per file</p>
                               <p className="file-limit">PDF, PNG, JPG, JPEG</p>
                             </div>
@@ -805,13 +1155,6 @@ const Investors = () => {
                           style={{ display: 'none' }}
                           required
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('panDocument').click()}
-                        >
-                          Browse files
-                        </button>
                       </div>
                       {formData.panDocument && (
                         <div className="file-selected">{formData.panDocument.name}</div>
@@ -826,11 +1169,13 @@ const Investors = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, 'aadhaarDocument')}
+                          onClick={() => document.getElementById('aadhaarDocument').click()}
+                          style={{ cursor: 'pointer' }}
                         >
                           <div className="upload-content">
                             <FiUpload size={24} className="upload-icon" />
                             <div className="upload-text">
-                              <p>Drag and drop Aadhaar document here</p>
+                              <p>Click to upload or drag and drop Aadhaar document here</p>
                               <p className="file-limit">Limit 200MB per file</p>
                               <p className="file-limit">PDF, PNG, JPG, JPEG</p>
                             </div>
@@ -844,13 +1189,6 @@ const Investors = () => {
                           style={{ display: 'none' }}
                           required
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('aadhaarDocument').click()}
-                        >
-                          Browse files
-                        </button>
                       </div>
                       {formData.aadhaarDocument && (
                         <div className="file-selected">{formData.aadhaarDocument.name}</div>
@@ -865,11 +1203,13 @@ const Investors = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, 'cancelledCheque')}
+                          onClick={() => document.getElementById('cancelledCheque').click()}
+                          style={{ cursor: 'pointer' }}
                         >
                           <div className="upload-content">
                             <FiUpload size={24} className="upload-icon" />
                             <div className="upload-text">
-                              <p>Drag and drop cancelled cheque here</p>
+                              <p>Click to upload or drag and drop cancelled cheque here</p>
                               <p className="file-limit">Limit 200MB per file</p>
                               <p className="file-limit">PDF, PNG, JPG, JPEG</p>
                             </div>
@@ -883,13 +1223,6 @@ const Investors = () => {
                           style={{ display: 'none' }}
                           required
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('cancelledCheque').click()}
-                        >
-                          Browse files
-                        </button>
                       </div>
                       {formData.cancelledCheque && (
                         <div className="file-selected">{formData.cancelledCheque.name}</div>
@@ -904,11 +1237,13 @@ const Investors = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, 'form15G15H')}
+                          onClick={() => document.getElementById('form15G15H').click()}
+                          style={{ cursor: 'pointer' }}
                         >
                           <div className="upload-content">
                             <FiUpload size={24} className="upload-icon" />
                             <div className="upload-text">
-                              <p>Drag and drop Form 15G/15H here</p>
+                              <p>Click to upload or drag and drop Form 15G/15H here</p>
                               <p className="file-limit">Limit 200MB per file</p>
                               <p className="file-limit">PDF, PNG, JPG, JPEG</p>
                             </div>
@@ -921,13 +1256,6 @@ const Investors = () => {
                           onChange={(e) => handleFileInput(e, 'form15G15H')}
                           style={{ display: 'none' }}
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('form15G15H').click()}
-                        >
-                          Browse files
-                        </button>
                       </div>
                       {formData.form15G15H && (
                         <div className="file-selected">{formData.form15G15H.name}</div>
@@ -942,11 +1270,13 @@ const Investors = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, 'digitalSignature')}
+                          onClick={() => document.getElementById('digitalSignature').click()}
+                          style={{ cursor: 'pointer' }}
                         >
                           <div className="upload-content">
                             <FiUpload size={24} className="upload-icon" />
                             <div className="upload-text">
-                              <p>Drag and drop digital signature here</p>
+                              <p>Click to upload or drag and drop digital signature here</p>
                               <p className="file-limit">Limit 200MB per file</p>
                               <p className="file-limit">PNG, JPG, JPEG</p>
                             </div>
@@ -960,13 +1290,6 @@ const Investors = () => {
                           style={{ display: 'none' }}
                           required
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('digitalSignature').click()}
-                        >
-                          Browse files
-                        </button>
                       </div>
                       {formData.digitalSignature && (
                         <div className="file-selected">{formData.digitalSignature.name}</div>
@@ -1006,6 +1329,279 @@ const Investors = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add Investment Modal - Search Investor */}
+        {showAddInvestmentModal && (
+          <div className="modal-overlay" onClick={handleCloseInvestmentModal}>
+            <div className="modal-content investment-search-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Add Investment</h2>
+                <button className="close-button" onClick={handleCloseInvestmentModal}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="search-investor-section">
+                  <label>Enter Investor ID:</label>
+                  <div className="search-input-wrapper">
+                    <input
+                      type="text"
+                      value={investorSearchTerm}
+                      onChange={(e) => setInvestorSearchTerm(e.target.value)}
+                      placeholder="Enter unique investor ID (e.g., ABCDE1234F)"
+                      className="investor-search-input"
+                    />
+                    <button className="search-button" onClick={handleInvestorSearch}>
+                      <FiSearch size={16} /> Search
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Investor Details Modal */}
+        {showInvestorDetails && selectedInvestor && (
+          <div className="modal-overlay" onClick={handleCloseInvestorDetails}>
+            <div className="modal-content investor-details-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Investor Details</h2>
+                <button className="close-button" onClick={handleCloseInvestorDetails}>×</button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="investor-info-header">
+                  <div className="investor-name-section">
+                    <h3>{selectedInvestor.name}</h3>
+                    <span className="investor-id-display">{selectedInvestor.investorId}</span>
+                  </div>
+                  <span className={`kyc-status-badge kyc-${selectedInvestor.kycStatus.toLowerCase()}`}>
+                    {selectedInvestor.kycStatus}
+                  </span>
+                </div>
+
+                <div className="investor-details-grid">
+                  <div className="detail-item">
+                    <div className="detail-item-header">
+                      <HiOutlineMail className="detail-icon" />
+                      <span className="detail-label">Email</span>
+                    </div>
+                    <span className="detail-value">{selectedInvestor.email}</span>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <div className="detail-item-header">
+                      <HiOutlinePhone className="detail-icon" />
+                      <span className="detail-label">Phone</span>
+                    </div>
+                    <span className="detail-value">{selectedInvestor.phone}</span>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <div className="detail-item-header">
+                      <HiOutlineCalendar className="detail-icon" />
+                      <span className="detail-label">Date Joined</span>
+                    </div>
+                    <span className="detail-value">{selectedInvestor.dateJoined}</span>
+                  </div>
+                  
+                  <div className="detail-item">
+                    <div className="detail-item-header">
+                      <MdCurrencyRupee className="detail-icon" />
+                      <span className="detail-label">Current Investment</span>
+                    </div>
+                    <span className="detail-value investment-amount">₹{selectedInvestor.investment.toLocaleString('en-IN')}</span>
+                  </div>
+                  
+                  <div className="detail-item full-width">
+                    <div className="detail-item-header">
+                      <HiOutlineChartBar className="detail-icon" />
+                      <span className="detail-label">Active Series</span>
+                    </div>
+                    <div className="series-tags">
+                      {selectedInvestor.series.map((series, index) => (
+                        <span key={index} className="series-tag">{series}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button className="cancel-button" onClick={handleCloseInvestorDetails}>
+                    Cancel
+                  </button>
+                  <button className="submit-button" onClick={handleProceedToSeries}>
+                    Add New Investment
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Series Selection Modal */}
+        {showSeriesSelection && (
+          <div className="modal-overlay" onClick={handleCloseSeriesSelection}>
+            <div className="modal-content series-selection-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Select Series for Investment</h2>
+                <button className="close-button" onClick={handleCloseSeriesSelection}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="series-grid">
+                  {availableSeries.map((series) => {
+                    const progress = (series.fundsRaised / series.targetAmount) * 100;
+                    return (
+                      <div key={series.id} className="series-card" onClick={() => handleSeriesSelect(series)}>
+                        <div className="series-header">
+                          <h3>{series.name}</h3>
+                          <span className={`status-badge ${series.status}`}>{series.status}</span>
+                        </div>
+                        <div className="series-details">
+                          <div className="detail-row">
+                            <span>Interest Rate:</span>
+                            <span>{series.interestRate}%</span>
+                          </div>
+                          <div className="detail-row">
+                            <span>Frequency:</span>
+                            <span>{series.interestFrequency}</span>
+                          </div>
+                          <div className="detail-row">
+                            <span>Min Investment:</span>
+                            <span>₹{series.minInvestment.toLocaleString('en-IN')}</span>
+                          </div>
+                        </div>
+                        <div className="funds-progress">
+                          <div className="progress-info">
+                            <span>{formatCurrency(series.fundsRaised)} / {formatCurrency(series.targetAmount)}</span>
+                            <span>{progress.toFixed(1)}%</span>
+                          </div>
+                          <div className="progress-bar">
+                            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Investment Form Modal */}
+        {showInvestmentForm && selectedSeries && (
+          <div className="modal-overlay" onClick={handleCloseInvestmentForm}>
+            <div className="modal-content investment-form-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Invest in {selectedSeries.name}</h2>
+                <button className="close-button" onClick={handleCloseInvestmentForm}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="series-summary">
+                  <h3>Series Details</h3>
+                  <div className="summary-grid">
+                    <div className="summary-item">
+                      <span>Interest Rate:</span>
+                      <span>{selectedSeries.interestRate}%</span>
+                    </div>
+                    <div className="summary-item">
+                      <span>Frequency:</span>
+                      <span>{selectedSeries.interestFrequency}</span>
+                    </div>
+                    <div className="summary-item">
+                      <span>Minimum Investment:</span>
+                      <span>₹{selectedSeries.minInvestment.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                  <div className="funds-raised">
+                    <div className="progress-info">
+                      <span>Funds Raised: {formatCurrency(selectedSeries.fundsRaised)} / {formatCurrency(selectedSeries.targetAmount)}</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className="progress-fill" style={{ width: `${(selectedSeries.fundsRaised / selectedSeries.targetAmount) * 100}%` }}></div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="investment-form">
+                  <div className="form-group">
+                    <label>Investment Amount *</label>
+                    <input
+                      type="number"
+                      value={investmentAmount}
+                      onChange={(e) => setInvestmentAmount(e.target.value)}
+                      placeholder={`Minimum ₹${selectedSeries.minInvestment.toLocaleString('en-IN')}`}
+                      min={selectedSeries.minInvestment}
+                      className="amount-input"
+                    />
+                  </div>
+                  
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Date of Investment Transferred *</label>
+                      <input
+                        type="date"
+                        className="amount-input"
+                        required
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label>Date of Investment Received *</label>
+                      <input
+                        type="date"
+                        className="amount-input"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label>Upload Payment Document *</label>
+                    <div 
+                      className="investment-file-upload-area"
+                      onClick={() => document.getElementById('investment-document').click()}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <div className="investment-upload-content">
+                        <FiUpload size={28} className="investment-upload-icon" />
+                        <div className="investment-upload-text">
+                          <p className="investment-upload-main">
+                            {investmentDocument ? investmentDocument.name : 'Click to upload payment receipt/document'}
+                          </p>
+                          <p className="investment-upload-subtitle">or drag and drop your file here</p>
+                          <p className="investment-file-formats">PDF, JPG, PNG, DOC (Max 10MB)</p>
+                        </div>
+                      </div>
+                      <input
+                        type="file"
+                        onChange={(e) => setInvestmentDocument(e.target.files[0])}
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        className="file-input"
+                        id="investment-document"
+                        style={{ display: 'none' }}
+                      />
+                      {investmentDocument && (
+                        <div className="investment-file-selected">
+                          <span>✓ File selected: {investmentDocument.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="modal-actions">
+                  <button className="cancel-button" onClick={handleCloseInvestmentForm}>
+                    Cancel
+                  </button>
+                  <button className="invest-button" onClick={handleInvestmentSubmit}>
+                    Invest ₹{investmentAmount ? parseInt(investmentAmount).toLocaleString('en-IN') : '0'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         )}

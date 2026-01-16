@@ -11,6 +11,63 @@ export const useData = () => {
 };
 
 // Initial dummy data
+const initialComplaints = [
+  {
+    id: 1,
+    investorId: 'ABCDE1234F', // Rajesh Kumar
+    issue: 'Delay in interest payment for Series A NCD',
+    remarks: 'Interest payment was supposed to be credited on 15th Jan but still not received. Please check and resolve.',
+    timestamp: '2024-01-16 10:30 AM',
+    status: 'pending',
+    isCompleted: false
+  },
+  {
+    id: 2,
+    investorId: 'BCDEF2345G', // Priya Sharma
+    issue: 'KYC document verification issue',
+    remarks: 'My KYC documents were rejected without proper reason. Need clarification on what documents are required.',
+    timestamp: '2024-01-15 02:45 PM',
+    status: 'resolved',
+    isCompleted: true
+  },
+  {
+    id: 3,
+    investorId: 'ABCDE1234F', // Rajesh Kumar
+    issue: 'Certificate delivery delay',
+    remarks: 'Physical certificate was supposed to be delivered within 30 days but has not been received yet.',
+    timestamp: '2024-01-10 11:15 AM',
+    status: 'resolved',
+    isCompleted: true
+  },
+  {
+    id: 4,
+    investorId: 'ABCDE1234F', // Rajesh Kumar
+    issue: 'Incorrect interest calculation',
+    remarks: 'The interest amount credited seems to be calculated incorrectly. Please verify the calculation for Series B investment.',
+    timestamp: '2024-01-08 09:20 AM',
+    status: 'pending',
+    isCompleted: false
+  },
+  {
+    id: 5,
+    investorId: 'CDEFG3456H', // Amit Patel
+    issue: 'Account statement not received',
+    remarks: 'Monthly account statement for December was not received via email. Please resend.',
+    timestamp: '2024-01-05 03:15 PM',
+    status: 'resolved',
+    isCompleted: true
+  },
+  {
+    id: 6,
+    investorId: 'EFGHI5678J', // Vikram Singh
+    issue: 'Multiple series interest confusion',
+    remarks: 'Having difficulty understanding interest calculations across multiple series investments. Need detailed breakdown.',
+    timestamp: '2024-01-12 11:45 AM',
+    status: 'pending',
+    isCompleted: false
+  }
+];
+
 const initialInvestors = [
   {
     id: 1,
@@ -20,8 +77,15 @@ const initialInvestors = [
     phone: '+91 98765 43210',
     series: ['Series A', 'Series B'],
     investment: 1500000,
+    investments: [
+      { seriesName: 'Series A', amount: 750000, date: '15/6/2023', timestamp: new Date('2023-06-15').toISOString() },
+      { seriesName: 'Series B', amount: 750000, date: '20/9/2023', timestamp: new Date('2023-09-20').toISOString() }
+    ],
     kycStatus: 'Completed',
-    dateJoined: '15/6/2023'
+    dateJoined: '15/6/2023',
+    bankAccountNumber: '1234567890123456',
+    ifscCode: 'SBIN0001234',
+    bankName: 'State Bank of India'
   },
   {
     id: 2,
@@ -32,7 +96,10 @@ const initialInvestors = [
     series: ['Series B'],
     investment: 1000000,
     kycStatus: 'Pending',
-    dateJoined: '20/9/2023'
+    dateJoined: '20/9/2023',
+    bankAccountNumber: '9876543210987654',
+    ifscCode: 'HDFC0001234',
+    bankName: 'HDFC Bank'
   },
   {
     id: 3,
@@ -43,7 +110,10 @@ const initialInvestors = [
     series: ['Series A'],
     investment: 750000,
     kycStatus: 'Completed',
-    dateJoined: '10/7/2023'
+    dateJoined: '10/7/2023',
+    bankAccountNumber: '5678901234567890',
+    ifscCode: 'ICIC0001234',
+    bankName: 'ICICI Bank'
   },
   {
     id: 4,
@@ -54,7 +124,10 @@ const initialInvestors = [
     series: ['Series C'],
     investment: 1500000,
     kycStatus: 'Pending',
-    dateJoined: '5/1/2024'
+    dateJoined: '5/1/2024',
+    bankAccountNumber: '3456789012345678',
+    ifscCode: 'AXIS0001234',
+    bankName: 'Axis Bank'
   },
   {
     id: 5,
@@ -65,7 +138,10 @@ const initialInvestors = [
     series: ['Series A', 'Series B', 'Series C', 'Series D' , 'Series E', 'Series F', 'Series G', 'Series H', 'Series I', 'Series J', 'Series K', 'Series L', 'Series M', 'Series N', 'Series O', 'Series P', 'Series Q', 'Series R', 'Series S', 'Series T'],
     investment: 3500000,
     kycStatus: 'Completed',
-    dateJoined: '1/6/2023'
+    dateJoined: '1/6/2023',
+    bankAccountNumber: '7890123456789012',
+    ifscCode: 'SBIN0005678',
+    bankName: 'State Bank of India'
   },
   {
     id: 6,
@@ -76,7 +152,38 @@ const initialInvestors = [
     series: ['Series B'],
     investment: 800000,
     kycStatus: 'Rejected',
-    dateJoined: '15/10/2023'
+    dateJoined: '15/10/2023',
+    bankAccountNumber: '2345678901234567',
+    ifscCode: 'HDFC0005678',
+    bankName: 'HDFC Bank'
+  },
+  {
+    id: 7,
+    name: 'Rohit Gupta',
+    investorId: 'GHIJK7890L',
+    email: 'rohit.gupta@email.com',
+    phone: '+91 98765 43216',
+    series: ['Series D'],
+    investment: 2000000,
+    kycStatus: 'Completed',
+    dateJoined: '10/3/2024',
+    bankAccountNumber: '6789012345678901',
+    ifscCode: 'ICIC0005678',
+    bankName: 'ICICI Bank'
+  },
+  {
+    id: 8,
+    name: 'Kavya Nair',
+    investorId: 'HIJKL8901M',
+    email: 'kavya.nair@email.com',
+    phone: '+91 98765 43217',
+    series: ['Series E'],
+    investment: 1200000,
+    kycStatus: 'Pending',
+    dateJoined: '20/5/2024',
+    bankAccountNumber: '4567890123456789',
+    ifscCode: 'AXIS0005678',
+    bankName: 'Axis Bank'
   }
 ];
 
@@ -129,29 +236,138 @@ const initialSeries = [
   {
     id: 4,
     name: 'Series D',
-    status: 'upcoming',
+    status: 'active',
     interestFrequency: 'Quarterly Interest',
     interestRate: 11,
-    investors: 0,
-    fundsRaised: 0,
+    investors: 67,
+    fundsRaised: 45000000,
     targetAmount: 150000000,
     issueDate: '1/3/2024',
     maturityDate: '1/3/2029',
     faceValue: 1000,
     minInvestment: 100000,
     releaseDate: '1/3/2024'
+  },
+  {
+    id: 5,
+    name: 'Series E',
+    status: 'active',
+    interestFrequency: 'Monthly Interest',
+    interestRate: 11.5,
+    investors: 43,
+    fundsRaised: 32000000,
+    targetAmount: 120000000,
+    issueDate: '15/5/2024',
+    maturityDate: '15/5/2029',
+    faceValue: 1000,
+    minInvestment: 75000,
+    releaseDate: '15/5/2024'
   }
 ];
 
 export const DataProvider = ({ children }) => {
+  // Cleanup code removed - Series AB is now a valid series
+  // No automatic deletion of any series
+
   const [investors, setInvestors] = useState(() => {
     const saved = localStorage.getItem('investors');
-    return saved ? JSON.parse(saved) : initialInvestors;
+    if (saved) {
+      const parsedInvestors = JSON.parse(saved);
+      
+      // Clean up investor data
+      const cleanedInvestors = parsedInvestors.map(inv => {
+        const cleaned = { ...inv };
+        
+        // Ensure series is an array
+        if (!Array.isArray(cleaned.series)) {
+          cleaned.series = [];
+        }
+        
+        // Filter out invalid series entries (emails, non-series strings)
+        const validSeries = cleaned.series.filter(s => 
+          s && typeof s === 'string' && s.startsWith('Series')
+        );
+        cleaned.series = validSeries;
+        
+        // If investor has investment amount but no valid series, reset investment to 0
+        if (cleaned.investment > 0 && cleaned.series.length === 0) {
+          cleaned.investment = 0;
+        }
+        
+        // Migration: Add investments array if it doesn't exist
+        if (!cleaned.investments || !Array.isArray(cleaned.investments)) {
+          // Create investments array from existing data
+          cleaned.investments = cleaned.series.map(seriesName => ({
+            seriesName: seriesName,
+            amount: cleaned.series.length > 0 ? Math.round(cleaned.investment / cleaned.series.length) : 0,
+            date: cleaned.dateJoined || new Date().toLocaleDateString('en-GB'),
+            timestamp: new Date().toISOString()
+          }));
+        }
+        
+        return cleaned;
+      });
+      
+      return cleanedInvestors;
+    }
+    return initialInvestors;
   });
 
   const [series, setSeries] = useState(() => {
-    const saved = localStorage.getItem('series');
-    return saved ? JSON.parse(saved) : initialSeries;
+    const savedSeries = localStorage.getItem('series');
+    const savedInvestors = localStorage.getItem('investors');
+    
+    // Load all series from localStorage (no filtering)
+    let parsedSeries = savedSeries ? JSON.parse(savedSeries) : initialSeries;
+    
+    // Recalculate series data based on actual investor investments
+    if (savedInvestors) {
+      const parsedInvestors = JSON.parse(savedInvestors);
+      
+      parsedSeries = parsedSeries.map(s => {
+        // Find all investors in this series
+        const investorsInSeries = parsedInvestors.filter(inv => 
+          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name)
+        );
+        
+        // Calculate total funds from investments array (per-series tracking)
+        const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
+          if (inv.investments && Array.isArray(inv.investments)) {
+            const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
+            return sum + (seriesInvestment ? seriesInvestment.amount : 0);
+          }
+          // Fallback to old calculation if investments array doesn't exist
+          const investmentPerSeries = inv.series.length > 0 ? inv.investment / inv.series.length : 0;
+          return sum + investmentPerSeries;
+        }, 0);
+        
+        // For initial series (1-5), add the new investments to the base amount
+        const isInitialSeries = s.id <= 5;
+        const baseFunds = isInitialSeries ? (initialSeries.find(init => init.id === s.id)?.fundsRaised || 0) : 0;
+        
+        return {
+          ...s,
+          investors: investorsInSeries.length,
+          fundsRaised: baseFunds + Math.round(totalFundsFromInvestors)
+        };
+      });
+      
+      // Save the recalculated series back to localStorage
+      localStorage.setItem('series', JSON.stringify(parsedSeries));
+    }
+    
+    return parsedSeries;
+  });
+
+  const [complaints, setComplaints] = useState(() => {
+    const saved = localStorage.getItem('complaints');
+    return saved ? JSON.parse(saved) : initialComplaints;
+  });
+
+  // Audit Log State
+  const [auditLogs, setAuditLogs] = useState(() => {
+    const saved = localStorage.getItem('auditLogs');
+    return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
@@ -162,29 +378,312 @@ export const DataProvider = ({ children }) => {
     localStorage.setItem('series', JSON.stringify(series));
   }, [series]);
 
+  useEffect(() => {
+    localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+  }, [auditLogs]);
+
+  useEffect(() => {
+    localStorage.setItem('complaints', JSON.stringify(complaints));
+  }, [complaints]);
+
   const addSeries = (newSeries) => {
+    // Check for duplicate series name
+    const duplicateName = series.find(s => s.name.toLowerCase() === newSeries.name.toLowerCase());
+    if (duplicateName) {
+      alert(`A series with the name "${newSeries.name}" already exists. Please use a different name.`);
+      return false;
+    }
+    
     const seriesToAdd = {
       ...newSeries,
       id: series.length + 1,
       investors: 0,
       fundsRaised: 0,
-      status: newSeries.releaseDate === 'now' || new Date(newSeries.releaseDate) <= new Date() 
-        ? 'active' 
-        : 'upcoming'
+      status: 'DRAFT', // Always start in DRAFT state
+      approvalStatus: 'pending' // New field for approval tracking
     };
     setSeries([...series, seriesToAdd]);
+    return true;
   };
 
   const updateSeries = (id, updates) => {
-    setSeries(series.map(s => s.id === id ? { ...s, ...updates } : s));
+    const oldSeries = series.find(s => s.id === id);
+    const newSeries = { ...oldSeries, ...updates };
+    
+    // If series name is changing, update all investor records
+    if (oldSeries && updates.name && oldSeries.name !== updates.name) {
+      const updatedInvestors = investors.map(inv => {
+        if (inv.series && inv.series.includes(oldSeries.name)) {
+          return {
+            ...inv,
+            series: inv.series.map(s => s === oldSeries.name ? updates.name : s),
+            investments: inv.investments ? inv.investments.map(investment => 
+              investment.seriesName === oldSeries.name 
+                ? { ...investment, seriesName: updates.name }
+                : investment
+            ) : []
+          };
+        }
+        return inv;
+      });
+      setInvestors(updatedInvestors);
+    }
+    
+    setSeries(series.map(s => s.id === id ? newSeries : s));
   };
 
+  const approveSeries = (id, approvedData) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    // Parse issue date to determine status
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return null;
+    };
+    
+    const issueDate = parseDate(approvedData.issueDate);
+    
+    // Determine status based on issue date
+    let status = 'upcoming'; // Default to upcoming
+    if (issueDate) {
+      if (issueDate <= today) {
+        // If issue date is today or in the past, make it active immediately
+        status = 'active';
+      } else {
+        // If issue date is in the future, keep it as upcoming
+        status = 'upcoming';
+      }
+    }
+    
+    setSeries(series.map(s => 
+      s.id === id 
+        ? { 
+            ...s, 
+            ...approvedData, 
+            status: status,
+            approvalStatus: 'approved',
+            approvedAt: new Date().toISOString(),
+            releaseDate: approvedData.issueDate // Use issue date as release date
+          } 
+        : s
+    ));
+  };
+
+  const deleteSeries = (seriesId) => {
+    // Allow deletion of DRAFT and UPCOMING series, but not ACTIVE series
+    const seriesToDelete = series.find(s => s.id === seriesId);
+    if (seriesToDelete && (seriesToDelete.status === 'DRAFT' || seriesToDelete.status === 'upcoming')) {
+      // Remove series from all investor records
+      const updatedInvestors = investors.map(inv => {
+        if (inv.series && inv.series.includes(seriesToDelete.name)) {
+          const newSeries = inv.series.filter(s => s !== seriesToDelete.name);
+          const newInvestments = inv.investments ? inv.investments.filter(i => i.seriesName !== seriesToDelete.name) : [];
+          const newInvestment = newInvestments.reduce((sum, i) => sum + i.amount, 0);
+          
+          return {
+            ...inv,
+            series: newSeries,
+            investments: newInvestments,
+            investment: newInvestment
+          };
+        }
+        return inv;
+      });
+      setInvestors(updatedInvestors);
+      setSeries(series.filter(s => s.id !== seriesId));
+      return true;
+    }
+    return false;
+  };
+
+  // Recalculate series metrics based on actual investor data
+  const recalculateSeriesMetrics = (seriesName = null) => {
+    setSeries(currentSeries => 
+      currentSeries.map(s => {
+        // If seriesName is provided, only recalculate that series
+        if (seriesName && s.name !== seriesName) {
+          return s;
+        }
+        
+        // Find all investors in this series
+        const investorsInSeries = investors.filter(inv => 
+          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name)
+        );
+        
+        // Calculate total funds from investments array
+        const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
+          if (inv.investments && Array.isArray(inv.investments)) {
+            const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
+            return sum + (seriesInvestment ? seriesInvestment.amount : 0);
+          }
+          return sum;
+        }, 0);
+        
+        // For initial series (1-5), add the new investments to the base amount
+        const isInitialSeries = s.id <= 5;
+        const baseFunds = isInitialSeries ? (initialSeries.find(init => init.id === s.id)?.fundsRaised || 0) : 0;
+        
+        return {
+          ...s,
+          investors: investorsInSeries.length,
+          fundsRaised: baseFunds + Math.round(totalFundsFromInvestors)
+        };
+      })
+    );
+  };
+
+  // Function to check and update series status based on issue date
+  const checkAndUpdateSeriesStatus = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    setSeries(currentSeries => 
+      currentSeries.map(s => {
+        if (s.status === 'upcoming' && s.issueDate) {
+          const parseDate = (dateStr) => {
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+              return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+            return null;
+          };
+          
+          const issueDate = parseDate(s.issueDate);
+          if (issueDate && issueDate <= today) {
+            return { ...s, status: 'active' };
+          }
+        }
+        return s;
+      })
+    );
+  };
+
+  // Check series status on component mount and set up daily check
+  useEffect(() => {
+    checkAndUpdateSeriesStatus();
+    
+    // Set up interval to check daily at midnight
+    const checkInterval = setInterval(() => {
+      checkAndUpdateSeriesStatus();
+    }, 24 * 60 * 60 * 1000); // Check every 24 hours
+    
+    return () => clearInterval(checkInterval);
+  }, []);
+
+  // Recalculate series metrics whenever investors change
+  useEffect(() => {
+    // Debounce the recalculation to avoid too many updates
+    const timer = setTimeout(() => {
+      recalculateSeriesMetrics();
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [investors]);
+
   const addInvestor = (newInvestor) => {
+    // Check for duplicate investor ID
+    const duplicateId = investors.find(inv => inv.investorId.toLowerCase() === newInvestor.investorId.toLowerCase());
+    if (duplicateId) {
+      alert(`An investor with ID "${newInvestor.investorId}" already exists. Please use a different ID.`);
+      return false;
+    }
+    
     setInvestors([...investors, { ...newInvestor, id: investors.length + 1 }]);
+    
+    // Recalculate metrics for affected series
+    if (newInvestor.series && Array.isArray(newInvestor.series)) {
+      newInvestor.series.forEach(seriesName => {
+        setTimeout(() => recalculateSeriesMetrics(seriesName), 100);
+      });
+    }
+    
+    return true;
   };
 
   const updateInvestor = (id, updates) => {
+    const oldInvestor = investors.find(inv => inv.id === id);
     setInvestors(investors.map(inv => inv.id === id ? { ...inv, ...updates } : inv));
+    
+    // Recalculate metrics for affected series
+    const affectedSeries = new Set();
+    if (oldInvestor?.series) {
+      oldInvestor.series.forEach(s => affectedSeries.add(s));
+    }
+    if (updates.series) {
+      updates.series.forEach(s => affectedSeries.add(s));
+    }
+    
+    affectedSeries.forEach(seriesName => {
+      setTimeout(() => recalculateSeriesMetrics(seriesName), 100);
+    });
+  };
+
+  // Audit Log Function
+  const addAuditLog = (logEntry) => {
+    const newLog = {
+      id: auditLogs.length + 1,
+      timestamp: new Date().toISOString(),
+      ...logEntry
+    };
+    setAuditLogs([newLog, ...auditLogs]); // Add to beginning (newest first)
+  };
+
+  // Complaint management functions
+  const addComplaint = (newComplaint) => {
+    const complaint = {
+      ...newComplaint,
+      id: complaints.length + 1,
+      timestamp: new Date().toLocaleString('en-GB', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }),
+      status: 'pending',
+      isCompleted: false
+    };
+    setComplaints([complaint, ...complaints]);
+    return complaint;
+  };
+
+  const updateComplaint = (id, updates) => {
+    setComplaints(complaints.map(c => c.id === id ? { ...c, ...updates } : c));
+  };
+
+  const updateComplaintStatus = (id, isCompleted) => {
+    setComplaints(complaints.map(c => 
+      c.id === id ? { ...c, isCompleted, status: isCompleted ? 'resolved' : 'pending' } : c
+    ));
+  };
+
+  // Get complaints for specific investor
+  const getInvestorComplaints = (investorId) => {
+    return complaints.filter(complaint => complaint.investorId === investorId);
+  };
+
+  // Get all pending complaints
+  const getPendingComplaints = () => {
+    return complaints.filter(complaint => complaint.status === 'pending');
+  };
+
+  // Get complaints within date range
+  const getComplaintsByDateRange = (fromDate, toDate) => {
+    if (!fromDate && !toDate) return complaints;
+    
+    return complaints.filter(complaint => {
+      const complaintDate = new Date(complaint.timestamp);
+      const from = fromDate ? new Date(fromDate) : new Date('1900-01-01');
+      const to = toDate ? new Date(toDate) : new Date();
+      
+      return complaintDate >= from && complaintDate <= to;
+    });
   };
 
   // Calculate dashboard metrics
@@ -242,23 +741,78 @@ export const DataProvider = ({ children }) => {
     return payouts.sort((a, b) => new Date(a.date) - new Date(b.date));
   };
 
+  // State for tracking compliance status per series
+  const [complianceStatus, setComplianceStatus] = useState({
+    'Series A NCD': { pre: 30, post: 27, recurring: 0 },
+    'Series B NCD': { pre: 25, post: 35, recurring: 20 },
+    'Series C NCD': { pre: 100, post: 100, recurring: 100 },
+    'Series D NCD': { pre: 45, post: 36, recurring: 20 },
+    'Series E NCD': { pre: 40, post: 30, recurring: 25 }
+  });
+
+  // Update compliance status for a series
+  const updateComplianceStatus = (seriesName, statusData) => {
+    setComplianceStatus(prev => ({
+      ...prev,
+      [seriesName]: statusData
+    }));
+  };
+
+  // Get compliance status for series (for dashboard alerts)
+  const getComplianceStatus = (seriesName) => {
+    const compliance = complianceStatus[seriesName] || { pre: 0, post: 0, recurring: 0 };
+    const averagePercentage = Math.round((compliance.pre + compliance.post + compliance.recurring) / 3);
+    
+    if (averagePercentage === 100) return 'submitted';
+    if (averagePercentage >= 50) return 'pending';
+    return 'yet-to-be-submitted';
+  };
+
+  // Get series that need compliance attention (for dashboard alerts)
+  const getYetToBeSubmittedSeries = () => {
+    const complianceSeries = [
+      { id: 'comp-1', name: 'Series A NCD', interestRate: 8.5, interestFrequency: 'Quarterly', investors: 45, fundsRaised: 25000000, targetAmount: 100000000, issueDate: '2024-01-15', maturityDate: '2027-01-15' },
+      { id: 'comp-2', name: 'Series B NCD', interestRate: 9.0, interestFrequency: 'Half-Yearly', investors: 32, fundsRaised: 18000000, targetAmount: 75000000, issueDate: '2024-02-01', maturityDate: '2027-02-01' },
+      { id: 'comp-3', name: 'Series D NCD', interestRate: 8.75, interestFrequency: 'Annually', investors: 28, fundsRaised: 15000000, targetAmount: 60000000, issueDate: '2024-03-10', maturityDate: '2027-03-10' },
+      { id: 'comp-4', name: 'Series E NCD', interestRate: 9.25, interestFrequency: 'Quarterly', investors: 38, fundsRaised: 22000000, targetAmount: 80000000, issueDate: '2024-04-05', maturityDate: '2027-04-05' }
+    ];
+
+    return complianceSeries.filter(s => getComplianceStatus(s.name) === 'yet-to-be-submitted');
+  };
+
   return (
     <DataContext.Provider value={{
       investors,
       series,
+      complaints,
+      auditLogs,
       addSeries,
       updateSeries,
+      approveSeries,
+      deleteSeries,
       addInvestor,
       updateInvestor,
+      addAuditLog,
+      addComplaint,
+      updateComplaint,
+      updateComplaintStatus,
+      getInvestorComplaints,
+      getPendingComplaints,
+      getComplaintsByDateRange,
       setInvestors,
       setSeries,
+      setComplaints,
       getTotalFundsRaised,
       getTotalInvestors,
       getCurrentMonthPayout,
       getPendingKYC,
       getKYCCompleted,
       getKYCRejected,
-      getUpcomingPayouts
+      getUpcomingPayouts,
+      getComplianceStatus,
+      getYetToBeSubmittedSeries,
+      updateComplianceStatus,
+      recalculateSeriesMetrics
     }}>
       {children}
     </DataContext.Provider>

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import { initializeButtonClickHandler } from './utils/buttonClickHandler';
+import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Investors from './pages/Investors';
@@ -12,6 +13,7 @@ import InterestPayout from './pages/InterestPayout';
 import Communication from './pages/Communication';
 import Compliance from './pages/Compliance';
 import Administrator from './pages/Administrator';
+import Approval from './pages/Approval';
 import InvestorDashboard from './pages/InvestorDashboard';
 import InvestorSeries from './pages/InvestorSeries';
 import InvestorAccount from './pages/InvestorAccount';
@@ -19,18 +21,23 @@ import InvestorDetails from './pages/InvestorDetails';
 import SeriesDetails from './pages/SeriesDetails';
 import TestIcon from './TestIcon'; // <-- Added for testing react-icons
 
-function ProtectedRoute({ children, requireAdmin = false }) {
-  const { user, isAuthenticated } = useAuth();
+function AuthenticatedRoute({ children, requireAdmin = false }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  
+  // Wait for auth state to load from localStorage
+  if (isLoading) {
+    return null; // or a loading spinner
+  }
   
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
-  if (requireAdmin && user?.role !== 'admin') {
+  if (requireAdmin && user?.role === 'Investor') {
     return <Navigate to="/investor/dashboard" replace />;
   }
   
-  if (!requireAdmin && user?.role === 'admin') {
+  if (!requireAdmin && user?.role !== 'Investor') {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -52,120 +59,148 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Login />} />
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
             <Route path="/login" element={<Login />} />
+            
+            {/* Admin Routes with Permission Protection */}
             <Route 
               path="/dashboard" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Dashboard />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="dashboard">
+                    <Dashboard />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/investors" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Investors />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="investors">
+                    <Investors />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/investors/:id" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <InvestorDetails />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="investors">
+                    <InvestorDetails />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/ncd-series" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <NCDSeries />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="ncdSeries">
+                    <NCDSeries />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/ncd-series/:id" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <SeriesDetails />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="ncdSeries">
+                    <SeriesDetails />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/reports" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Reports />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="reports">
+                    <Reports />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/interest-payout" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <InterestPayout />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="interestPayout">
+                    <InterestPayout />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/communication" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Communication />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="communication">
+                    <Communication />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/compliance" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Compliance />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="compliance">
+                    <Compliance />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/administrator" 
               element={
-                <ProtectedRoute requireAdmin={true}>
-                  <Administrator />
-                </ProtectedRoute>
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="administrator">
+                    <Administrator />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
+              path="/approval" 
+              element={
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="approval">
+                    <Approval />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
+              } 
+            />
+            
+            {/* Investor Routes */}
+            <Route 
               path="/investor/dashboard" 
               element={
-                <ProtectedRoute requireAdmin={false}>
+                <AuthenticatedRoute requireAdmin={false}>
                   <InvestorDashboard />
-                </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/investor/series" 
               element={
-                <ProtectedRoute requireAdmin={false}>
+                <AuthenticatedRoute requireAdmin={false}>
                   <InvestorSeries />
-                </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
             <Route 
               path="/investor/account" 
               element={
-                <ProtectedRoute requireAdmin={false}>
+                <AuthenticatedRoute requireAdmin={false}>
                   <InvestorAccount />
-                </ProtectedRoute>
+                </AuthenticatedRoute>
               } 
             />
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            
+            {/* Default redirect */}
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         </Router>
       </DataProvider>

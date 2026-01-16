@@ -15,32 +15,42 @@ import {
 import { IoChevronBackCircle } from "react-icons/io5";
 import { MdPayment, MdSecurity, MdAdminPanelSettings } from "react-icons/md";
 
-
-
-
 const Sidebar = ({ isInvestor = false, isOpen = true, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, canAccessModule } = useAuth();
 
   const adminNavItems = [
-  { path: '/dashboard', label: 'Dashboard', icon: <HiOutlineViewGrid /> },
-  { path: '/ncd-series', label: 'NCD Series', icon: <HiTrendingUp /> },
-  { path: '/investors', label: 'Investors', icon: <HiUsers /> },
-  { path: '/reports', label: 'Reports', icon: <HiOutlineDocumentText /> },
-  { path: '/interest-payout', label: 'Interest Payout', icon: <MdPayment /> },
-  { path: '/communication', label: 'Communication', icon: <HiOutlineMail /> },
-  { path: '/compliance', label: 'Compliance', icon: <MdSecurity /> },
-  { path: '/administrator', label: 'Administrator', icon: <MdAdminPanelSettings /> }
-];
+    { path: '/dashboard', label: 'Dashboard', icon: <HiOutlineViewGrid />, module: 'dashboard' },
+    { path: '/ncd-series', label: 'NCD Series', icon: <HiTrendingUp />, module: 'ncdSeries' },
+    { path: '/investors', label: 'Investors', icon: <HiUsers />, module: 'investors' },
+    { path: '/reports', label: 'Reports', icon: <HiOutlineDocumentText />, module: 'reports' },
+    { path: '/interest-payout', label: 'Interest Payout', icon: <MdPayment />, module: 'interestPayout' },
+    { path: '/communication', label: 'Communication', icon: <HiOutlineMail />, module: 'communication' },
+    { path: '/compliance', label: 'Compliance', icon: <MdSecurity />, module: 'compliance' },
+    { path: '/administrator', label: 'Administrator', icon: <MdAdminPanelSettings />, module: 'administrator' },
+    { path: '/approval', label: 'Approval', icon: <HiOutlineDocumentText />, module: 'approval' }
+  ];
 
   const investorNavItems = [
-  { path: '/investor/dashboard', label: 'Dashboard', icon: <HiOutlineViewGrid /> },
-  { path: '/investor/series', label: 'Series', icon: <HiTrendingUp /> },
-  { path: '/investor/account', label: 'My Account', icon: <HiUser /> }
-];
+    { path: '/investor/dashboard', label: 'Dashboard', icon: <HiOutlineViewGrid /> },
+    { path: '/investor/series', label: 'Series', icon: <HiTrendingUp /> },
+    { path: '/investor/account', label: 'My Account', icon: <HiUser /> }
+  ];
 
-  const navItems = isInvestor ? investorNavItems : adminNavItems;
+  // Filter admin nav items based on permissions
+  const getFilteredNavItems = () => {
+    if (isInvestor) {
+      return investorNavItems;
+    }
+    
+    return adminNavItems.filter(item => {
+      if (!item.module) return true; // Always show items without module requirement
+      return canAccessModule(item.module);
+    });
+  };
+
+  const navItems = getFilteredNavItems();
 
   const handleLinkClick = () => {
     if (window.innerWidth <= 768 && onClose) {

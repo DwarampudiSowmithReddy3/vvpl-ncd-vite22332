@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import './InvestorDetails.css';
 import { 
@@ -13,7 +14,7 @@ import {
   HiOutlineDocumentText,
   HiCheckCircle
 } from 'react-icons/hi';
-import { MdAccountBalance } from 'react-icons/md';
+import { MdAccountBalance, MdReportProblem } from 'react-icons/md';
 import { MdOutlineFileDownload } from 'react-icons/md';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -21,13 +22,14 @@ import 'jspdf-autotable';
 const InvestorDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { investors = [] } = useData();
+  const { investors = [], getInvestorComplaints, addAuditLog } = useData();
+  const { user } = useAuth();
 
   // Hardcoded default data
   const defaultInvestor = {
     id: id || '1',
     name: 'Rajesh Kumar',
-    investorId: 'INV-001',
+    investorId: 'ABCDE1234F',
     email: 'rajesh.kumar@email.com',
     phone: '+91 98765 43210',
     pan: 'ABCDE1234F',
@@ -41,7 +43,6 @@ const InvestorDetails = () => {
       {
         series: 'Series A',
         purchaseDate: '25/6/2023',
-        units: '500',
         investment: 500000,
         nextPayout: '1/2/2024',
         status: 'Active'
@@ -49,7 +50,6 @@ const InvestorDetails = () => {
       {
         series: 'Series B',
         purchaseDate: '20/9/2023',
-        units: '1000',
         investment: 1000000,
         nextPayout: '5/2/2024',
         status: 'Active'
@@ -75,10 +75,24 @@ const InvestorDetails = () => {
   if (investors && investors.length > 0 && id) {
     const foundInvestor = investors.find(inv => inv.id === parseInt(id));
     if (foundInvestor) {
+      // Generate holdings from investments array
+      const holdings = [];
+      if (foundInvestor.investments && Array.isArray(foundInvestor.investments)) {
+        foundInvestor.investments.forEach(investment => {
+          holdings.push({
+            series: investment.seriesName,
+            purchaseDate: investment.date,
+            investment: investment.amount,
+            nextPayout: 'TBD', // To be determined based on series payout schedule
+            status: 'Active'
+          });
+        });
+      }
+      
       investor = {
         id: foundInvestor.id,
         name: foundInvestor.name,
-        investorId: foundInvestor.investorId || `INV-${String(foundInvestor.id).padStart(3, '0')}`,
+        investorId: foundInvestor.investorId,
         email: foundInvestor.email,
         phone: foundInvestor.phone,
         pan: foundInvestor.pan || defaultInvestor.pan,
@@ -86,14 +100,17 @@ const InvestorDetails = () => {
         address: foundInvestor.address || defaultInvestor.address,
         bankAccount: foundInvestor.bankAccount || defaultInvestor.bankAccount,
         kycStatus: foundInvestor.kycStatus === 'Completed' ? 'Verified' : (foundInvestor.kycStatus === 'Rejected' ? 'Rejected' : 'Pending'),
-        totalInvestment: foundInvestor.investment || defaultInvestor.totalInvestment,
-        activeHoldings: foundInvestor.series?.length || defaultInvestor.activeHoldings,
-        holdings: defaultInvestor.holdings,
-        kycDocuments: defaultInvestor.kycDocuments,
-        transactions: defaultInvestor.transactions
+        totalInvestment: foundInvestor.investment || 0,
+        activeHoldings: foundInvestor.series?.length || 0,
+        holdings: holdings,
+        kycDocuments: foundInvestor.kycDocuments || [],
+        transactions: foundInvestor.transactions || []
       };
     }
   }
+
+  // Filter complaints for this specific investor
+  const investorComplaints = getInvestorComplaints(investor.investorId);
 
   const formatCurrency = (amount) => {
     return `₹${amount.toLocaleString('en-IN')}`;
@@ -205,7 +222,7 @@ const InvestorDetails = () => {
           }
           doc.text((index + 1) + '. ' + holding.series + ' - ' + formatCurrency(holding.investment), 20, yPosition);
           yPosition += 6;
-          doc.text('   Purchase Date: ' + holding.purchaseDate + ', Units: ' + holding.units, 25, yPosition);
+          doc.text('   Purchase Date: ' + holding.purchaseDate, 25, yPosition);
           yPosition += 6;
           doc.text('   Next Payout: ' + holding.nextPayout + ', Status: ' + holding.status, 25, yPosition);
           yPosition += 10;
@@ -296,6 +313,23 @@ const InvestorDetails = () => {
       // Save the PDF
       const fileName = investor.name.replace(/\s+/g, '_') + '_Profile_' + new Date().toISOString().split('T')[0] + '.pdf';
       doc.save(fileName);
+      
+      // Add audit log for investor profile download
+      addAuditLog({
+        action: 'Downloaded Report',
+        adminName: user ? user.name : 'User',
+        adminRole: user ? user.displayRole : 'User',
+        details: `Downloaded investor profile for "${investor.name}" (ID: ${investor.investorId}, PDF format)`,
+        entityType: 'Investor',
+        entityId: investor.investorId,
+        changes: {
+          documentType: 'Investor Profile',
+          fileName: fileName,
+          format: 'PDF',
+          investorName: investor.name,
+          investorId: investor.investorId
+        }
+      });
       
       console.log('PDF generated successfully:', fileName);
     } catch (error) {
@@ -438,53 +472,57 @@ const InvestorDetails = () => {
           <div className="holdings-section">
             <h2 className="section-title">Active Holdings</h2>
             <div className="table-card">
-              <table className="holdings-table">
-                <thead>
-                  <tr>
-                    <th>Series</th>
-                    <th>Purchase Date</th>
-                    <th>Units</th>
-                    <th>Investment</th>
-                    <th>Next Payout</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {investor.holdings.map((holding, index) => (
-                    <tr key={index}>
-                      <td className="series-cell">
-                        <button 
-                          className="series-link"
-                          onClick={() => {
-                            // Create a mapping function for series names to IDs
-                            const getSeriesId = (seriesName) => {
-                              const seriesMap = {
-                                'Series A': '1',
-                                'Series B': '2',
-                                'Series C': '3',
-                                'Series D': '4'
-                              };
-                              return seriesMap[seriesName] || '1'; // Default to '1' if not found
-                            };
-                            
-                            const seriesId = getSeriesId(holding.series);
-                            navigate(`/ncd-series/${seriesId}`);
-                          }}
-                        >
-                          {holding.series}
-                        </button>
-                      </td>
-                      <td>{holding.purchaseDate}</td>
-                      <td>{holding.units}</td>
-                      <td className="investment-cell">{formatCurrency(holding.investment)}</td>
-                      <td>{holding.nextPayout}</td>
-                      <td>
-                        <span className="status-pill active">{holding.status}</span>
-                      </td>
+              {investor.holdings && investor.holdings.length > 0 ? (
+                <table className="holdings-table">
+                  <thead>
+                    <tr>
+                      <th>Series</th>
+                      <th>Purchase Date</th>
+                      <th>Investment</th>
+                      <th>Next Payout</th>
+                      <th>Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {investor.holdings.map((holding, index) => (
+                      <tr key={index}>
+                        <td className="series-cell">
+                          <button 
+                            className="series-link"
+                            onClick={() => {
+                              // Create a mapping function for series names to IDs
+                              const getSeriesId = (seriesName) => {
+                                const seriesMap = {
+                                  'Series A': '1',
+                                  'Series B': '2',
+                                  'Series C': '3',
+                                  'Series D': '4'
+                                };
+                                return seriesMap[seriesName] || '1'; // Default to '1' if not found
+                              };
+                              
+                              const seriesId = getSeriesId(holding.series);
+                              navigate(`/ncd-series/${seriesId}`);
+                            }}
+                          >
+                            {holding.series}
+                          </button>
+                        </td>
+                        <td>{holding.purchaseDate}</td>
+                        <td className="investment-cell">{formatCurrency(holding.investment)}</td>
+                        <td>{holding.nextPayout}</td>
+                        <td>
+                          <span className="status-pill active">{holding.status}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="empty-state">
+                  <p>No active holdings available</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -493,22 +531,38 @@ const InvestorDetails = () => {
             {/* KYC Documents */}
             <div className="section-card">
               <h2 className="section-title">KYC Documents</h2>
-              <div className="documents-list">
-                {investor.kycDocuments.map((doc, index) => (
-                  <div key={index} className="document-item">
-                    <div className="document-info">
-                      <HiOutlineDocumentText className="document-icon" />
-                      <div>
-                        <div className="document-name">{doc.name}</div>
-                        <div className="document-date">Uploaded: {doc.uploadedDate}</div>
+              {investor.kycDocuments && investor.kycDocuments.length > 0 ? (
+                <div className="documents-list">
+                  {investor.kycDocuments.map((doc, index) => (
+                    <div key={index} className="document-item">
+                      <div className="document-info">
+                        <HiOutlineDocumentText className="document-icon" />
+                        <div>
+                          <div className="document-name">{doc.name}</div>
+                          <div className="document-date">Uploaded: {doc.uploadedDate}</div>
+                        </div>
                       </div>
+                      {doc.status === 'Completed' || doc.status === 'Verified' ? (
+                        <span className="verified-badge">
+                          <HiCheckCircle size={14} /> Verified
+                        </span>
+                      ) : doc.status === 'Rejected' ? (
+                        <span className="rejected-badge">
+                          <HiCheckCircle size={14} /> Rejected
+                        </span>
+                      ) : (
+                        <span className="pending-badge">
+                          <HiCheckCircle size={14} /> Pending
+                        </span>
+                      )}
                     </div>
-                    <span className="verified-badge">
-                      <HiCheckCircle size={14} /> Verified
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>No KYC documents uploaded</p>
+                </div>
+              )}
             </div>
 
             {/* Recent Transactions */}
@@ -530,6 +584,46 @@ const InvestorDetails = () => {
                 ))}
               </div>
             </div>
+
+            {/* All Complaints - Only show if investor has complaints */}
+            {investorComplaints.length > 0 && (
+              <div className="section-card complaints-section">
+                <h2 className="section-title">
+                  <MdReportProblem className="section-icon" />
+                  All Complaints ({investorComplaints.length})
+                </h2>
+                <div className="complaints-table-container">
+                  <table className="complaints-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Issue</th>
+                        <th>Remarks</th>
+                        <th>Timestamp</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {investorComplaints.map((complaint, index) => (
+                        <tr key={complaint.id} className={complaint.status === 'resolved' ? 'resolved-row' : 'pending-row'}>
+                          <td>{index + 1}</td>
+                          <td>{complaint.issue}</td>
+                          <td>
+                            <div className="remarks-cell">{complaint.remarks}</div>
+                          </td>
+                          <td>{complaint.timestamp}</td>
+                          <td>
+                            <span className={`status-badge ${complaint.status}`}>
+                              {complaint.status === 'resolved' ? 'Resolved' : 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

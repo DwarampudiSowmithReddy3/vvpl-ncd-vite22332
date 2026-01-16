@@ -101,6 +101,13 @@
   font-size: 15px;
 }
 
+.sidebar-item:hover:not(.active):not(.clicked) {
+  background: #fbbf24 !important;
+  color: #1f2937 !important;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3) !important;
+}
+
 .sidebar-item.active,
 .sidebar-item.clicked {
   background: #1e40af !important;

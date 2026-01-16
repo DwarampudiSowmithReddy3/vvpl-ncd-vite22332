@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import './NCDSeries.css';
-import { HiOutlineEye } from "react-icons/hi";
+import { HiOutlineEye, HiOutlineTrash } from "react-icons/hi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 
 
 
 const NCDSeries = () => {
   const navigate = useNavigate();
-  const { series, addSeries } = useData();
+  const { showCreateButton, canEdit, canDelete } = usePermissions();
+  const { user } = useAuth();
+  const { series, addSeries, deleteSeries, addAuditLog } = useData();
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [seriesToDelete, setSeriesToDelete] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     seriesCode: '',
     interestRate: '',
     couponRate: '',
-    interestFrequency: 'MONTHLY',
+    interestFrequency: 'Monthly Interest',
     issueDate: '',
     maturityDate: '',
     tenure: '',
@@ -34,6 +40,9 @@ const NCDSeries = () => {
     totalIssueSize: '',
     status: 'DRAFT',
     description: '',
+    debentureTrusteeName: '',
+    investorsSize: '',
+    minSubscriptionPercentage: '',
     termSheet: null,
     offerDocument: null,
     boardResolution: null
@@ -59,20 +68,34 @@ const NCDSeries = () => {
       return null;
     };
     
+    // Handle DRAFT status
+    if (s.status === 'DRAFT') {
+      return { status: 'draft', label: 'Yet to be approved', color: 'gray' };
+    }
+    
+    // Handle UPCOMING status (approved but not released)
+    if (s.status === 'upcoming') {
+      const issueDateStr = s.issueDate || 'TBD';
+      return { status: 'upcoming', label: 'Releasing soon', color: 'orange' };
+    }
+    
     const maturityDate = parseDate(s.maturityDate);
-    const releaseDate = parseDate(s.releaseDate);
-
     if (maturityDate && maturityDate < today) {
       return { status: 'expired', label: 'Expired', color: 'red' };
     }
-    if (releaseDate && releaseDate > today) {
-      return { status: 'upcoming', label: `Upcoming (${s.releaseDate})`, color: 'orange' };
-    }
+    
     return { status: 'active', label: 'Active', color: 'green' };
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Validate that all 3 documents are uploaded
+    if (!formData.termSheet || !formData.offerDocument || !formData.boardResolution) {
+      alert('Please upload all required documents (Term Sheet, Offer Document, and Board Resolution)');
+      return;
+    }
+    
     const formatDate = (dateStr) => {
       if (!dateStr) return '';
       const date = new Date(dateStr);
@@ -103,20 +126,45 @@ const NCDSeries = () => {
       totalIssueSize: parseFloat(formData.totalIssueSize),
       status: formData.status,
       description: formData.description,
+      debentureTrusteeName: formData.debentureTrusteeName,
+      investorsSize: parseInt(formData.investorsSize),
+      minSubscriptionPercentage: parseFloat(formData.minSubscriptionPercentage),
       documents: {
         termSheet: formData.termSheet,
         offerDocument: formData.offerDocument,
         boardResolution: formData.boardResolution
       }
     };
-    addSeries(newSeries);
+    
+    const success = addSeries(newSeries);
+    if (!success) {
+      return; // Don't close form if duplicate name
+    }
+    
+    // Add audit log for series creation
+    addAuditLog({
+      action: 'Created Series',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Created new NCD series "${formData.name}" with target amount ${formatCurrency(parseFloat(formData.targetAmount) * 10000000)} and interest rate ${formData.interestRate}%`,
+      entityType: 'Series',
+      entityId: formData.name,
+      changes: {
+        seriesName: formData.name,
+        targetAmount: parseFloat(formData.targetAmount) * 10000000,
+        interestRate: parseFloat(formData.interestRate),
+        issueDate: formatDate(formData.issueDate),
+        maturityDate: formatDate(formData.maturityDate)
+      }
+    });
+    
     setShowCreateForm(false);
     setFormData({
       name: '',
       seriesCode: '',
       interestRate: '',
       couponRate: '',
-      interestFrequency: 'MONTHLY',
+      interestFrequency: 'Monthly Interest',
       issueDate: '',
       maturityDate: '',
       tenure: '',
@@ -133,6 +181,9 @@ const NCDSeries = () => {
       totalIssueSize: '',
       status: 'DRAFT',
       description: '',
+      debentureTrusteeName: '',
+      investorsSize: '',
+      minSubscriptionPercentage: '',
       termSheet: null,
       offerDocument: null,
       boardResolution: null
@@ -169,6 +220,33 @@ const NCDSeries = () => {
     }
   };
 
+  const handleDeleteClick = (series) => {
+    setSeriesToDelete(series);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (seriesToDelete) {
+      const success = deleteSeries(seriesToDelete.id);
+      if (success) {
+        setShowDeleteConfirm(false);
+        setSeriesToDelete(null);
+      } else {
+        alert('Cannot delete active series. Only draft and upcoming series can be deleted.');
+      }
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setSeriesToDelete(null);
+  };
+
+  // Separate series into 3 categories
+  const draftSeries = series.filter(s => s.status === 'DRAFT');
+  const upcomingSeries = series.filter(s => s.status === 'upcoming');
+  const activeSeries = series.filter(s => s.status === 'active');
+
   return (
     <Layout>
       <div className="ncd-series-page">
@@ -177,74 +255,258 @@ const NCDSeries = () => {
             <h1 className="page-title">NCD Series</h1>
             <p className="page-subtitle">Manage all your non-convertible debenture series</p>
           </div>
-          <button 
-            className="create-button"
-            onClick={() => setShowCreateForm(true)}
-          >
-            + Create New Series
-          </button>
+          {showCreateButton('ncdSeries') && (
+            <button 
+              className="create-button"
+              onClick={() => setShowCreateForm(true)}
+            >
+              + Create New Series
+            </button>
+          )}
         </div>
 
-        <div className="series-grid">
-          {series.map((s) => {
-            const statusInfo = getStatusInfo(s);
-            const progress = (s.fundsRaised / s.targetAmount) * 100;
-            return (
-              <div key={s.id} className="series-card">
-                <div className="card-header">
-                  <h3 className="series-name">{s.name}</h3>
-                  <div className="status-tags">
-                    <span className={`status-tag ${statusInfo.color}`}>
-                      {statusInfo.label}
-                    </span>
-                    <span className="frequency-tag">{s.interestFrequency}</span>
+        {/* Draft Series Section */}
+        {draftSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Pending Approval</h2>
+              <p className="section-subtitle">Series awaiting board approval</p>
+            </div>
+            <div className="series-grid">
+              {draftSeries.map((s) => {
+                const statusInfo = getStatusInfo(s);
+                const progress = (s.fundsRaised / s.targetAmount) * 100;
+                return (
+                  <div key={s.id} className="series-card draft-card">
+                    <div className="card-banner draft-banner">
+                      <div className="banner-content">
+                        <h3 className="series-name">{s.name}</h3>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Issue Date:</span>
+                        <span className="detail-value">{s.issueDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Maturity Date:</span>
+                        <span className="detail-value">{s.maturityDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Min Investment:</span>
+                        <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button"
+                        onClick={() => navigate(`/ncd-series/${s.id}`)}
+                      >
+                        <HiOutlineEye size={18} />
+                        <span>View Details</span>
+                      </button>
+                      {canDelete('ncdSeries') && (
+                        <button 
+                          className="delete-series-button"
+                          onClick={() => handleDeleteClick(s)}
+                          title="Delete Draft Series"
+                        >
+                          <HiOutlineTrash size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
-                <div className="interest-rate">
-                  {s.interestRate}%
-                </div>
-                <div className="series-stats">
-                  <span className="investors-count">{s.investors} investors</span>
-                </div>
-                <div className="funds-progress">
-                  <div className="progress-bar">
-                    <div 
-                      className={`progress-fill ${statusInfo.color}`}
-                      style={{ width: `${progress}%` }}
-                    ></div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Upcoming Series Section - Approved but not yet released */}
+        {upcomingSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Releasing Soon</h2>
+              <p className="section-subtitle">Approved series awaiting release date</p>
+            </div>
+            <div className="series-grid">
+              {upcomingSeries.map((s) => {
+                const statusInfo = getStatusInfo(s);
+                const progress = (s.fundsRaised / s.targetAmount) * 100;
+                return (
+                  <div key={s.id} className="series-card upcoming-card">
+                    <div className="card-banner upcoming-banner">
+                      <div className="banner-content">
+                        <h3 className="series-name">{s.name}</h3>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Issue Date:</span>
+                        <span className="detail-value">{s.issueDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Maturity Date:</span>
+                        <span className="detail-value">{s.maturityDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Min Investment:</span>
+                        <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button"
+                        onClick={() => navigate(`/ncd-series/${s.id}`)}
+                      >
+                        <HiOutlineEye size={18} />
+                        <span>View Details</span>
+                      </button>
+                      {canDelete('ncdSeries') && (
+                        <button 
+                          className="delete-series-button"
+                          onClick={() => handleDeleteClick(s)}
+                          title="Delete Upcoming Series"
+                        >
+                          <HiOutlineTrash size={18} />
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <div className="progress-text">
-                    {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Active Series Section */}
+        {activeSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Currently Running</h2>
+              <p className="section-subtitle">Active series accepting investments</p>
+            </div>
+            <div className="series-grid">
+              {activeSeries.map((s) => {
+                const statusInfo = getStatusInfo(s);
+                const progress = (s.fundsRaised / s.targetAmount) * 100;
+                return (
+                  <div key={s.id} className="series-card">
+                    <div className="card-banner">
+                      <div className="banner-content">
+                        <h3 className="series-name">{s.name}</h3>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Issue Date:</span>
+                        <span className="detail-value">{s.issueDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Maturity Date:</span>
+                        <span className="detail-value">{s.maturityDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Min Investment:</span>
+                        <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button"
+                        onClick={() => navigate(`/ncd-series/${s.id}`)}
+                      >
+                        <HiOutlineEye size={18} />
+                        <span>View Details</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="series-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Issue Date:</span>
-                    <span className="detail-value">{s.issueDate}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Maturity Date:</span>
-                    <span className="detail-value">{s.maturityDate}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Face Value:</span>
-                    <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Min Investment:</span>
-                    <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
-                  </div>
-                </div>
-                <button 
-                  className="view-details-button"
-                  onClick={() => navigate(`/ncd-series/${s.id}`)}
-                >
-                  <HiOutlineEye size={18} /> View Details
-                </button>
-              </div>
-            );
-          })}
-        </div>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {showCreateForm && (
           <div className="modal-overlay" onClick={() => setShowCreateForm(false)}>
@@ -307,6 +569,33 @@ const NCDSeries = () => {
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="CLOSED">CLOSED</option>
                       </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Debenture Trustee Name*</label>
+                      <input
+                        type="text"
+                        value={formData.debentureTrusteeName}
+                        onChange={(e) => setFormData({ ...formData, debentureTrusteeName: e.target.value })}
+                        required
+                        placeholder="Enter debenture trustee name"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Investors Size*</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        value={formData.investorsSize}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData({ ...formData, investorsSize: value });
+                        }}
+                        required
+                        placeholder="Enter expected number of investors"
+                      />
                     </div>
                   </div>
                 </div>
@@ -379,6 +668,31 @@ const NCDSeries = () => {
                       />
                     </div>
                   </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Minimum Subscription of Issue Size (%)*</label>
+                      <input
+                        type="text"
+                        value={formData.minSubscriptionPercentage}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Allow only numbers and one decimal point
+                          if (value === '' || /^\d*\.?\d*$/.test(value)) {
+                            // Validate range (0-100)
+                            const numValue = parseFloat(value);
+                            if (value === '' || (numValue >= 0 && numValue <= 100)) {
+                              setFormData({ ...formData, minSubscriptionPercentage: value });
+                            }
+                          }
+                        }}
+                        required
+                        placeholder="Enter minimum subscription percentage (0-100)"
+                      />
+                    </div>
+                    <div className="form-group">
+                      {/* Empty space for alignment */}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Financial Information */}
@@ -398,9 +712,14 @@ const NCDSeries = () => {
                     <div className="form-group">
                       <label>Minimum Investment (₹)*</label>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={formData.minInvestment}
-                        onChange={(e) => setFormData({ ...formData, minInvestment: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9]/g, '');
+                          setFormData({ ...formData, minInvestment: value });
+                        }}
                         required
                         placeholder="Enter minimum investment"
                       />
@@ -412,6 +731,7 @@ const NCDSeries = () => {
                       <input
                         type="number"
                         step="0.1"
+                        min="0"
                         value={formData.targetAmount}
                         onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
                         required
@@ -422,6 +742,7 @@ const NCDSeries = () => {
                       <label>Total Issue Size*</label>
                       <input
                         type="number"
+                        min="0"
                         value={formData.totalIssueSize}
                         onChange={(e) => setFormData({ ...formData, totalIssueSize: e.target.value })}
                         required
@@ -436,23 +757,57 @@ const NCDSeries = () => {
                   <h3 className="form-section-title">Interest & Rating Information</h3>
                   <div className="form-row">
                     <div className="form-group">
+                      <label>Interest Rate (%)*</label>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        pattern="[0-9]*\.?[0-9]*"
+                        value={formData.interestRate}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^0-9.]/g, '');
+                          // Prevent multiple decimal points
+                          const parts = value.split('.');
+                          const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : value;
+                          setFormData({ ...formData, interestRate: formatted, couponRate: formatted });
+                        }}
+                        required
+                        placeholder="Enter interest rate"
+                      />
+                    </div>
+                    <div className="form-group">
                       <label>Coupon Rate (%)*</label>
                       <input
                         type="number"
                         step="0.01"
+                        min="0"
+                        max="100"
                         value={formData.couponRate}
                         onChange={(e) => setFormData({ ...formData, couponRate: e.target.value })}
                         required
                         placeholder="Enter coupon rate"
                       />
                     </div>
-                    <div className="form-row">
-                      <div className="form-group">
-                        <label>Credit Rating*</label>
-                        <select value={formData.creditRating}
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Interest Payment Frequency*</label>
+                      <select
+                        value={formData.interestFrequency}
+                        onChange={(e) => setFormData({ ...formData, interestFrequency: e.target.value })}
+                        required
+                      >
+                        <option value="Monthly Interest">Monthly Interest</option>
+                        <option value="Quarterly Interest">Quarterly Interest</option>
+                        <option value="Annual Interest">Annual Interest</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Credit Rating*</label>
+                      <select 
+                        value={formData.creditRating}
                         onChange={(e) => setFormData({ ...formData, creditRating: e.target.value })}
                         required
-                        >
+                      >
                         <option value="">Select Rating</option>
                         <option value="AAA">AAA</option>
                         <option value="AA+">AA+</option>
@@ -463,25 +818,7 @@ const NCDSeries = () => {
                         <option value="A-">A-</option>
                         <option value="BBB+">BBB+</option>
                         <option value="BBB">BBB</option>
-                    </select>
-                  </div>
-
-                <div className="form-group">
-                  <label>Interest Payment Frequency*</label>
-                    <select
-                      value={formData.interestFrequency}
-                      onChange={(e) => setFormData({ ...formData, interestFrequency: e.target.value })}
-                      required
-                    >
-                    <option value="ANNUAL">Annual</option>
-                    <option value="QUARTERLY">Quarterly</option>
-                    <option value="MONTHLY">Monthly</option>
-                    </select>
-                  </div>
-                </div>
-
-                    <div className="form-group">
-                      {/* Empty space for alignment */}
+                      </select>
                     </div>
                   </div>
                 </div>
@@ -511,11 +848,13 @@ const NCDSeries = () => {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, 'termSheet')}
+                      onClick={() => document.getElementById('termSheet').click()}
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="upload-content">
-                        <HiOutlineDocumentText size={18} />
+                        <HiOutlineDocumentText size={24} />
                         <div className="upload-text">
-                          <p>Drag and drop file here</p>
+                          <p>Click to upload or drag and drop file here</p>
                           <p className="file-limit">Limit 200MB per file • PDF</p>
                         </div>
                         <input
@@ -525,13 +864,6 @@ const NCDSeries = () => {
                           onChange={(e) => handleFileInput(e, 'termSheet')}
                           style={{ display: 'none' }}
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('termSheet').click()}
-                        >
-                          Browse Files
-                        </button>
                       </div>
                       {formData.termSheet && (
                         <div className="file-selected">
@@ -548,12 +880,13 @@ const NCDSeries = () => {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, 'offerDocument')}
+                      onClick={() => document.getElementById('offerDocument').click()}
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="upload-content">
-                        <span className="upload-icon">
-                        <HiOutlineDocumentText size={18} /></span>
+                        <HiOutlineDocumentText size={24} />
                         <div className="upload-text">
-                          <p>Drag and drop file here</p>
+                          <p>Click to upload or drag and drop file here</p>
                           <p className="file-limit">Limit 200MB per file • PDF</p>
                         </div>
                         <input
@@ -563,13 +896,6 @@ const NCDSeries = () => {
                           onChange={(e) => handleFileInput(e, 'offerDocument')}
                           style={{ display: 'none' }}
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('offerDocument').click()}
-                        >
-                          Browse Files
-                        </button>
                       </div>
                       {formData.offerDocument && (
                         <div className="file-selected">
@@ -586,12 +912,13 @@ const NCDSeries = () => {
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, 'boardResolution')}
+                      onClick={() => document.getElementById('boardResolution').click()}
+                      style={{ cursor: 'pointer' }}
                     >
                       <div className="upload-content">
-                        <span className="upload-icon">
-                         <HiOutlineDocumentText size={18} /></span>
+                        <HiOutlineDocumentText size={24} />
                         <div className="upload-text">
-                          <p>Drag and drop file here</p>
+                          <p>Click to upload or drag and drop file here</p>
                           <p className="file-limit">Limit 200MB per file • PDF</p>
                         </div>
                         <input
@@ -601,13 +928,6 @@ const NCDSeries = () => {
                           onChange={(e) => handleFileInput(e, 'boardResolution')}
                           style={{ display: 'none' }}
                         />
-                        <button
-                          type="button"
-                          className="browse-button"
-                          onClick={() => document.getElementById('boardResolution').click()}
-                        >
-                          Browse Files
-                        </button>
                       </div>
                       {formData.boardResolution && (
                         <div className="file-selected">
@@ -631,6 +951,36 @@ const NCDSeries = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && seriesToDelete && (
+          <div className="modal-overlay" onClick={handleDeleteCancel}>
+            <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Delete Series</h3>
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to delete <strong>{seriesToDelete.name}</strong>?</p>
+                <p className="warning-text">This action cannot be undone.</p>
+              </div>
+              <div className="modal-actions">
+                <button 
+                  className="cancel-button"
+                  onClick={handleDeleteCancel}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="delete-confirm-button"
+                  onClick={handleDeleteConfirm}
+                >
+                  <HiOutlineTrash size={16} />
+                  Delete Series
+                </button>
+              </div>
             </div>
           </div>
         )}

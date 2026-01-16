@@ -87,8 +87,17 @@ const Login = () => {
           <button type="submit" className="login-button">Sign In</button>
         </form>
         <div className="login-hint">
-          <p>Admin: subbireddy / subbireddy</p>
-          <p>Investor: sowmith / sowmith</p>
+          <p className="contact-message">
+            Don't have an account? 
+            <a 
+              href="https://www.vaibhav-vyapaar.com/contactus.html" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="contact-link"
+            >
+              Contact us
+            </a>
+          </p>
         </div>
       </div>
     </div>

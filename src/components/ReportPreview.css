@@ -126,12 +126,13 @@
 }
 
 .card-header {
-  background: #8aa2f0;
+  background: #e4e4e4;
   color: white;
   padding: 16px 20px;
   display: flex;
   align-items: center;
   gap: 12px;
+  border-radius: 10px;
 }
 
 .card-header h3 {

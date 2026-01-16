@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
 import Layout from '../components/Layout';
 import ReportPreview from '../components/ReportPreview';
 import './Reports.css';
@@ -20,6 +23,9 @@ import 'jspdf-autotable';
 
 
 const Reports = () => {
+  const { showCreateButton, canEdit } = usePermissions();
+  const { user } = useAuth();
+  const { addAuditLog } = useData();
   const [previewReport, setPreviewReport] = useState(null);
 
   // PDF Generation Functions
@@ -83,6 +89,21 @@ const Reports = () => {
       // Save the PDF
       const fileName = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
+      
+      // Add audit log for document download
+      addAuditLog({
+        action: 'Downloaded Report',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Downloaded "${reportName}" report (PDF format)`,
+        entityType: 'Report',
+        entityId: reportName,
+        changes: {
+          documentType: reportName,
+          fileName: fileName,
+          format: 'PDF'
+        }
+      });
       
       console.log('Report PDF generated successfully:', fileName);
     } catch (error) {
@@ -851,6 +872,11 @@ const Reports = () => {
                       <button 
                         className="generate-button"
                         onClick={() => handleGenerate(report.name)}
+                        disabled={!showCreateButton('reports')}
+                        style={{ 
+                          opacity: showCreateButton('reports') ? 1 : 0.5,
+                          cursor: showCreateButton('reports') ? 'pointer' : 'not-allowed'
+                        }}
                       >
                         <MdOutlineFileDownload size={18} /> Generate
                       </button>

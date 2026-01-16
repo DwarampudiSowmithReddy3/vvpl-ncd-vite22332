@@ -374,6 +374,198 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Complaints Section - Full width when present */
+.complaints-section {
+  grid-column: 1 / -1; /* Span full width */
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 20px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-icon {
+  color: #ef4444;
+  font-size: 20px;
+}
+
+/* Complaints Table */
+.complaints-table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+}
+
+.complaints-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.complaints-table thead {
+  background: #f8fafc;
+}
+
+.complaints-table th {
+  padding: 16px 12px;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.complaints-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+  vertical-align: top;
+}
+
+.complaints-table tbody tr {
+  transition: all 0.3s ease;
+}
+
+.complaints-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.pending-row {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.resolved-row {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.remarks-cell {
+  max-width: 250px;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.status-badge.resolved {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.status-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.edit-button,
+.save-button,
+.cancel-button-small {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.3s ease;
+}
+
+.edit-button {
+  background: #f59e0b;
+  color: white;
+  border: none;
+}
+
+.edit-button:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.save-button {
+  background: #16a34a;
+  color: white;
+  border: none;
+}
+
+.save-button:hover {
+  background: #15803d;
+  transform: translateY(-1px);
+}
+
+.cancel-button-small {
+  background: #6b7280;
+  color: white;
+  border: none;
+}
+
+.cancel-button-small:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
+}
+
+.edit-input,
+.edit-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.edit-input:focus,
+.edit-textarea:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.edit-textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.4;
+}
+
 /* KYC Documents */
 .documents-list {
   display: flex;
@@ -478,6 +670,14 @@
   .bottom-sections {
     grid-template-columns: 1fr;
   }
+
+  .complaints-table-container {
+    overflow-x: auto;
+  }
+
+  .complaints-table {
+    min-width: 800px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -511,6 +711,21 @@
   .holdings-table th,
   .holdings-table td {
     padding: 8px;
+  }
+
+  .complaints-table th,
+  .complaints-table td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+
+  .remarks-cell {
+    max-width: 150px;
+  }
+
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 

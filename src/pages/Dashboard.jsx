@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { usePermissions } from '../hooks/usePermissions';
+import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import ComplianceTracker from '../components/ComplianceTracker';
 import './Dashboard.css';
@@ -15,6 +17,8 @@ import UpcomingPayoutCalendar from '../components/UpcomingPayoutCalendar';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { canView } = usePermissions();
+  const { user } = useAuth();
   const {
     investors,
     series,
@@ -22,7 +26,9 @@ const Dashboard = () => {
     getTotalInvestors,
     getCurrentMonthPayout,
     getPendingKYC,
-    getUpcomingPayouts
+    getUpcomingPayouts,
+    getYetToBeSubmittedSeries,
+    addAuditLog
   } = useData();
 
   const [totalFunds, setTotalFunds] = useState(0);
@@ -31,13 +37,8 @@ const Dashboard = () => {
   const [showComplianceTracker, setShowComplianceTracker] = useState(false);
   const [selectedSeries, setSelectedSeries] = useState(null);
 
-  // Yet to be submitted series data (from compliance page)
-  const yetToBeSubmittedSeries = [
-    { id: 'comp-1', name: 'Series A NCD', interestRate: 8.5, interestFrequency: 'Quarterly', investors: 45, fundsRaised: 25000000, targetAmount: 100000000, issueDate: '2024-01-15', maturityDate: '2027-01-15', status: 'yet-to-be-submitted' },
-    { id: 'comp-2', name: 'Series B NCD', interestRate: 9.0, interestFrequency: 'Half-Yearly', investors: 32, fundsRaised: 18000000, targetAmount: 75000000, issueDate: '2024-02-01', maturityDate: '2027-02-01', status: 'yet-to-be-submitted' },
-    { id: 'comp-3', name: 'Series D NCD', interestRate: 8.75, interestFrequency: 'Annually', investors: 28, fundsRaised: 15000000, targetAmount: 60000000, issueDate: '2024-03-10', maturityDate: '2027-03-10', status: 'yet-to-be-submitted' },
-    { id: 'comp-4', name: 'Series E NCD', interestRate: 9.25, interestFrequency: 'Quarterly', investors: 38, fundsRaised: 22000000, targetAmount: 80000000, issueDate: '2024-04-05', maturityDate: '2027-04-05', status: 'yet-to-be-submitted' }
-  ];
+  // Get dynamic yet-to-be-submitted series from DataContext
+  const yetToBeSubmittedSeries = getYetToBeSubmittedSeries();
 
   const totalInvestorsCount = getTotalInvestors();
   const currentMonthPayout = getCurrentMonthPayout();
@@ -57,8 +58,28 @@ const Dashboard = () => {
       .catch(err => console.error('API Error:', err));
   }, []);
 
-  const recentInvestors = investors
-    .sort((a, b) => new Date(b.dateJoined.split('/').reverse().join('-')) - new Date(a.dateJoined.split('/').reverse().join('-')))
+  // Get recent investments (not investors) - each investment per series shown separately
+  const recentInvestments = [];
+  investors.forEach(investor => {
+    if (investor.investments && Array.isArray(investor.investments)) {
+      investor.investments.forEach(investment => {
+        recentInvestments.push({
+          id: `${investor.id}-${investment.seriesName}-${investment.timestamp}`,
+          name: investor.name,
+          investorId: investor.investorId,
+          seriesName: investment.seriesName,
+          amount: investment.amount,
+          date: investment.date,
+          timestamp: investment.timestamp,
+          kycStatus: investor.kycStatus
+        });
+      });
+    }
+  });
+
+  // Sort by timestamp (newest first) and take top 4
+  const recentInvestors = recentInvestments
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     .slice(0, 4);
 
   const formatDate = (dateStr) => {
@@ -90,8 +111,17 @@ const Dashboard = () => {
     <Layout>
       <div className="dashboard">
         <div className="dashboard-header">
-          <h1 className="dashboard-title">Dashboard</h1>
-          <p className="dashboard-subtitle">Overview of your NCD portfolio and investor activity.</p>
+          <div className="header-left">
+            <h1 className="dashboard-title">Dashboard</h1>
+            <p className="dashboard-subtitle">Overview of the NCD portfolio and investor activity.</p>
+          </div>
+          <div className="header-right">
+            <UpcomingPayoutCalendar 
+              date={series.find(s => s.status === 'active' || s.status === 'upcoming')?.maturityDate} 
+              series={series.filter(s => s.status === 'active' || s.status === 'upcoming')} 
+              type="maturity"
+            />
+          </div>
         </div>
 
         <div className="dashboard-cards">
@@ -250,19 +280,19 @@ const Dashboard = () => {
               </button>
             </div>
             <div className="investors-list">
-              {recentInvestors.map((investor) => (
-                <div key={investor.id} className="investor-item">
+              {recentInvestors.map((investment) => (
+                <div key={investment.id} className="investor-item">
                   <div className="investor-info">
-                    <h6 className="investor-name">{investor.name}</h6>
+                    <h6 className="investor-name">{investment.name}</h6>
                     <div className="investor-details">
-                      <span className="investor-series">{investor.series[0]}</span>
-                      <span className="investor-date">{formatDate(investor.dateJoined)}</span>
-                      <span className="investor-amount">₹{investor.investment.toLocaleString('en-IN')}</span>
+                      <span className="investor-series">{investment.seriesName}</span>
+                      <span className="investor-date">{formatDate(investment.date)}</span>
+                      <span className="investor-amount">₹{investment.amount.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
                   <div className="investor-status">
-                    <span className={`kyc-badge ${investor.kycStatus.toLowerCase()}`}>
-                    {investor.kycStatus}
+                    <span className={`kyc-badge ${investment.kycStatus.toLowerCase()}`}>
+                    {investment.kycStatus}
                     </span>
                   </div>
                 </div>
@@ -273,10 +303,9 @@ const Dashboard = () => {
           <div className="dashboard-section">
             <div className="section-header">
               <h3 className="section-title">Upcoming Payouts</h3>
-              <UpcomingPayoutCalendar date={nearestPayout?.date} payouts={upcomingPayouts} />
             </div>
             <div className="payouts-list">
-              {upcomingPayouts.slice(0, 2).map((payout, index) => (
+              {upcomingPayouts.slice(0, 3).map((payout, index) => (
                 <div key={index} className="payout-item">
                   <div className="payout-info">
                     <h4 className="payout-series">{payout.series}</h4>
@@ -285,8 +314,19 @@ const Dashboard = () => {
                       <span>{formatCurrency(payout.amount)}</span>
                     </div>
                   </div>
-                  <div className="payout-date">
-                    {new Date(payout.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                  <div className="payout-date-container">
+                    <div className="payout-date">
+                      {new Date(payout.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </div>
+                    <div className="payout-days-left">
+                      {(() => {
+                        const today = new Date();
+                        const payoutDate = new Date(payout.date);
+                        const diffTime = payoutDate - today;
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        return diffDays > 0 ? `${diffDays} days left` : 'Due today';
+                      })()}
+                    </div>
                   </div>
                 </div>
               ))}
