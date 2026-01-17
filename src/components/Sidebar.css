@@ -126,9 +126,11 @@
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 200px;
+    width: 260px;
     padding: 16px;
     transform: translateX(-100%);
+    height: 100vh;
+    overflow-y: auto;
   }
   
   .sidebar.open {
@@ -144,13 +146,76 @@
   }
   
   .sidebar-title {
-    max-width: 150px;
-    max-height: 50px;
+    max-width: 180px;
+    max-height: 55px;
   }
   
   .sidebar-item {
-    padding: 10px 12px;
+    padding: 12px 14px;
     font-size: 14px;
+  }
+
+  .sidebar-icon {
+    font-size: 16px;
+  }
+}
+
+/* Mobile header buttons in sidebar - Show on mobile only */
+@media (max-width: 768px) {
+  .sidebar-mobile-buttons {
+    display: block !important;
+    padding: 16px 0;
+    border-top: 1px solid #e2e8f0;
+    border-bottom: 1px solid #e2e8f0;
+    margin: 16px 0;
+  }
+
+  .sidebar-mobile-buttons .sop-document-button,
+  .sidebar-mobile-buttons .grievance-button {
+    width: 100%;
+    margin-bottom: 8px;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    display: flex !important;
+  }
+
+  .sidebar-mobile-buttons .sop-document-button svg,
+  .sidebar-mobile-buttons .grievance-button svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .sidebar-mobile-buttons .account-menu-container {
+    width: 100%;
+    display: block !important;
+  }
+
+  .sidebar-mobile-buttons .account-button {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+    display: flex !important;
+  }
+
+  .sidebar-mobile-buttons .account-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+}
+
+/* Hide mobile buttons on desktop */
+@media (min-width: 769px) {
+  .sidebar-mobile-buttons {
+    display: none !important;
   }
 }
 

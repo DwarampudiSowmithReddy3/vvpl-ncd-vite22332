@@ -105,11 +105,11 @@ const InterestPayout = () => {
     const activeSeries = series.filter(s => s.status === 'active');
     
     activeSeries.forEach(s => {
-      // Check if this series has any due payouts
-      if (!isPayoutDue(s.issueDate, s.interestFrequency)) {
-        // Skip this series - no payout due yet
-        return;
-      }
+      // Temporarily skip the payout due check for debugging
+      // if (!isPayoutDue(s.issueDate, s.interestFrequency)) {
+      //   // Skip this series - no payout due yet
+      //   return;
+      // }
       
       // Get investors for this series
       const seriesInvestors = investors.filter(inv => inv.series && inv.series.includes(s.name));
@@ -135,7 +135,7 @@ const InterestPayout = () => {
         const payoutStatus = payoutStatusUpdates[payoutKey] || 'Paid';
         
         // Current month payout only (for main table display)
-        payouts.push({
+        const payoutObject = {
           id: payoutId++,
           investorId: investor.investorId,
           investorName: investor.name,
@@ -144,8 +144,13 @@ const InterestPayout = () => {
           interestMonth: currentMonth,
           interestDate: `15-${currentDate.toLocaleString('default', { month: 'short' })}-${currentDate.getFullYear()}`,
           amount: Math.round(interestAmount),
-          status: payoutStatus
-        });
+          status: payoutStatus,
+          bankName: investor.bankName || 'N/A',
+          bankAccountNumber: investor.bankAccountNumber || 'N/A',
+          ifscCode: investor.ifscCode || 'N/A'
+        };
+        
+        payouts.push(payoutObject);
       });
     });
     
@@ -314,7 +319,7 @@ const InterestPayout = () => {
   };
 
   const handleExport = () => {
-    const headers = ['Investor ID', 'Investor Name', 'Series Name', 'Interest Month', 'Interest Date', 'Amount', 'Status'];
+    const headers = ['Investor ID', 'Investor Name', 'Series Name', 'Interest Month', 'Interest Date', 'Amount', 'Status', 'Bank Name', 'Account Number', 'IFSC Code'];
     const rows = filteredPayouts.map(payout => [
       payout.investorId,
       payout.investorName,
@@ -322,7 +327,10 @@ const InterestPayout = () => {
       payout.interestMonth,
       payout.interestDate,
       `₹${payout.amount.toLocaleString('en-IN')}`,
-      payout.status
+      payout.status,
+      payout.bankName,
+      payout.bankAccountNumber,
+      payout.ifscCode
     ]);
     
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -439,7 +447,7 @@ const InterestPayout = () => {
     const data = getExportData();
     const summary = getExportSummary();
     
-    const headers = ['Investor ID', 'Investor Name', 'Series', 'Month', 'Date', 'Amount', 'Bank Account', 'IFSC Code', 'Bank Name'];
+    const headers = ['Investor ID', 'Investor Name', 'Series', 'Month', 'Date', 'Amount', 'Status', 'Bank Account', 'IFSC Code', 'Bank Name'];
     const rows = data.map(p => [
       p.investorId,
       p.investorName,
@@ -447,6 +455,7 @@ const InterestPayout = () => {
       p.interestMonth,
       p.interestDate,
       p.amount,
+      p.status,
       p.bankAccountNumber,
       p.ifscCode,
       p.bankName
@@ -496,15 +505,18 @@ const InterestPayout = () => {
     const sampleData = [
       {
         'Investor ID': 'ABCDE1234F',
-        'Investor Name': 'Sample Investor',
         'Series Name': 'Series A',
-        'Interest Month': 'January 2026',
-        'Interest Date': '15-Jan-2026',
-        'Amount': '10000',
-        'Status': 'Paid',
-        'Bank Account': '1234567890123456',
-        'IFSC Code': 'SBIN0001234',
-        'Bank Name': 'State Bank of India'
+        'Status': 'Paid'
+      },
+      {
+        'Investor ID': 'ABCDE1234F',
+        'Series Name': 'Series B',
+        'Status': 'Pending'
+      },
+      {
+        'Investor ID': 'FGHIJ5678K',
+        'Series Name': 'Series A',
+        'Status': 'Scheduled'
       }
     ];
 
@@ -561,8 +573,8 @@ const InterestPayout = () => {
           return;
         }
 
-        // Validate required columns
-        const requiredColumns = ['Investor ID', 'Series Name', 'Interest Month', 'Status'];
+        // Validate required columns - need Investor ID, Series Name, and Status
+        const requiredColumns = ['Investor ID', 'Series Name', 'Status'];
         const firstRow = jsonData[0];
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
         
@@ -571,56 +583,73 @@ const InterestPayout = () => {
           return;
         }
 
-        // Process the data and update statuses
+        // Process the data and update statuses for specific series only
         let updatedCount = 0;
         let notFoundCount = 0;
+        let totalPayoutsUpdated = 0;
         const newStatusUpdates = { ...payoutStatusUpdates };
 
-        jsonData.forEach(row => {
+        jsonData.forEach((row, index) => {
           const investorId = row['Investor ID'];
-          const status = row['Status'];
           const seriesName = row['Series Name'];
-          const interestMonth = row['Interest Month'];
+          const status = row['Status'];
           
-          if (investorId && status) {
+          if (investorId && seriesName && status) {
             // Find investor in the system
             const investor = investors.find(inv => inv.investorId === investorId);
             
             if (investor) {
-              // Create unique key for this payout
-              const payoutKey = `${investorId}-${seriesName}-${interestMonth}`;
-              
-              // Update the status
-              newStatusUpdates[payoutKey] = status;
-              updatedCount++;
+              // Check if investor is actually invested in this series
+              if (investor.series && investor.series.includes(seriesName)) {
+                
+                // Get current month for the payout key
+                const currentDate = new Date();
+                const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+                
+                // Create unique key for this specific series payout
+                const payoutKey = `${investorId}-${seriesName}-${currentMonth}`;
+                
+                // Update the status for this specific series only
+                newStatusUpdates[payoutKey] = status;
+                totalPayoutsUpdated++;
+                updatedCount++;
+              } else {
+                notFoundCount++;
+              }
             } else {
               notFoundCount++;
             }
+          } else {
+            notFoundCount++;
           }
         });
 
         // Save the updated statuses
         setPayoutStatusUpdates(newStatusUpdates);
+        
+        // Force immediate localStorage update
+        localStorage.setItem('payoutStatusUpdates', JSON.stringify(newStatusUpdates));
 
         // Show success message
         if (updatedCount > 0) {
-          setImportStatus(`success:Successfully updated ${updatedCount} payout status(es). ${notFoundCount > 0 ? `${notFoundCount} investor(s) not found.` : ''}`);
+          setImportStatus(`success:Successfully updated ${updatedCount} payout(s). ${notFoundCount > 0 ? `${notFoundCount} record(s) not found or invalid.` : ''}`);
           
           // Add audit log
           addAuditLog({
             action: 'Imported Data',
             adminName: user ? user.name : 'Admin',
             adminRole: user ? user.displayRole : 'Admin',
-            details: `Imported Interest Payout data: ${updatedCount} records processed, ${notFoundCount} not found`,
+            details: `Imported Interest Payout data: ${updatedCount} payouts updated, ${notFoundCount} not found/invalid`,
             entityType: 'Payout',
             entityId: 'Bulk Import',
             changes: {
               documentType: 'Interest Payout Import',
               fileName: uploadedFile.name,
               format: 'Excel',
-              recordsProcessed: updatedCount,
+              payoutsUpdated: updatedCount,
               recordsNotFound: notFoundCount,
-              totalRecords: jsonData.length
+              totalRecords: jsonData.length,
+              updatedKeys: Object.keys(newStatusUpdates).filter(key => newStatusUpdates[key] !== payoutStatusUpdates[key])
             }
           });
 
@@ -835,6 +864,9 @@ const InterestPayout = () => {
                 <th>Interest Date</th>
                 <th>Amount</th>
                 <th>Status</th>
+                <th>Bank Name</th>
+                <th>Account Number</th>
+                <th>IFSC Code</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -866,6 +898,15 @@ const InterestPayout = () => {
                     <span className={`status-badge ${getStatusColor(payout.status)}`}>
                       {payout.status}
                     </span>
+                  </td>
+                  <td>
+                    <span className="bank-name">{payout.bankName}</span>
+                  </td>
+                  <td>
+                    <span className="account-number">{payout.bankAccountNumber}</span>
+                  </td>
+                  <td>
+                    <span className="ifsc-code">{payout.ifscCode}</span>
                   </td>
                   <td>
                     <button 
@@ -921,6 +962,21 @@ const InterestPayout = () => {
                   <div className="mobile-payout-item">
                     <span className="mobile-payout-label">Interest Date</span>
                     <span className="mobile-payout-value">{payout.interestDate}</span>
+                  </div>
+                  
+                  <div className="mobile-payout-item">
+                    <span className="mobile-payout-label">Bank Name</span>
+                    <span className="mobile-payout-value">{payout.bankName}</span>
+                  </div>
+                  
+                  <div className="mobile-payout-item">
+                    <span className="mobile-payout-label">Account Number</span>
+                    <span className="mobile-payout-value">{payout.bankAccountNumber}</span>
+                  </div>
+                  
+                  <div className="mobile-payout-item">
+                    <span className="mobile-payout-label">IFSC Code</span>
+                    <span className="mobile-payout-value">{payout.ifscCode}</span>
                   </div>
                 </div>
                 
@@ -1021,6 +1077,7 @@ const InterestPayout = () => {
                         <th>Series</th>
                         <th>Date</th>
                         <th>Amount</th>
+                        <th>Status</th>
                         <th>Bank Account</th>
                         <th>IFSC Code</th>
                         <th>Bank Name</th>
@@ -1038,6 +1095,11 @@ const InterestPayout = () => {
                           <td>{payout.seriesName}</td>
                           <td>{payout.interestDate}</td>
                           <td className="amount-cell">₹{payout.amount.toLocaleString('en-IN')}</td>
+                          <td>
+                            <span className={`status-badge ${payout.status === 'Paid' ? 'paid' : payout.status === 'Pending' ? 'pending' : 'scheduled'}`}>
+                              {payout.status}
+                            </span>
+                          </td>
                           <td>{payout.bankAccountNumber}</td>
                           <td>{payout.ifscCode}</td>
                           <td>{payout.bankName}</td>

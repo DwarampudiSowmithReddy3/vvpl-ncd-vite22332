@@ -182,6 +182,26 @@ export const AuthProvider = ({ children }) => {
     }
     // Investor (existing)
     else if (username === 'sowmith' && password === 'sowmith') {
+      // SECURITY CHECK: Verify investor account status
+      const investorsData = JSON.parse(localStorage.getItem('investors') || '[]');
+      const investorAccount = investorsData.find(inv => inv.investorId === 'ABCDE1234F');
+      
+      console.log('Login security check for investor:', investorAccount);
+      
+      // Block login for deleted or deactivated accounts
+      if (investorAccount && (
+        investorAccount.status === 'deleted' || 
+        investorAccount.status === 'deactivated' || 
+        investorAccount.active === false
+      )) {
+        console.log('Blocking login for inactive investor account');
+        if (investorAccount.status === 'deleted') {
+          return { success: false, error: 'Your account has been deleted. Please contact support.' };
+        } else {
+          return { success: false, error: 'Your account has been deactivated. Please contact support to reactivate your account.' };
+        }
+      }
+      
       const userData = {
         username: 'sowmith',
         role: 'Investor',
@@ -195,6 +215,48 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       return { success: true, role: 'investor' };
     }
+    // Check for any investor login (dynamic investor accounts)
+    const investorsData = JSON.parse(localStorage.getItem('investors') || '[]');
+    const matchingInvestor = investorsData.find(inv => 
+      (inv.email === username || inv.investorId === username) && 
+      (inv.password === password || inv.phone === password || inv.investorId === password)
+    );
+    
+    if (matchingInvestor) {
+      console.log('Found matching investor for login:', matchingInvestor);
+      
+      // ABSOLUTE BLOCK: Deleted accounts cannot login EVER
+      if (matchingInvestor.status === 'deleted' || matchingInvestor.canLogin === false) {
+        console.log('🚫 PERMANENT BLOCK: Deleted investor cannot login');
+        return { 
+          success: false, 
+          error: 'Account has been permanently deleted. Access denied. Contact support if needed.' 
+        };
+      }
+      
+      // SECURITY CHECK: Block deactivated accounts
+      if (matchingInvestor.status === 'deactivated' || matchingInvestor.active === false) {
+        console.log('🚫 TEMPORARY BLOCK: Deactivated investor cannot login');
+        return { 
+          success: false, 
+          error: 'Your account has been deactivated. Please contact support to reactivate your account.' 
+        };
+      }
+      
+      const userData = {
+        username: matchingInvestor.investorId,
+        role: 'Investor',
+        name: matchingInvestor.name,
+        investorId: matchingInvestor.investorId,
+        displayRole: 'Investor'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'investor' };
+    }
+    
     return { success: false, error: 'Invalid credentials' };
   };
 

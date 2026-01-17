@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const DataContext = createContext();
 
@@ -194,14 +194,15 @@ const initialSeries = [
     status: 'active',
     interestFrequency: 'Quarterly Interest',
     interestRate: 9.5,
-    investors: 95,
+    investors: 0, // Will be calculated from actual investor data
     fundsRaised: 35000000,
     targetAmount: 50000000,
     issueDate: '1/6/2023',
     maturityDate: '1/6/2028',
     faceValue: 1000,
     minInvestment: 10000,
-    releaseDate: '1/6/2023'
+    releaseDate: '1/6/2023',
+    lockInPeriod: 12 // 12 months lock-in period
   },
   {
     id: 2,
@@ -209,14 +210,15 @@ const initialSeries = [
     status: 'active',
     interestFrequency: 'Monthly Interest',
     interestRate: 10,
-    investors: 124,
+    investors: 0, // Will be calculated from actual investor data
     fundsRaised: 62000000,
     targetAmount: 80000000,
     issueDate: '15/9/2023',
     maturityDate: '15/9/2028',
     faceValue: 1000,
     minInvestment: 25000,
-    releaseDate: '15/9/2023'
+    releaseDate: '15/9/2023',
+    lockInPeriod: 18 // 18 months lock-in period
   },
   {
     id: 3,
@@ -224,14 +226,15 @@ const initialSeries = [
     status: 'active',
     interestFrequency: 'Quarterly Interest',
     interestRate: 10.5,
-    investors: 29,
+    investors: 0, // Will be calculated from actual investor data
     fundsRaised: 28000000,
     targetAmount: 100000000,
     issueDate: '1/1/2024',
     maturityDate: '1/1/2029',
     faceValue: 1000,
     minInvestment: 50000,
-    releaseDate: '1/1/2024'
+    releaseDate: '1/1/2024',
+    lockInPeriod: 24 // 24 months lock-in period
   },
   {
     id: 4,
@@ -239,14 +242,15 @@ const initialSeries = [
     status: 'active',
     interestFrequency: 'Quarterly Interest',
     interestRate: 11,
-    investors: 67,
+    investors: 0, // Will be calculated from actual investor data
     fundsRaised: 45000000,
     targetAmount: 150000000,
     issueDate: '1/3/2024',
     maturityDate: '1/3/2029',
     faceValue: 1000,
     minInvestment: 100000,
-    releaseDate: '1/3/2024'
+    releaseDate: '1/3/2024',
+    lockInPeriod: 15 // 15 months lock-in period
   },
   {
     id: 5,
@@ -254,14 +258,31 @@ const initialSeries = [
     status: 'active',
     interestFrequency: 'Monthly Interest',
     interestRate: 11.5,
-    investors: 43,
+    investors: 0, // Will be calculated from actual investor data
     fundsRaised: 32000000,
     targetAmount: 120000000,
     issueDate: '15/5/2024',
     maturityDate: '15/5/2029',
     faceValue: 1000,
     minInvestment: 75000,
-    releaseDate: '15/5/2024'
+    releaseDate: '15/5/2024',
+    lockInPeriod: 36 // 36 months lock-in period
+  },
+  {
+    id: 6,
+    name: 'Series Z',
+    status: 'matured',
+    interestFrequency: 'Quarterly Interest',
+    interestRate: 8.5,
+    investors: 0, // Will be calculated from actual investor data
+    fundsRaised: 75000000,
+    targetAmount: 75000000,
+    issueDate: '1/1/2020',
+    maturityDate: '1/1/2025',
+    faceValue: 1000,
+    minInvestment: 10000,
+    releaseDate: '1/1/2020',
+    lockInPeriod: 12 // 12 months lock-in period
   }
 ];
 
@@ -274,9 +295,22 @@ export const DataProvider = ({ children }) => {
     if (saved) {
       const parsedInvestors = JSON.parse(saved);
       
-      // Clean up investor data
+      // Clean up investor data and migrate 'Verified' to 'Completed'
       const cleanedInvestors = parsedInvestors.map(inv => {
         const cleaned = { ...inv };
+        
+        // Migrate KYC status from 'Verified' to 'Completed'
+        if (cleaned.kycStatus === 'Verified') {
+          cleaned.kycStatus = 'Completed';
+        }
+        
+        // Migrate KYC documents status from 'Verified' to 'Completed'
+        if (cleaned.kycDocuments && Array.isArray(cleaned.kycDocuments)) {
+          cleaned.kycDocuments = cleaned.kycDocuments.map(doc => ({
+            ...doc,
+            status: doc.status === 'Verified' ? 'Completed' : doc.status
+          }));
+        }
         
         // Ensure series is an array
         if (!Array.isArray(cleaned.series)) {
@@ -308,6 +342,9 @@ export const DataProvider = ({ children }) => {
         return cleaned;
       });
       
+      // Save the migrated data back to localStorage
+      localStorage.setItem('investors', JSON.stringify(cleanedInvestors));
+      
       return cleanedInvestors;
     }
     return initialInvestors;
@@ -320,17 +357,18 @@ export const DataProvider = ({ children }) => {
     // Load all series from localStorage (no filtering)
     let parsedSeries = savedSeries ? JSON.parse(savedSeries) : initialSeries;
     
-    // Recalculate series data based on actual investor investments
+    // ALWAYS RECALCULATE: Always recalculate series data based on actual investor investments (excluding deleted investors)
     if (savedInvestors) {
       const parsedInvestors = JSON.parse(savedInvestors);
       
       parsedSeries = parsedSeries.map(s => {
-        // Find all investors in this series
+        // Find all ACTIVE investors in this series (exclude deleted investors)
         const investorsInSeries = parsedInvestors.filter(inv => 
-          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name)
+          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name) &&
+          inv.status !== 'deleted' // Exclude deleted investors
         );
         
-        // Calculate total funds from investments array (per-series tracking)
+        // Calculate total funds from investments array (per-series tracking, only active investors)
         const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
           if (inv.investments && Array.isArray(inv.investments)) {
             const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
@@ -345,10 +383,18 @@ export const DataProvider = ({ children }) => {
         const isInitialSeries = s.id <= 5;
         const baseFunds = isInitialSeries ? (initialSeries.find(init => init.id === s.id)?.fundsRaised || 0) : 0;
         
+        const calculatedInvestors = investorsInSeries.length;
+        const calculatedFunds = baseFunds + Math.round(totalFundsFromInvestors);
+        
+        // Only log if there's a significant change to avoid spam
+        if (Math.abs(s.investors - calculatedInvestors) > 0 || Math.abs(s.fundsRaised - calculatedFunds) > 1000) {
+          console.log(`📊 ${s.name}: ${calculatedInvestors} investors (was ${s.investors}), ₹${calculatedFunds.toLocaleString()} funds (was ₹${s.fundsRaised.toLocaleString()})`);
+        }
+        
         return {
           ...s,
-          investors: investorsInSeries.length,
-          fundsRaised: baseFunds + Math.round(totalFundsFromInvestors)
+          investors: calculatedInvestors, // Only count active investors
+          fundsRaised: calculatedFunds // Only funds from active investors
         };
       });
       
@@ -501,7 +547,52 @@ export const DataProvider = ({ children }) => {
     return false;
   };
 
-  // Recalculate series metrics based on actual investor data
+  // Force complete recalculation of all series metrics
+  const forceRecalculateAllSeries = useCallback(() => {
+    console.log('🔄 FORCING COMPLETE SERIES RECALCULATION');
+    
+    setSeries(currentSeries => {
+      const recalculatedSeries = currentSeries.map(s => {
+        // Find all ACTIVE investors in this series (exclude deleted investors)
+        const investorsInSeries = investors.filter(inv => 
+          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name) &&
+          inv.status !== 'deleted' // Exclude deleted investors
+        );
+        
+        // Calculate total funds from investments array (only from active investors)
+        const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
+          if (inv.investments && Array.isArray(inv.investments)) {
+            const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
+            return sum + (seriesInvestment ? seriesInvestment.amount : 0);
+          }
+          return sum;
+        }, 0);
+        
+        // For initial series (1-5), add the new investments to the base amount
+        const isInitialSeries = s.id <= 5;
+        const baseFunds = isInitialSeries ? (initialSeries.find(init => init.id === s.id)?.fundsRaised || 0) : 0;
+        
+        const newInvestorCount = investorsInSeries.length;
+        const newFundsRaised = baseFunds + Math.round(totalFundsFromInvestors);
+        
+        console.log(`📊 ${s.name}: ${newInvestorCount} investors (was ${s.investors}), ₹${newFundsRaised.toLocaleString()} funds (was ₹${s.fundsRaised.toLocaleString()})`);
+        
+        return {
+          ...s,
+          investors: newInvestorCount,
+          fundsRaised: newFundsRaised
+        };
+      });
+      
+      // Save to localStorage
+      localStorage.setItem('series', JSON.stringify(recalculatedSeries));
+      console.log('✅ Series recalculation complete');
+      
+      return recalculatedSeries;
+    });
+  }, [investors]); // Only depend on investors, not series
+
+  // Recalculate series metrics based on actual investor data (excluding deleted investors)
   const recalculateSeriesMetrics = (seriesName = null) => {
     setSeries(currentSeries => 
       currentSeries.map(s => {
@@ -510,12 +601,13 @@ export const DataProvider = ({ children }) => {
           return s;
         }
         
-        // Find all investors in this series
+        // Find all ACTIVE investors in this series (exclude deleted investors)
         const investorsInSeries = investors.filter(inv => 
-          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name)
+          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name) &&
+          inv.status !== 'deleted' // Exclude deleted investors
         );
         
-        // Calculate total funds from investments array
+        // Calculate total funds from investments array (only from active investors)
         const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
           if (inv.investments && Array.isArray(inv.investments)) {
             const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
@@ -530,8 +622,8 @@ export const DataProvider = ({ children }) => {
         
         return {
           ...s,
-          investors: investorsInSeries.length,
-          fundsRaised: baseFunds + Math.round(totalFundsFromInvestors)
+          investors: investorsInSeries.length, // Only count active investors
+          fundsRaised: baseFunds + Math.round(totalFundsFromInvestors) // Only funds from active investors
         };
       })
     );
@@ -606,8 +698,28 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateInvestor = (id, updates) => {
-    const oldInvestor = investors.find(inv => inv.id === id);
-    setInvestors(investors.map(inv => inv.id === id ? { ...inv, ...updates } : inv));
+    console.log('DataContext updateInvestor called with ID:', id, 'type:', typeof id, 'updates:', updates);
+    
+    // Handle both string and number IDs
+    const targetId = typeof id === 'string' ? parseInt(id) : id;
+    const oldInvestor = investors.find(inv => inv.id === targetId || inv.id === id);
+    console.log('Found old investor:', oldInvestor);
+    
+    if (!oldInvestor) {
+      console.error('Investor not found with ID:', id);
+      console.log('Available investors:', investors.map(inv => ({ id: inv.id, name: inv.name, type: typeof inv.id })));
+      return;
+    }
+    
+    const updatedInvestors = investors.map(inv => 
+      (inv.id === targetId || inv.id === id) ? { ...inv, ...updates } : inv
+    );
+    console.log('Setting updated investors:', updatedInvestors);
+    setInvestors(updatedInvestors);
+    
+    // Force save to localStorage immediately
+    localStorage.setItem('investors', JSON.stringify(updatedInvestors));
+    console.log('Saved updated investors to localStorage');
     
     // Recalculate metrics for affected series
     const affectedSeries = new Set();
@@ -770,12 +882,18 @@ export const DataProvider = ({ children }) => {
 
   // Get series that need compliance attention (for dashboard alerts)
   const getYetToBeSubmittedSeries = () => {
-    const complianceSeries = [
-      { id: 'comp-1', name: 'Series A NCD', interestRate: 8.5, interestFrequency: 'Quarterly', investors: 45, fundsRaised: 25000000, targetAmount: 100000000, issueDate: '2024-01-15', maturityDate: '2027-01-15' },
-      { id: 'comp-2', name: 'Series B NCD', interestRate: 9.0, interestFrequency: 'Half-Yearly', investors: 32, fundsRaised: 18000000, targetAmount: 75000000, issueDate: '2024-02-01', maturityDate: '2027-02-01' },
-      { id: 'comp-3', name: 'Series D NCD', interestRate: 8.75, interestFrequency: 'Annually', investors: 28, fundsRaised: 15000000, targetAmount: 60000000, issueDate: '2024-03-10', maturityDate: '2027-03-10' },
-      { id: 'comp-4', name: 'Series E NCD', interestRate: 9.25, interestFrequency: 'Quarterly', investors: 38, fundsRaised: 22000000, targetAmount: 80000000, issueDate: '2024-04-05', maturityDate: '2027-04-05' }
-    ];
+    // Use actual series data instead of hardcoded data
+    const complianceSeries = series.filter(s => s.status === 'active').map(s => ({
+      id: `comp-${s.id}`,
+      name: `${s.name} NCD`,
+      interestRate: s.interestRate,
+      interestFrequency: s.interestFrequency,
+      investors: s.investors, // Use real investor count
+      fundsRaised: s.fundsRaised, // Use real funds raised
+      targetAmount: s.targetAmount,
+      issueDate: s.issueDate,
+      maturityDate: s.maturityDate
+    }));
 
     return complianceSeries.filter(s => getComplianceStatus(s.name) === 'yet-to-be-submitted');
   };
@@ -812,7 +930,8 @@ export const DataProvider = ({ children }) => {
       getComplianceStatus,
       getYetToBeSubmittedSeries,
       updateComplianceStatus,
-      recalculateSeriesMetrics
+      recalculateSeriesMetrics,
+      forceRecalculateAllSeries
     }}>
       {children}
     </DataContext.Provider>

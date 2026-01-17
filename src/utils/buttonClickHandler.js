@@ -5,12 +5,16 @@ export const initializeButtonClickHandler = () => {
     const button = event.target.closest('button, .btn, .button, input[type="button"], input[type="submit"], input[type="reset"]');
     
     if (button) {
-      // Don't apply to logout, close, or menu toggle buttons (exceptions)
+      // Don't apply to logout, close, menu toggle, or navigation buttons (exceptions)
       if (button.classList.contains('sidebar-logout') || 
           button.classList.contains('close-button') || 
           button.classList.contains('sidebar-close') ||
-          button.classList.contains('menu-toggle')) {
-        return;
+          button.classList.contains('menu-toggle') ||
+          button.classList.contains('back-button') ||
+          button.classList.contains('view-button') ||
+          button.classList.contains('edit-user-button') ||
+          button.classList.contains('series-link')) {
+        return; // Don't interfere with navigation buttons
       }
       
       // Remove clicked class from ALL buttons globally (except sidebar items)
@@ -55,10 +59,10 @@ export const initializeButtonClickHandler = () => {
     }
   };
 
-  // Add event listeners
-  document.addEventListener('click', handleButtonClick);
-  document.addEventListener('click', handleLinkClick);
-  document.addEventListener('change', handleSelectChange);
+  // Add event listeners with passive option to avoid blocking
+  document.addEventListener('click', handleButtonClick, { passive: true });
+  document.addEventListener('click', handleLinkClick, { passive: true });
+  document.addEventListener('change', handleSelectChange, { passive: true });
   
   // Return cleanup function
   return () => {

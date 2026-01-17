@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -14,16 +14,21 @@ import {
   HiOutlineDocumentText,
   HiCheckCircle
 } from 'react-icons/hi';
-import { MdAccountBalance, MdReportProblem } from 'react-icons/md';
-import { MdOutlineFileDownload } from 'react-icons/md';
+import { MdAccountBalance, MdReportProblem, MdEdit, MdDelete } from 'react-icons/md';
+import { FiUpload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const InvestorDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { investors = [], getInvestorComplaints, addAuditLog } = useData();
+  const { investors = [], getInvestorComplaints, addAuditLog, updateInvestor, setInvestors, series, setSeries } = useData();
   const { user } = useAuth();
+  
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
+  const [confirmAction, setConfirmAction] = useState(null); // 'delete' or 'deactivate'
 
   // Hardcoded default data
   const defaultInvestor = {
@@ -36,7 +41,7 @@ const InvestorDetails = () => {
     dateJoined: '15/6/2023',
     address: '123, MG Road, Bangalore, Karnataka - 560001',
     bankAccount: 'HDFC Bank - ****5678',
-    kycStatus: 'Verified',
+    kycStatus: 'Completed', // Changed from 'Verified' to 'Completed'
     totalInvestment: 1500000,
     activeHoldings: 3,
     holdings: [
@@ -56,10 +61,10 @@ const InvestorDetails = () => {
       }
     ],
     kycDocuments: [
-      { name: 'PAN Card', uploadedDate: '20/6/2023', status: 'Verified' },
-      { name: 'Aadhaar Card', uploadedDate: '20/6/2023', status: 'Verified' },
-      { name: 'Bank Statement', uploadedDate: '20/6/2023', status: 'Verified' },
-      { name: 'Cancelled Cheque', uploadedDate: '20/6/2023', status: 'Verified' }
+      { name: 'PAN Card', uploadedDate: '20/6/2023', status: 'Completed' }, // Changed from 'Verified'
+      { name: 'Aadhaar Card', uploadedDate: '20/6/2023', status: 'Completed' }, // Changed from 'Verified'
+      { name: 'Bank Statement', uploadedDate: '20/6/2023', status: 'Completed' }, // Changed from 'Verified'
+      { name: 'Cancelled Cheque', uploadedDate: '20/6/2023', status: 'Completed' } // Changed from 'Verified'
     ],
     transactions: [
       { type: 'Interest Credit', series: 'Series A', date: '2024-01-10', amount: 11875 },
@@ -72,8 +77,15 @@ const InvestorDetails = () => {
   // Find investor by ID, or use default data
   let investor = defaultInvestor;
   
+  console.log('Looking for investor with ID:', id, 'type:', typeof id);
+  console.log('Available investors:', investors);
+  console.log('Investors from localStorage:', localStorage.getItem('investors'));
+  
   if (investors && investors.length > 0 && id) {
-    const foundInvestor = investors.find(inv => inv.id === parseInt(id));
+    const foundInvestor = investors.find(inv => inv.id === parseInt(id) || inv.id === id);
+    console.log('Found investor:', foundInvestor);
+    console.log('Investor ID type:', foundInvestor ? typeof foundInvestor.id : 'N/A');
+    
     if (foundInvestor) {
       // Generate holdings from investments array
       const holdings = [];
@@ -89,8 +101,81 @@ const InvestorDetails = () => {
         });
       }
       
+      // Generate KYC documents if not present
+      let kycDocuments = foundInvestor.kycDocuments || [];
+      if (kycDocuments.length === 0) {
+        // Generate default KYC documents based on investor's KYC status
+        kycDocuments = [
+          { 
+            name: 'PAN Card', 
+            uploadedDate: foundInvestor.dateJoined, 
+            status: foundInvestor.kycStatus,
+            fileName: 'pan_card.pdf'
+          },
+          { 
+            name: 'Aadhaar Card', 
+            uploadedDate: foundInvestor.dateJoined, 
+            status: foundInvestor.kycStatus,
+            fileName: 'aadhaar_card.pdf'
+          },
+          { 
+            name: 'Cancelled Cheque', 
+            uploadedDate: foundInvestor.dateJoined, 
+            status: foundInvestor.kycStatus,
+            fileName: 'cancelled_cheque.pdf'
+          },
+          { 
+            name: 'Digital Signature', 
+            uploadedDate: foundInvestor.dateJoined, 
+            status: foundInvestor.kycStatus,
+            fileName: 'digital_signature.png'
+          }
+        ];
+      }
+      
+      // Generate transactions from investments
+      let transactions = foundInvestor.transactions || [];
+      if (transactions.length === 0 && foundInvestor.investments && foundInvestor.investments.length > 0) {
+        transactions = foundInvestor.investments.map(investment => ({
+          type: 'Investment',
+          series: investment.seriesName,
+          date: investment.date,
+          amount: investment.amount,
+          description: `Investment in ${investment.seriesName}`
+        }));
+        
+        // Add interest credit transactions for active investments
+        foundInvestor.investments.forEach(investment => {
+          const investmentDate = new Date(investment.timestamp || investment.date);
+          const today = new Date();
+          const monthsDiff = Math.floor((today - investmentDate) / (1000 * 60 * 60 * 24 * 30));
+          
+          // Generate interest transactions for each month since investment
+          for (let i = 1; i <= Math.min(monthsDiff, 6); i++) { // Limit to last 6 months
+            const interestDate = new Date(investmentDate);
+            interestDate.setMonth(interestDate.getMonth() + i);
+            
+            if (interestDate <= today) {
+              // Calculate monthly interest (assuming 10% annual rate)
+              const monthlyInterest = Math.round((investment.amount * 0.10) / 12);
+              
+              transactions.push({
+                type: 'Interest Credit',
+                series: investment.seriesName,
+                date: interestDate.toLocaleDateString('en-GB'),
+                amount: monthlyInterest,
+                description: `Monthly interest for ${investment.seriesName}`
+              });
+            }
+          }
+        });
+        
+        // Sort transactions by date (newest first)
+        transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+      }
+      
       investor = {
-        id: foundInvestor.id,
+        id: foundInvestor.id, // Use the actual ID from the found investor
         name: foundInvestor.name,
         investorId: foundInvestor.investorId,
         email: foundInvestor.email,
@@ -99,14 +184,43 @@ const InvestorDetails = () => {
         dateJoined: foundInvestor.dateJoined,
         address: foundInvestor.address || defaultInvestor.address,
         bankAccount: foundInvestor.bankAccount || defaultInvestor.bankAccount,
-        kycStatus: foundInvestor.kycStatus === 'Completed' ? 'Verified' : (foundInvestor.kycStatus === 'Rejected' ? 'Rejected' : 'Pending'),
+        kycStatus: foundInvestor.kycStatus || 'Pending', // Keep original status without mapping
         totalInvestment: foundInvestor.investment || 0,
         activeHoldings: foundInvestor.series?.length || 0,
         holdings: holdings,
-        kycDocuments: foundInvestor.kycDocuments || [],
-        transactions: foundInvestor.transactions || []
+        kycDocuments: kycDocuments,
+        transactions: transactions,
+        // Include all other fields that might be needed for updates
+        dob: foundInvestor.dob,
+        dateOfBirth: foundInvestor.dateOfBirth,
+        residentialAddress: foundInvestor.residentialAddress,
+        correspondenceAddress: foundInvestor.correspondenceAddress,
+        aadhaar: foundInvestor.aadhaar,
+        aadhaarNumber: foundInvestor.aadhaarNumber,
+        bankName: foundInvestor.bankName,
+        bankAccountNumber: foundInvestor.bankAccountNumber,
+        accountNumber: foundInvestor.accountNumber,
+        ifscCode: foundInvestor.ifscCode,
+        active: foundInvestor.active,
+        occupation: foundInvestor.occupation,
+        sourceOfFunds: foundInvestor.sourceOfFunds,
+        nomineeName: foundInvestor.nomineeName,
+        nomineeRelationship: foundInvestor.nomineeRelationship,
+        nomineeMobile: foundInvestor.nomineeMobile,
+        nomineeEmail: foundInvestor.nomineeEmail,
+        nomineeAddress: foundInvestor.nomineeAddress,
+        status: foundInvestor.status,
+        series: foundInvestor.series,
+        investment: foundInvestor.investment,
+        investments: foundInvestor.investments
       };
+      
+      console.log('Using found investor data:', investor);
+    } else {
+      console.log('Investor not found, using default data');
     }
+  } else {
+    console.log('No investors data available or no ID provided, using default data');
   }
 
   // Filter complaints for this specific investor
@@ -143,9 +257,9 @@ const InvestorDetails = () => {
       doc.text(investor.name, 20, yPosition);
       
       // KYC Badge
-      const kycText = investor.kycStatus === 'Verified' ? 'KYC VERIFIED' : 
+      const kycText = investor.kycStatus === 'Completed' ? 'KYC COMPLETED' : 
                      investor.kycStatus === 'Rejected' ? 'KYC REJECTED' : 'KYC PENDING';
-      const kycColor = investor.kycStatus === 'Verified' ? [29, 78, 216] : 
+      const kycColor = investor.kycStatus === 'Completed' ? [29, 78, 216] : 
                       investor.kycStatus === 'Rejected' ? [220, 38, 38] : [245, 158, 11];
       
       doc.setFontSize(10);
@@ -338,6 +452,474 @@ const InvestorDetails = () => {
     }
   };
 
+  // Handle file upload for edit modal
+  const handleFileUpload = (e, field) => {
+    const file = e.target.files[0];
+    if (file) {
+      setEditFormData({ ...editFormData, [field]: file });
+    }
+  };
+
+  // Handle edit form submission
+  const handleEditSubmit = (e) => {
+    e.preventDefault();
+    
+    console.log('Form submitted with data:', editFormData);
+    console.log('Current investor:', investor);
+    
+    // Update investor data
+    const updatedInvestor = {
+      ...investor,
+      name: editFormData.fullName,
+      email: editFormData.email,
+      phone: editFormData.phone,
+      dob: editFormData.dob,
+      dateOfBirth: editFormData.dob, // Add both field names
+      address: editFormData.residentialAddress,
+      residentialAddress: editFormData.residentialAddress, // Add both field names
+      correspondenceAddress: editFormData.correspondenceAddress,
+      pan: editFormData.pan,
+      aadhaar: editFormData.aadhaar,
+      aadhaarNumber: editFormData.aadhaar, // Add both field names
+      bankName: editFormData.bankName,
+      bankAccountNumber: editFormData.accountNumber,
+      accountNumber: editFormData.accountNumber, // Add both field names
+      ifscCode: editFormData.ifscCode,
+      active: editFormData.active,
+      occupation: editFormData.occupation,
+      kycStatus: editFormData.kycStatus,
+      sourceOfFunds: editFormData.sourceOfFunds,
+      nomineeName: editFormData.nomineeName,
+      nomineeRelationship: editFormData.nomineeRelationship,
+      nomineeMobile: editFormData.nomineeMobile,
+      nomineeEmail: editFormData.nomineeEmail,
+      nomineeAddress: editFormData.nomineeAddress
+    };
+
+    console.log('Updated investor data:', updatedInvestor);
+
+    // Update KYC documents if new ones uploaded
+    const updatedKycDocuments = [...(investor.kycDocuments || [])];
+    const uploadDate = new Date().toLocaleDateString('en-GB');
+    
+    if (editFormData.panDocument) {
+      const existingIndex = updatedKycDocuments.findIndex(doc => doc.name === 'PAN Card');
+      const docData = { name: 'PAN Card', uploadedDate: uploadDate, status: editFormData.kycStatus, fileName: editFormData.panDocument.name };
+      if (existingIndex >= 0) {
+        updatedKycDocuments[existingIndex] = docData;
+      } else {
+        updatedKycDocuments.push(docData);
+      }
+    }
+    
+    if (editFormData.aadhaarDocument) {
+      const existingIndex = updatedKycDocuments.findIndex(doc => doc.name === 'Aadhaar Card');
+      const docData = { name: 'Aadhaar Card', uploadedDate: uploadDate, status: editFormData.kycStatus, fileName: editFormData.aadhaarDocument.name };
+      if (existingIndex >= 0) {
+        updatedKycDocuments[existingIndex] = docData;
+      } else {
+        updatedKycDocuments.push(docData);
+      }
+    }
+    
+    if (editFormData.cancelledCheque) {
+      const existingIndex = updatedKycDocuments.findIndex(doc => doc.name === 'Cancelled Cheque');
+      const docData = { name: 'Cancelled Cheque', uploadedDate: uploadDate, status: editFormData.kycStatus, fileName: editFormData.cancelledCheque.name };
+      if (existingIndex >= 0) {
+        updatedKycDocuments[existingIndex] = docData;
+      } else {
+        updatedKycDocuments.push(docData);
+      }
+    }
+    
+    if (editFormData.form15G15H) {
+      const existingIndex = updatedKycDocuments.findIndex(doc => doc.name === 'Form 15G/15H');
+      const docData = { name: 'Form 15G/15H', uploadedDate: uploadDate, status: editFormData.kycStatus, fileName: editFormData.form15G15H.name };
+      if (existingIndex >= 0) {
+        updatedKycDocuments[existingIndex] = docData;
+      } else {
+        updatedKycDocuments.push(docData);
+      }
+    }
+    
+    if (editFormData.digitalSignature) {
+      const existingIndex = updatedKycDocuments.findIndex(doc => doc.name === 'Digital Signature');
+      const docData = { name: 'Digital Signature', uploadedDate: uploadDate, status: editFormData.kycStatus, fileName: editFormData.digitalSignature.name };
+      if (existingIndex >= 0) {
+        updatedKycDocuments[existingIndex] = docData;
+      } else {
+        updatedKycDocuments.push(docData);
+      }
+    }
+    
+    updatedInvestor.kycDocuments = updatedKycDocuments;
+
+    console.log('Calling updateInvestor with ID:', investor.id, 'and data:', updatedInvestor);
+
+    // Update investor using DataContext
+    updateInvestor(investor.id, updatedInvestor);
+
+    // Add audit log
+    addAuditLog({
+      action: 'Updated Investor',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Updated investor "${editFormData.fullName}" (ID: ${investor.investorId})`,
+      entityType: 'Investor',
+      entityId: investor.investorId,
+      changes: {
+        investorName: editFormData.fullName,
+        investorId: investor.investorId,
+        email: editFormData.email,
+        phone: editFormData.phone,
+        kycStatus: editFormData.kycStatus,
+        active: editFormData.active
+      }
+    });
+
+    console.log('Update completed, closing modal');
+    setShowEditModal(false);
+    
+    // Show success message
+    alert('Investor updated successfully!');
+    
+    // Instead of reloading, let's update the local investor state
+    // The DataContext should handle the global state update
+  };
+
+  // Handle delete investor - PERMANENT DELETION WITH LOCK-IN PERIOD CHECK
+  const handleDeleteInvestor = () => {
+    console.log('=== PERMANENT DELETE FUNCTION CALLED ===');
+    console.log('confirmAction:', confirmAction);
+    
+    if (confirmAction !== 'delete') {
+      console.log('Setting confirmAction to delete');
+      setConfirmAction('delete');
+      return;
+    }
+
+    console.log('=== PROCEEDING WITH PERMANENT DELETE ===');
+    console.log('Current investor:', investor);
+
+    try {
+      // Get current investors and series from localStorage directly
+      const currentInvestors = JSON.parse(localStorage.getItem('investors') || '[]');
+      const currentSeries = JSON.parse(localStorage.getItem('series') || '[]');
+      console.log('Current investors from localStorage:', currentInvestors);
+      console.log('Current series from localStorage:', currentSeries);
+      
+      // Find the investor to delete by multiple methods
+      const investorIndex = currentInvestors.findIndex(inv => 
+        inv.investorId === investor.investorId || 
+        inv.id === investor.id || 
+        inv.id === parseInt(id)
+      );
+      
+      console.log('Found investor at index:', investorIndex);
+      
+      if (investorIndex === -1) {
+        console.error('Investor not found for deletion');
+        alert('Error: Investor not found');
+        return;
+      }
+
+      const investorToDelete = currentInvestors[investorIndex];
+      
+      // 🔒 LOCK-IN PERIOD CHECK (Trial Implementation)
+      const lockInViolations = [];
+      const eligibleRefunds = [];
+      let totalRefundAmount = 0;
+      let totalPenaltyAmount = 0;
+      
+      if (investorToDelete.investments && Array.isArray(investorToDelete.investments)) {
+        investorToDelete.investments.forEach(investment => {
+          // Find the series details to get lock-in period
+          const seriesDetails = currentSeries.find(s => s.name === investment.seriesName);
+          const lockInMonths = seriesDetails ? (seriesDetails.lockInPeriod || 12) : 12; // Default 12 months
+          
+          // Calculate investment age in months
+          const investmentDate = new Date(investment.timestamp || investment.date);
+          const today = new Date();
+          const monthsDiff = Math.floor((today - investmentDate) / (1000 * 60 * 60 * 24 * 30));
+          
+          const isLockInComplete = monthsDiff >= lockInMonths;
+          const remainingLockIn = Math.max(0, lockInMonths - monthsDiff);
+          
+          if (isLockInComplete) {
+            // Full refund - lock-in period completed
+            eligibleRefunds.push({
+              series: investment.seriesName,
+              amount: investment.amount,
+              date: investment.date,
+              status: 'eligible',
+              lockInStatus: 'completed',
+              monthsCompleted: monthsDiff,
+              lockInRequired: lockInMonths
+            });
+            totalRefundAmount += investment.amount;
+          } else {
+            // Early exit penalty - lock-in period not completed
+            const penaltyRate = 0.02; // 2% penalty (trial calculation)
+            const penaltyAmount = investment.amount * penaltyRate;
+            const refundAfterPenalty = investment.amount - penaltyAmount;
+            
+            lockInViolations.push({
+              series: investment.seriesName,
+              amount: investment.amount,
+              penaltyAmount: penaltyAmount,
+              refundAmount: refundAfterPenalty,
+              date: investment.date,
+              status: 'early_exit',
+              lockInStatus: 'incomplete',
+              monthsCompleted: monthsDiff,
+              monthsRemaining: remainingLockIn,
+              lockInRequired: lockInMonths
+            });
+            totalRefundAmount += refundAfterPenalty;
+            totalPenaltyAmount += penaltyAmount;
+          }
+        });
+      }
+
+      console.log('Lock-in analysis:', { eligibleRefunds, lockInViolations, totalRefundAmount, totalPenaltyAmount });
+
+      // Show lock-in period confirmation dialog
+      let confirmationMessage = '';
+      
+      if (lockInViolations.length > 0) {
+        confirmationMessage = `⚠️ LOCK-IN PERIOD WARNING ⚠️
+
+Some investments have not completed their lock-in period:
+
+${lockInViolations.map(violation => 
+  `🔒 ${violation.series}:
+  • Investment: ₹${violation.amount.toLocaleString('en-IN')}
+  • Lock-in: ${violation.monthsCompleted}/${violation.lockInRequired} months completed
+  • Remaining: ${violation.monthsRemaining} months
+  • Early Exit Penalty: ₹${violation.penaltyAmount.toLocaleString('en-IN')} (2%)
+  • Refund After Penalty: ₹${violation.refundAmount.toLocaleString('en-IN')}`
+).join('\n\n')}
+
+${eligibleRefunds.length > 0 ? `\n✅ ELIGIBLE FOR FULL REFUND:\n${eligibleRefunds.map(refund => 
+  `• ${refund.series}: ₹${refund.amount.toLocaleString('en-IN')} (${refund.monthsCompleted} months completed)`
+).join('\n')}` : ''}
+
+💰 TOTAL REFUND: ₹${totalRefundAmount.toLocaleString('en-IN')}
+💸 TOTAL PENALTY: ₹${totalPenaltyAmount.toLocaleString('en-IN')}
+
+⚠️ WARNING: Early exit from lock-in period will result in penalty charges.
+
+Do you want to proceed with account deletion?`;
+      } else {
+        confirmationMessage = `✅ LOCK-IN PERIOD COMPLETED
+
+All investments have completed their lock-in period:
+
+${eligibleRefunds.map(refund => 
+  `✅ ${refund.series}: ₹${refund.amount.toLocaleString('en-IN')} (${refund.monthsCompleted} months completed)`
+).join('\n')}
+
+💰 TOTAL REFUND: ₹${totalRefundAmount.toLocaleString('en-IN')}
+💸 NO PENALTIES: All lock-in periods satisfied
+
+The investor is eligible for full refund without penalties.
+
+Proceed with account deletion?`;
+      }
+
+      // Show confirmation dialog
+      const userConfirmed = confirm(confirmationMessage);
+      if (!userConfirmed) {
+        console.log('User cancelled deletion due to lock-in period');
+        setConfirmAction(null);
+        return;
+      }
+
+      // Combine all refund details for processing
+      const allRefundDetails = [...eligibleRefunds, ...lockInViolations];
+
+      // Update series data - remove investor's funds and reduce investor count
+      const updatedSeries = currentSeries.map(s => {
+        const investorInThisSeries = allRefundDetails.find(detail => detail.series === s.name);
+        if (investorInThisSeries) {
+          const amountToRemove = investorInThisSeries.status === 'eligible' 
+            ? investorInThisSeries.amount 
+            : investorInThisSeries.amount; // Remove full original amount from series
+          console.log(`Removing ₹${amountToRemove} from ${s.name}`);
+          return {
+            ...s,
+            fundsRaised: Math.max(0, s.fundsRaised - amountToRemove),
+            investors: Math.max(0, s.investors - 1)
+          };
+        }
+        return s;
+      });
+
+      // Save updated series to localStorage
+      localStorage.setItem('series', JSON.stringify(updatedSeries));
+      setSeries(updatedSeries);
+      console.log('Updated series data:', updatedSeries);
+
+      // PERMANENT DELETION - Mark as deleted and remove all access
+      currentInvestors[investorIndex] = {
+        ...currentInvestors[investorIndex],
+        active: false,
+        status: 'deleted',
+        deletedAt: new Date().toISOString(),
+        canLogin: false, // Explicitly block login
+        canEdit: false,  // Block editing
+        accessBlocked: true, // General access block
+        refundAmount: totalRefundAmount, // Store net refund amount
+        penaltyAmount: totalPenaltyAmount, // Store penalty amount
+        refundDetails: allRefundDetails, // Store detailed breakdown
+        lockInViolations: lockInViolations, // Store lock-in violations
+        eligibleRefunds: eligibleRefunds, // Store eligible refunds
+        refundProcessed: true // Mark that refund has been calculated
+      };
+
+      console.log('Permanently deleted investor:', currentInvestors[investorIndex]);
+
+      // Save directly to localStorage
+      localStorage.setItem('investors', JSON.stringify(currentInvestors));
+      console.log('Saved to localStorage');
+
+      // Update the React state
+      setInvestors(currentInvestors);
+      console.log('Updated React state');
+
+      // Add audit log with lock-in period details
+      addAuditLog({
+        action: 'PERMANENTLY DELETED Investor with Lock-in Analysis',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `PERMANENTLY DELETED investor "${investor.name}" (ID: ${investor.investorId}) - Net refund: ₹${totalRefundAmount.toLocaleString('en-IN')}, Penalties: ₹${totalPenaltyAmount.toLocaleString('en-IN')}`,
+        entityType: 'Investor',
+        entityId: investor.investorId,
+        changes: {
+          investorName: investor.name,
+          investorId: investor.investorId,
+          status: 'deleted',
+          canLogin: false,
+          canEdit: false,
+          accessBlocked: true,
+          netRefundAmount: totalRefundAmount,
+          penaltyAmount: totalPenaltyAmount,
+          lockInViolations: lockInViolations.length,
+          eligibleRefunds: eligibleRefunds.length,
+          seriesUpdated: allRefundDetails.map(d => d.series)
+        }
+      });
+
+      // Show final success message with lock-in details
+      const successMessage = `✅ INVESTOR ACCOUNT PERMANENTLY DELETED!
+
+📊 LOCK-IN PERIOD ANALYSIS:
+${lockInViolations.length > 0 ? `⚠️ Early Exit Penalties: ${lockInViolations.length} investments
+` : ''}${eligibleRefunds.length > 0 ? `✅ Completed Lock-in: ${eligibleRefunds.length} investments
+` : ''}
+💰 NET REFUND AMOUNT: ₹${totalRefundAmount.toLocaleString('en-IN')}
+${totalPenaltyAmount > 0 ? `💸 TOTAL PENALTIES: ₹${totalPenaltyAmount.toLocaleString('en-IN')}` : '🎉 NO PENALTIES APPLIED'}
+
+🔒 Account Status: All access permanently revoked
+📋 Data Status: Preserved for reference and audit purposes
+💸 Refund Status: Amount calculated with lock-in period considerations
+
+The investor's funds have been processed according to lock-in period rules.`;
+
+      alert(successMessage);
+      
+      // Navigate back immediately
+      navigate('/investors');
+      
+    } catch (error) {
+      console.error('Error permanently deleting investor:', error);
+      alert('Error deleting investor: ' + error.message);
+    }
+  };
+
+  // Handle deactivate/activate investor - SIMPLIFIED VERSION
+  const handleToggleActivation = () => {
+    console.log('=== TOGGLE ACTIVATION FUNCTION CALLED ===');
+    
+    const isCurrentlyActive = investor.active !== false && investor.status !== 'deactivated';
+    const newAction = isCurrentlyActive ? 'deactivate' : 'activate';
+    
+    console.log('isCurrentlyActive:', isCurrentlyActive, 'newAction:', newAction, 'confirmAction:', confirmAction);
+    
+    if (confirmAction !== newAction) {
+      console.log('Setting confirmAction to:', newAction);
+      setConfirmAction(newAction);
+      return;
+    }
+
+    console.log('=== PROCEEDING WITH', newAction.toUpperCase(), '===');
+
+    try {
+      // Get current investors from localStorage directly
+      const currentInvestors = JSON.parse(localStorage.getItem('investors') || '[]');
+      console.log('Current investors from localStorage:', currentInvestors);
+      
+      // Find the investor by investorId (more reliable than id)
+      const investorIndex = currentInvestors.findIndex(inv => 
+        inv.investorId === investor.investorId || 
+        inv.id === investor.id || 
+        inv.id === parseInt(id)
+      );
+      
+      console.log('Found investor at index:', investorIndex);
+      
+      if (investorIndex === -1) {
+        console.error('Investor not found for activation toggle');
+        alert('Error: Investor not found');
+        return;
+      }
+
+      // Update status
+      currentInvestors[investorIndex] = {
+        ...currentInvestors[investorIndex],
+        active: !isCurrentlyActive,
+        status: isCurrentlyActive ? 'deactivated' : 'active',
+        [isCurrentlyActive ? 'deactivatedAt' : 'activatedAt']: new Date().toISOString()
+      };
+
+      console.log('Updated investor:', currentInvestors[investorIndex]);
+
+      // Save directly to localStorage
+      localStorage.setItem('investors', JSON.stringify(currentInvestors));
+      console.log('Saved to localStorage');
+
+      // Update the React state
+      setInvestors(currentInvestors);
+      console.log('Updated React state');
+
+      // Add audit log
+      addAuditLog({
+        action: isCurrentlyActive ? 'Deactivated Investor' : 'Activated Investor',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `${isCurrentlyActive ? 'Deactivated' : 'Activated'} investor "${investor.name}" (ID: ${investor.investorId})`,
+        entityType: 'Investor',
+        entityId: investor.investorId,
+        changes: {
+          investorName: investor.name,
+          investorId: investor.investorId,
+          status: isCurrentlyActive ? 'deactivated' : 'active',
+          active: !isCurrentlyActive
+        }
+      });
+
+      setConfirmAction(null);
+      alert(`Investor ${isCurrentlyActive ? 'deactivated' : 'activated'} successfully!`);
+      
+      // Refresh the page to show changes
+      window.location.reload();
+      
+    } catch (error) {
+      console.error('Error toggling activation:', error);
+      alert('Error updating investor: ' + error.message);
+    }
+  };
+
   return (
     <Layout>
       <div className="investor-details-page">
@@ -351,9 +933,9 @@ const InvestorDetails = () => {
               <div className="investor-name-container">
                 <div className="name-with-badge">
                   <h1 className="investor-name">{investor.name}</h1>
-                  {investor.kycStatus === 'Verified' && (
+                  {investor.kycStatus === 'Completed' && (
                     <span className="kyc-badge verified">
-                      <HiCheckCircle size={12} /> kyc verified
+                      <HiCheckCircle size={12} /> kyc completed
                     </span>
                   )}
                   {investor.kycStatus === 'Rejected' && (
@@ -371,9 +953,88 @@ const InvestorDetails = () => {
               </div>
             </div>
           </div>
-          <button className="download-button" onClick={generatePDF}>
-            <MdOutlineFileDownload size={18} /> Download Profile
-          </button>
+          {/* Conditional Edit Button - Only show for active investors */}
+          {investor.status !== 'deleted' ? (
+            <button className="edit-user-button" onClick={() => {
+              console.log('Edit Investor button clicked!');
+              // Initialize edit form with current investor data
+              setEditFormData({
+                fullName: investor.name || '',
+                email: investor.email || '',
+                phone: investor.phone || '',
+                dob: investor.dob || investor.dateOfBirth || '',
+                residentialAddress: investor.address || investor.residentialAddress || '',
+                correspondenceAddress: investor.correspondenceAddress || investor.address || '',
+                pan: investor.pan || '',
+                aadhaar: investor.aadhaar || investor.aadhaarNumber || '',
+                bankName: investor.bankName || '',
+                accountNumber: investor.bankAccountNumber || investor.accountNumber || '',
+                ifscCode: investor.ifscCode || '',
+                active: investor.active !== false,
+                occupation: investor.occupation || '',
+                kycStatus: investor.kycStatus || 'Pending',
+                sourceOfFunds: investor.sourceOfFunds || '',
+                nomineeName: investor.nomineeName || '',
+                nomineeRelationship: investor.nomineeRelationship || '',
+                nomineeMobile: investor.nomineeMobile || '',
+                nomineeEmail: investor.nomineeEmail || '',
+                nomineeAddress: investor.nomineeAddress || '',
+                panDocument: null,
+                aadhaarDocument: null,
+                cancelledCheque: null,
+                form15G15H: null,
+                digitalSignature: null
+              });
+              console.log('Setting showEditModal to true');
+              setShowEditModal(true);
+            }}>
+              <MdEdit size={18} /> Edit Investor
+            </button>
+          ) : (
+            <div className="deleted-notice">
+              <span className="deleted-text">
+                🚫 DELETED ACCOUNT - View Only
+              </span>
+              <p className="deleted-subtext">
+                This investor account has been permanently deleted. Data is preserved for reference only.
+              </p>
+              {investor.refundAmount && (
+                <div className="refund-info">
+                  <p className="refund-amount">
+                    💰 Net Refund: ₹{investor.refundAmount.toLocaleString('en-IN')}
+                  </p>
+                  {investor.penaltyAmount > 0 && (
+                    <p className="penalty-amount">
+                      ⚠️ Penalties Applied: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
+                    </p>
+                  )}
+                  {investor.refundDetails && investor.refundDetails.length > 0 && (
+                    <div className="refund-breakdown">
+                      <p className="refund-breakdown-title">Investment Breakdown:</p>
+                      {investor.refundDetails.map((detail, index) => (
+                        <div key={index} className="refund-detail">
+                          <p className="refund-series">• {detail.series}: ₹{(detail.refundAmount || detail.amount).toLocaleString('en-IN')}</p>
+                          {detail.lockInStatus && (
+                            <p className="lockin-status">
+                              {detail.lockInStatus === 'completed' ? (
+                                <span className="lockin-completed">
+                                  ✅ Lock-in completed ({detail.monthsCompleted}/{detail.lockInRequired} months)
+                                </span>
+                              ) : (
+                                <span className="lockin-violation">
+                                  ⚠️ Early exit penalty ({detail.monthsCompleted}/{detail.lockInRequired} months, ₹{detail.penaltyAmount?.toLocaleString('en-IN')} penalty)
+                                </span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Content */}
@@ -448,7 +1109,7 @@ const InvestorDetails = () => {
                 </div>
                 <div className="summary-card-small">
                   <span className="summary-label">KYC Status</span>
-                  {investor.kycStatus === 'Verified' && (
+                  {investor.kycStatus === 'Completed' && (
                     <span className="kyc-status-badge verified">
                       <HiCheckCircle size={14} /> Completed
                     </span>
@@ -490,13 +1151,21 @@ const InvestorDetails = () => {
                           <button 
                             className="series-link"
                             onClick={() => {
-                              // Create a mapping function for series names to IDs
+                              // Create a dynamic mapping function for series names to IDs
                               const getSeriesId = (seriesName) => {
+                                // First try to find the series in the actual series data
+                                const foundSeries = series.find(s => s.name === seriesName);
+                                if (foundSeries) {
+                                  return foundSeries.id.toString();
+                                }
+                                
+                                // Fallback to static mapping for initial series
                                 const seriesMap = {
                                   'Series A': '1',
                                   'Series B': '2',
                                   'Series C': '3',
-                                  'Series D': '4'
+                                  'Series D': '4',
+                                  'Series E': '5'
                                 };
                                 return seriesMap[seriesName] || '1'; // Default to '1' if not found
                               };
@@ -542,9 +1211,9 @@ const InvestorDetails = () => {
                           <div className="document-date">Uploaded: {doc.uploadedDate}</div>
                         </div>
                       </div>
-                      {doc.status === 'Completed' || doc.status === 'Verified' ? (
+                      {doc.status === 'Completed' ? (
                         <span className="verified-badge">
-                          <HiCheckCircle size={14} /> Verified
+                          <HiCheckCircle size={14} /> Completed
                         </span>
                       ) : doc.status === 'Rejected' ? (
                         <span className="rejected-badge">
@@ -568,21 +1237,36 @@ const InvestorDetails = () => {
             {/* Recent Transactions */}
             <div className="section-card">
               <h2 className="section-title">Recent Transactions</h2>
-              <div className="transactions-list">
-                {investor.transactions.map((transaction, index) => (
-                  <div key={index} className="transaction-item">
-                    <div className="transaction-info">
-                      <div className="transaction-type">{transaction.type}</div>
-                      <div className="transaction-details">
-                        {transaction.series} {transaction.date}
+              {investor.transactions && investor.transactions.length > 0 ? (
+                <div className="transactions-list">
+                  {investor.transactions.slice(0, 10).map((transaction, index) => (
+                    <div key={index} className="transaction-item">
+                      <div className="transaction-info">
+                        <div className="transaction-type">{transaction.type}</div>
+                        <div className="transaction-details">
+                          {transaction.series} • {transaction.date}
+                        </div>
+                        {transaction.description && (
+                          <div className="transaction-description">{transaction.description}</div>
+                        )}
                       </div>
+                      <span className={`transaction-amount ${transaction.type === 'Interest Credit' ? 'positive' : 'neutral'}`}>
+                        {transaction.type === 'Interest Credit' ? '+' : ''} {formatCurrency(transaction.amount)}
+                      </span>
                     </div>
-                    <span className="transaction-amount positive">
-                      + {formatCurrency(transaction.amount)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                  {investor.transactions.length > 10 && (
+                    <div className="transaction-item more-transactions">
+                      <span>... and {investor.transactions.length - 10} more transactions</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>No transactions available</p>
+                  <span>Transactions will appear here once the investor makes investments</span>
+                </div>
+              )}
             </div>
 
             {/* All Complaints - Only show if investor has complaints */}
@@ -626,6 +1310,425 @@ const InvestorDetails = () => {
             )}
           </div>
         </div>
+
+        {/* Edit User Modal */}
+        {showEditModal && (
+          <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+            <div className="modal-content investor-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Edit Investor</h2>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowEditModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="investor-form">
+                {/* Personal Information */}
+                <div className="form-section">
+                  <h3 className="section-title">Personal Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Full Name*</label>
+                      <input
+                        type="text"
+                        value={editFormData.fullName || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, fullName: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, fullName: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Email ID*</label>
+                      <input
+                        type="email"
+                        value={editFormData.email || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, email: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Date of Birth</label>
+                      <input
+                        type="date"
+                        value={editFormData.dob || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, dob: e.target.value })}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Mobile Number*</label>
+                      <input
+                        type="tel"
+                        value={editFormData.phone || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, phone: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group full-width">
+                      <label>Residential Address*</label>
+                      <textarea
+                        value={editFormData.residentialAddress || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, residentialAddress: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, residentialAddress: '' });
+                        }}
+                        required
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group full-width">
+                      <label>Correspondence Address (if different)</label>
+                      <textarea
+                        value={editFormData.correspondenceAddress || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, correspondenceAddress: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, correspondenceAddress: '' });
+                        }}
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Identity Information */}
+                <div className="form-section">
+                  <h3 className="section-title">Identity Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>PAN (Permanent Account Number)*</label>
+                      <input
+                        type="text"
+                        value={editFormData.pan || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, pan: e.target.value.toUpperCase() })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, pan: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Aadhaar Number*</label>
+                      <input
+                        type="text"
+                        value={editFormData.aadhaar || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, aadhaar: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, aadhaar: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bank Information */}
+                <div className="form-section">
+                  <h3 className="section-title">Bank Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Bank Name*</label>
+                      <input
+                        type="text"
+                        value={editFormData.bankName || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, bankName: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, bankName: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Account Number*</label>
+                      <input
+                        type="text"
+                        value={editFormData.accountNumber || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, accountNumber: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, accountNumber: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>IFSC Code*</label>
+                      <input
+                        type="text"
+                        value={editFormData.ifscCode || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, ifscCode: e.target.value.toUpperCase() })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, ifscCode: '' });
+                        }}
+                        required
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Occupation</label>
+                      <input
+                        type="text"
+                        value={editFormData.occupation || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, occupation: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, occupation: '' });
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Status */}
+                <div className="form-section">
+                  <h3 className="section-title">Account Status</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>KYC Status*</label>
+                      <select
+                        value={editFormData.kycStatus || 'Pending'}
+                        onChange={(e) => setEditFormData({ ...editFormData, kycStatus: e.target.value })}
+                        required
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Source of Funds</label>
+                      <input
+                        type="text"
+                        value={editFormData.sourceOfFunds || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, sourceOfFunds: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, sourceOfFunds: '' });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group checkbox-group">
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={editFormData.active !== false}
+                          onChange={(e) => setEditFormData({ ...editFormData, active: e.target.checked })}
+                        />
+                        <span className="checkbox-text">Active Account</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Nomination */}
+                <div className="form-section">
+                  <h3 className="section-title">Nomination (Optional)</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Name of Nominee</label>
+                      <input
+                        type="text"
+                        value={editFormData.nomineeName || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nomineeName: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, nomineeName: '' });
+                        }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Relationship with Subscriber</label>
+                      <select
+                        value={editFormData.nomineeRelationship || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nomineeRelationship: e.target.value })}
+                      >
+                        <option value="">Select relationship</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Father">Father</option>
+                        <option value="Mother">Mother</option>
+                        <option value="Son">Son</option>
+                        <option value="Daughter">Daughter</option>
+                        <option value="Brother">Brother</option>
+                        <option value="Sister">Sister</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Mobile No</label>
+                      <input
+                        type="tel"
+                        value={editFormData.nomineeMobile || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nomineeMobile: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, nomineeMobile: '' });
+                        }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Email Id</label>
+                      <input
+                        type="email"
+                        value={editFormData.nomineeEmail || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nomineeEmail: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, nomineeEmail: '' });
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group full-width">
+                      <label>Address</label>
+                      <textarea
+                        value={editFormData.nomineeAddress || ''}
+                        onChange={(e) => setEditFormData({ ...editFormData, nomineeAddress: e.target.value })}
+                        onFocus={(e) => {
+                          e.target.value = '';
+                          setEditFormData({ ...editFormData, nomineeAddress: '' });
+                        }}
+                        rows="3"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Attachments */}
+                <div className="upload-section">
+                  <h3 className="section-title">Update Attachments (Optional)</h3>
+                  <div className="upload-grid">
+                    <div className="upload-item">
+                      <label>PAN Document</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => handleFileUpload(e, 'panDocument')}
+                      />
+                      {editFormData.panDocument && (
+                        <div className="file-selected">{editFormData.panDocument.name}</div>
+                      )}
+                    </div>
+
+                    <div className="upload-item">
+                      <label>Aadhaar Document</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => handleFileUpload(e, 'aadhaarDocument')}
+                      />
+                      {editFormData.aadhaarDocument && (
+                        <div className="file-selected">{editFormData.aadhaarDocument.name}</div>
+                      )}
+                    </div>
+
+                    <div className="upload-item">
+                      <label>Cancelled Cheque</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => handleFileUpload(e, 'cancelledCheque')}
+                      />
+                      {editFormData.cancelledCheque && (
+                        <div className="file-selected">{editFormData.cancelledCheque.name}</div>
+                      )}
+                    </div>
+
+                    <div className="upload-item">
+                      <label>Form 15G/15H</label>
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        onChange={(e) => handleFileUpload(e, 'form15G15H')}
+                      />
+                      {editFormData.form15G15H && (
+                        <div className="file-selected">{editFormData.form15G15H.name}</div>
+                      )}
+                    </div>
+
+                    <div className="upload-item">
+                      <label>Digital Signature</label>
+                      <input
+                        type="file"
+                        accept=".png,.jpg,.jpeg"
+                        onChange={(e) => handleFileUpload(e, 'digitalSignature')}
+                      />
+                      {editFormData.digitalSignature && (
+                        <div className="file-selected">{editFormData.digitalSignature.name}</div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="form-actions">
+                  <div className="action-buttons-row">
+                    <button type="submit" className="submit-button update-button">
+                      Update
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      className={`action-button ${confirmAction === 'delete' ? 'confirm-delete' : 'delete-button'}`}
+                      onClick={handleDeleteInvestor}
+                    >
+                      <MdDelete size={18} />
+                      {confirmAction === 'delete' ? 'Confirm Delete' : 'Delete'}
+                    </button>
+                    
+                    <button 
+                      type="button" 
+                      className={`action-button ${
+                        investor.active === false || investor.status === 'deactivated' 
+                          ? (confirmAction === 'activate' ? 'confirm-activate' : 'activate-button')
+                          : (confirmAction === 'deactivate' ? 'confirm-deactivate' : 'deactivate-button')
+                      }`}
+                      onClick={handleToggleActivation}
+                    >
+                      {investor.active === false || investor.status === 'deactivated' 
+                        ? (confirmAction === 'activate' ? 'Confirm Activate' : 'Activate Account')
+                        : (confirmAction === 'deactivate' ? 'Confirm Deactivate' : 'Deactivate')
+                      }
+                    </button>
+                  </div>
+                  
+                  <button type="button" className="cancel-button" onClick={() => setShowEditModal(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   );

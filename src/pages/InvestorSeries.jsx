@@ -12,6 +12,74 @@ const InvestorSeries = () => {
 
   const investor = investors.find(inv => inv.investorId === user?.investorId);
 
+  // EMERGENCY SECURITY CHECK - HARD BLOCK FOR DEACTIVATED/DELETED ACCOUNTS
+  console.log('EMERGENCY SECURITY CHECK - Current investor:', investor);
+  console.log('Investor status:', investor?.status);
+  console.log('Investor active:', investor?.active);
+
+  // IMMEDIATE RETURN - NO INVESTMENT PAGE FOR BLOCKED ACCOUNTS
+  if (!investor || 
+      investor.status === 'deleted' || 
+      investor.status === 'deactivated' || 
+      investor.active === false) {
+    
+    console.log('BLOCKING INVESTOR ACCESS - Account is not active');
+    
+    return (
+      <Layout isInvestor={true}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '80vh',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: '#fee2e2',
+            border: '3px solid #dc2626',
+            borderRadius: '12px',
+            padding: '40px',
+            maxWidth: '600px',
+            textAlign: 'center'
+          }}>
+            <h1 style={{ color: '#dc2626', fontSize: '32px', marginBottom: '20px' }}>
+              🚫 ACCESS DENIED
+            </h1>
+            <h2 style={{ color: '#991b1b', fontSize: '24px', marginBottom: '20px' }}>
+              Investment Functionality Blocked
+            </h2>
+            <p style={{ color: '#991b1b', fontSize: '18px', marginBottom: '15px' }}>
+              Your account status: <strong>{investor?.status || 'INACTIVE'}</strong>
+            </p>
+            <p style={{ color: '#991b1b', fontSize: '16px', marginBottom: '15px' }}>
+              You cannot access investment features or make any investments.
+            </p>
+            <p style={{ color: '#991b1b', fontSize: '16px', marginBottom: '20px' }}>
+              Contact support immediately if you believe this is an error.
+            </p>
+            <div style={{
+              background: '#fff',
+              border: '1px solid #dc2626',
+              borderRadius: '8px',
+              padding: '20px',
+              marginTop: '20px'
+            }}>
+              <p style={{ color: '#dc2626', fontSize: '16px', fontWeight: 'bold', margin: '0 0 10px 0' }}>
+                EMERGENCY SUPPORT:
+              </p>
+              <p style={{ color: '#374151', margin: '5px 0' }}>
+                Email: support@loanfront.com
+              </p>
+              <p style={{ color: '#374151', margin: '5px 0' }}>
+                Phone: +91 1800-XXX-XXXX
+              </p>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   const formatCurrency = (amount) => {
     if (amount >= 10000000) {
       return `₹${(amount / 10000000).toFixed(1)} Cr`;
@@ -45,12 +113,63 @@ const InvestorSeries = () => {
   };
 
   const handleInvest = (series) => {
+    // EMERGENCY SECURITY CHECK - HARD BLOCK
+    console.log('🚫 EMERGENCY INVEST BUTTON CHECK');
+    console.log('Current investor:', investor);
+    console.log('Investor status:', investor?.status);
+    console.log('Investor active:', investor?.active);
+    
+    // ABSOLUTE BLOCK - NO MODAL FOR BLOCKED ACCOUNTS
+    if (!investor || 
+        investor.status === 'deleted' || 
+        investor.status === 'deactivated' || 
+        investor.active === false) {
+      
+      console.log('🚫 BLOCKING INVESTMENT MODAL');
+      alert('🚫 ACCESS DENIED: Your account is deactivated/deleted. You cannot make investments.');
+      return;
+    }
+
     setSelectedSeries(series);
     setInvestmentAmount('');
   };
 
   const handleSubmitInvestment = (e) => {
     e.preventDefault();
+    
+    // EMERGENCY SECURITY CHECK - ABSOLUTE BLOCK
+    console.log('EMERGENCY INVESTMENT BLOCK CHECK');
+    console.log('Current investor:', investor);
+    console.log('Investor status:', investor?.status);
+    console.log('Investor active:', investor?.active);
+    
+    // HARD STOP - NO INVESTMENTS FOR BLOCKED ACCOUNTS
+    if (!investor || 
+        investor.status === 'deleted' || 
+        investor.status === 'deactivated' || 
+        investor.active === false) {
+      
+      console.log('🚫 INVESTMENT BLOCKED - Account is not active');
+      alert('🚫 INVESTMENT BLOCKED: Your account is deactivated/deleted. Contact support immediately.');
+      setSelectedSeries(null);
+      return;
+    }
+
+    // Additional check - if somehow they got here, double check
+    const currentInvestors = JSON.parse(localStorage.getItem('investors') || '[]');
+    const currentInvestor = currentInvestors.find(inv => inv.investorId === user?.investorId);
+    
+    if (!currentInvestor || 
+        currentInvestor.status === 'deleted' || 
+        currentInvestor.status === 'deactivated' || 
+        currentInvestor.active === false) {
+      
+      console.log('🚫 DOUBLE CHECK FAILED - Investment blocked');
+      alert('🚫 SECURITY ALERT: Investment blocked due to account status. Contact support.');
+      setSelectedSeries(null);
+      return;
+    }
+
     const amount = parseFloat(investmentAmount);
     if (amount < selectedSeries.minInvestment) {
       alert(`Minimum investment is ₹${selectedSeries.minInvestment.toLocaleString('en-IN')}`);
@@ -89,6 +208,22 @@ const InvestorSeries = () => {
   return (
     <Layout isInvestor={true}>
       <div className="investor-series-page">
+        {/* Security Warning for Inactive Accounts */}
+        {!isInvestorActive && (
+          <div className="security-warning">
+            <div className="warning-content">
+              <h3>Account Status Notice</h3>
+              {investor?.status === 'deleted' ? (
+                <p>Your account has been deleted. You cannot make new investments. Please contact support if you believe this is an error.</p>
+              ) : investor?.status === 'deactivated' || investor?.active === false ? (
+                <p>Your account has been deactivated. You cannot make new investments. Please contact support to reactivate your account.</p>
+              ) : (
+                <p>Your account is not active. Please contact support for assistance.</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="series-header">
           <div>
             <h1 className="page-title">Available Series</h1>
@@ -151,6 +286,12 @@ const InvestorSeries = () => {
                 {isInvested ? (
                   <button className="invested-button" disabled>
                     ✓ Already Invested
+                  </button>
+                ) : !isInvestorActive ? (
+                  <button className="disabled-button" disabled>
+                    {investor?.status === 'deleted' ? 'Account Deleted' : 
+                     investor?.status === 'deactivated' || investor?.active === false ? 'Account Deactivated' : 
+                     'Account Inactive'}
                   </button>
                 ) : (
                   <button 

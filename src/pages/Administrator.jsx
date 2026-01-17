@@ -246,6 +246,26 @@ const Administrator = () => {
     };
 
     setUsers([...users, newUser]);
+    
+    // Add to global audit log system
+    addAuditLog({
+      action: 'Created User',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Created new user "${formData.username}" with role "${formData.role}"`,
+      entityType: 'User',
+      entityId: formData.username,
+      changes: {
+        userId: newUser.userId,
+        username: formData.username,
+        fullName: formData.fullName,
+        role: formData.role,
+        email: formData.email,
+        phone: formData.phone,
+        action: 'user_created'
+      }
+    });
+    
     setShowAddUserModal(false);
     setFormData({
       username: '',
@@ -282,9 +302,28 @@ const Administrator = () => {
 
     if (editFormData.newPassword && editFormData.newPassword !== '') {
       changes.push('password');
+      
+      // Add to global audit log system
+      addAuditLog({
+        action: 'Updated User Password',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Changed password for user "${selectedUser.username}"`,
+        entityType: 'User',
+        entityId: selectedUser.username,
+        changes: {
+          field: 'password',
+          oldValue: '********',
+          newValue: '********',
+          userId: selectedUser.userId,
+          userFullName: selectedUser.fullName
+        }
+      });
+      
+      // Also add to local logs for backward compatibility
       newLogEntries.push({
         id: userLogs.length + newLogEntries.length + 1,
-        adminName: 'current_admin', // In real app, this would be the logged-in admin
+        adminName: user ? user.name : 'current_admin',
         username: selectedUser.username,
         description: 'Password updated',
         pastValue: '********',
@@ -297,9 +336,28 @@ const Administrator = () => {
     if (editFormData.newEmail && editFormData.newEmail !== editFormData.oldEmail) {
       updatedUser.email = editFormData.newEmail;
       changes.push('email');
+      
+      // Add to global audit log system
+      addAuditLog({
+        action: 'Updated User Email',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Changed email from "${editFormData.oldEmail}" to "${editFormData.newEmail}" for user "${selectedUser.username}"`,
+        entityType: 'User',
+        entityId: selectedUser.username,
+        changes: {
+          field: 'email',
+          oldValue: editFormData.oldEmail,
+          newValue: editFormData.newEmail,
+          userId: selectedUser.userId,
+          userFullName: selectedUser.fullName
+        }
+      });
+      
+      // Also add to local logs for backward compatibility
       newLogEntries.push({
         id: userLogs.length + newLogEntries.length + 1,
-        adminName: 'current_admin',
+        adminName: user ? user.name : 'current_admin',
         username: selectedUser.username,
         description: 'Email updated',
         pastValue: editFormData.oldEmail,
@@ -312,9 +370,28 @@ const Administrator = () => {
     if (editFormData.newPhone && editFormData.newPhone !== editFormData.oldPhone) {
       updatedUser.phone = editFormData.newPhone;
       changes.push('phone number');
+      
+      // Add to global audit log system
+      addAuditLog({
+        action: 'Updated User Phone',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Changed phone number from "${editFormData.oldPhone}" to "${editFormData.newPhone}" for user "${selectedUser.username}"`,
+        entityType: 'User',
+        entityId: selectedUser.username,
+        changes: {
+          field: 'phone',
+          oldValue: editFormData.oldPhone,
+          newValue: editFormData.newPhone,
+          userId: selectedUser.userId,
+          userFullName: selectedUser.fullName
+        }
+      });
+      
+      // Also add to local logs for backward compatibility
       newLogEntries.push({
         id: userLogs.length + newLogEntries.length + 1,
-        adminName: 'current_admin',
+        adminName: user ? user.name : 'current_admin',
         username: selectedUser.username,
         description: 'Phone number updated',
         pastValue: editFormData.oldPhone,
@@ -327,9 +404,28 @@ const Administrator = () => {
     if (editFormData.role !== selectedUser.role) {
       updatedUser.role = editFormData.role;
       changes.push('role');
+      
+      // Add to global audit log system
+      addAuditLog({
+        action: 'Updated User Role',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Changed user role from "${selectedUser.role}" to "${editFormData.role}" for user "${selectedUser.username}"`,
+        entityType: 'User',
+        entityId: selectedUser.username,
+        changes: {
+          field: 'role',
+          oldValue: selectedUser.role,
+          newValue: editFormData.role,
+          userId: selectedUser.userId,
+          userFullName: selectedUser.fullName
+        }
+      });
+      
+      // Also add to local logs for backward compatibility
       newLogEntries.push({
         id: userLogs.length + newLogEntries.length + 1,
-        adminName: 'current_admin',
+        adminName: user ? user.name : 'current_admin',
         username: selectedUser.username,
         description: 'Role updated',
         pastValue: selectedUser.role,
@@ -342,9 +438,28 @@ const Administrator = () => {
     if (editFormData.fullName !== selectedUser.fullName) {
       updatedUser.fullName = editFormData.fullName;
       changes.push('full name');
+      
+      // Add to global audit log system
+      addAuditLog({
+        action: 'Updated User Full Name',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Changed full name from "${selectedUser.fullName}" to "${editFormData.fullName}" for user "${selectedUser.username}"`,
+        entityType: 'User',
+        entityId: selectedUser.username,
+        changes: {
+          field: 'fullName',
+          oldValue: selectedUser.fullName,
+          newValue: editFormData.fullName,
+          userId: selectedUser.userId,
+          userFullName: selectedUser.fullName
+        }
+      });
+      
+      // Also add to local logs for backward compatibility
       newLogEntries.push({
         id: userLogs.length + newLogEntries.length + 1,
-        adminName: 'current_admin',
+        adminName: user ? user.name : 'current_admin',
         username: selectedUser.username,
         description: 'Full name updated',
         pastValue: selectedUser.fullName,
@@ -476,13 +591,16 @@ const Administrator = () => {
 
   // Permission toggle handler - Now actually updates permissions
   const handlePermissionToggle = (role, module, action) => {
+    const oldValue = permissions[role][module][action];
+    const newValue = !oldValue;
+    
     const newPermissions = {
       ...permissions,
       [role]: {
         ...permissions[role],
         [module]: {
           ...permissions[role][module],
-          [action]: !permissions[role][module][action]
+          [action]: newValue
         }
       }
     };
@@ -490,8 +608,25 @@ const Administrator = () => {
     setPermissions(newPermissions);
     updatePermissions(newPermissions);
     
+    // Add to global audit log system
+    addAuditLog({
+      action: 'Updated Permissions',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `${newValue ? 'Granted' : 'Revoked'} ${action} permission for ${role} role in ${module} module`,
+      entityType: 'Permission',
+      entityId: `${role}-${module}-${action}`,
+      changes: {
+        role: role,
+        module: module,
+        permission: action,
+        oldValue: oldValue,
+        newValue: newValue,
+        permissionPath: `${role}.${module}.${action}`
+      }
+    });
+    
     // Show a success message
-    const newValue = !permissions[role][module][action];
     showSuccess(`${role}: ${module} ${action} permission ${newValue ? 'granted' : 'revoked'}`);
   };
 

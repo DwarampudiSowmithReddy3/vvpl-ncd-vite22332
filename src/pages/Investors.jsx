@@ -113,6 +113,7 @@ const Investors = () => {
   };
 
   const getStatusText = (status) => {
+    console.log('KYC Status for display:', status); // Debug log
     switch (status) {
       case 'Completed':
         return 'Completed';
@@ -121,6 +122,7 @@ const Investors = () => {
       case 'Rejected':
         return 'Rejected';
       default:
+        console.log('Unknown KYC status:', status); // Debug log for unknown status
         return status;
     }
   };
@@ -210,6 +212,13 @@ const Investors = () => {
 
   // Map series names to IDs for navigation
   const getSeriesId = (seriesName) => {
+    // First try to find the series in the actual series data
+    const foundSeries = series.find(s => s.name === seriesName);
+    if (foundSeries) {
+      return foundSeries.id.toString();
+    }
+    
+    // Fallback to static mapping for initial series
     const seriesMap = {
       'Series A': '1',
       'Series B': '2',
@@ -392,12 +401,36 @@ const Investors = () => {
   // Investment flow handlers
   const handleInvestorSearch = () => {
     const investor = investors.find(inv => inv.investorId === investorSearchTerm.trim());
-    if (investor) {
-      setSelectedInvestor(investor);
-      setShowInvestorDetails(true);
-    } else {
+    
+    if (!investor) {
       alert('Investor not found. Please check the Investor ID.');
+      return;
     }
+
+    // 🚨 CRITICAL SECURITY CHECK - Block deleted/deactivated investors
+    console.log('🔒 SECURITY CHECK for Investor ID:', investorSearchTerm.trim());
+    console.log('Found investor:', investor);
+    console.log('Investor status:', investor.status);
+    console.log('Investor active:', investor.active);
+
+    // HARD BLOCK for deleted investors
+    if (investor.status === 'deleted') {
+      alert('🚫 INVESTMENT BLOCKED: This investor account has been DELETED. Cannot add investments to deleted accounts.');
+      console.log('🚫 BLOCKED: Deleted investor attempted investment');
+      return;
+    }
+
+    // HARD BLOCK for deactivated investors
+    if (investor.status === 'deactivated' || investor.active === false) {
+      alert('🚫 INVESTMENT BLOCKED: This investor account has been DEACTIVATED. Cannot add investments to deactivated accounts. Please reactivate the account first.');
+      console.log('🚫 BLOCKED: Deactivated investor attempted investment');
+      return;
+    }
+
+    // Only proceed if investor is active
+    console.log('✅ SECURITY CHECK PASSED: Investor is active');
+    setSelectedInvestor(investor);
+    setShowInvestorDetails(true);
   };
 
   const handleProceedToSeries = () => {
@@ -414,6 +447,26 @@ const Investors = () => {
   const handleInvestmentSubmit = () => {
     if (!investmentAmount || !investmentDocument) {
       alert('Please fill all required fields and upload document.');
+      return;
+    }
+
+    // 🚨 FINAL SECURITY CHECK before processing investment
+    console.log('🔒 FINAL SECURITY CHECK before investment submission');
+    console.log('Selected investor:', selectedInvestor);
+    console.log('Investor status:', selectedInvestor.status);
+    console.log('Investor active:', selectedInvestor.active);
+
+    // ABSOLUTE FINAL BLOCK for deleted investors
+    if (selectedInvestor.status === 'deleted') {
+      alert('🚫 INVESTMENT SUBMISSION BLOCKED: Cannot process investment for DELETED account.');
+      console.log('🚫 FINAL BLOCK: Investment submission blocked for deleted investor');
+      return;
+    }
+
+    // ABSOLUTE FINAL BLOCK for deactivated investors
+    if (selectedInvestor.status === 'deactivated' || selectedInvestor.active === false) {
+      alert('🚫 INVESTMENT SUBMISSION BLOCKED: Cannot process investment for DEACTIVATED account.');
+      console.log('🚫 FINAL BLOCK: Investment submission blocked for deactivated investor');
       return;
     }
     
@@ -455,6 +508,7 @@ const Investors = () => {
     
     updateSeries(selectedSeries.id, updatedSeries);
     
+    console.log('✅ INVESTMENT PROCESSED: Security checks passed');
     alert(`Investment of ₹${parseInt(investmentAmount).toLocaleString('en-IN')} added successfully for ${selectedInvestor.name} in ${selectedSeries.name}`);
     
     // Reload page to refresh all data
@@ -697,9 +751,32 @@ const Investors = () => {
 
         {/* KYC */}
         <div className="cell kyc">
-          <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
-            {getStatusText(investor.kycStatus)}
-          </span>
+          {investor.status === 'deleted' ? (
+            <div className="deleted-investor-info">
+              <span className="status-badge deleted">
+                DELETED
+              </span>
+              {investor.refundAmount && (
+                <div className="refund-amount-small">
+                  Net: ₹{investor.refundAmount.toLocaleString('en-IN')}
+                </div>
+              )}
+              {investor.penaltyAmount > 0 && (
+                <div className="penalty-amount-small">
+                  Penalty: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
+                </div>
+              )}
+              {investor.lockInViolations && investor.lockInViolations.length > 0 && (
+                <div className="lockin-warning-small">
+                  ⚠️ {investor.lockInViolations.length} early exit
+                </div>
+              )}
+            </div>
+          ) : (
+            <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
+              {getStatusText(investor.kycStatus)}
+            </span>
+          )}
         </div>
 
         {/* Date */}
@@ -736,9 +813,32 @@ const Investors = () => {
                     <h4>{investor.name}</h4>
                     <span className="investor-id">{investor.investorId}</span>
                   </div>
-                  <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
-                    {getStatusText(investor.kycStatus)}
-                  </span>
+                  {investor.status === 'deleted' ? (
+                    <div className="deleted-investor-info">
+                      <span className="status-badge deleted">
+                        DELETED
+                      </span>
+                      {investor.refundAmount && (
+                        <div className="refund-amount-small">
+                          Net: ₹{investor.refundAmount.toLocaleString('en-IN')}
+                        </div>
+                      )}
+                      {investor.penaltyAmount > 0 && (
+                        <div className="penalty-amount-small">
+                          Penalty: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
+                        </div>
+                      )}
+                      {investor.lockInViolations && investor.lockInViolations.length > 0 && (
+                        <div className="lockin-warning-small">
+                          ⚠️ {investor.lockInViolations.length} early exit
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
+                      {getStatusText(investor.kycStatus)}
+                    </span>
+                  )}
                 </div>
                 
                 <div className="mobile-card-details">

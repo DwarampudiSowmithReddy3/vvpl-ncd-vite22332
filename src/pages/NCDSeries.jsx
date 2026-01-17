@@ -242,10 +242,11 @@ const NCDSeries = () => {
     setSeriesToDelete(null);
   };
 
-  // Separate series into 3 categories
+  // Separate series into 4 categories
   const draftSeries = series.filter(s => s.status === 'DRAFT');
   const upcomingSeries = series.filter(s => s.status === 'upcoming');
   const activeSeries = series.filter(s => s.status === 'active');
+  const maturedSeries = series.filter(s => s.status === 'matured');
 
   return (
     <Layout>
@@ -495,6 +496,81 @@ const NCDSeries = () => {
                     <div className="card-actions">
                       <button 
                         className="view-details-button"
+                        onClick={() => navigate(`/ncd-series/${s.id}`)}
+                      >
+                        <HiOutlineEye size={18} />
+                        <span>View Details</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Matured Series Section */}
+        {maturedSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Matured Series</h2>
+              <p className="section-subtitle">Series that have completed their maturity period</p>
+            </div>
+            <div className="series-grid">
+              {maturedSeries.map((s) => {
+                const statusInfo = { status: 'matured', label: 'Matured', color: 'gray' };
+                const progress = 100; // Matured series are 100% complete
+                return (
+                  <div key={s.id} className="series-card matured-card">
+                    <div className="card-banner matured-banner">
+                      <div className="banner-content">
+                        <h3 className="series-name">{s.name}</h3>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Issue Date:</span>
+                        <span className="detail-value">{s.issueDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Maturity Date:</span>
+                        <span className="detail-value">{s.maturityDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Min Investment:</span>
+                        <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button matured-button"
                         onClick={() => navigate(`/ncd-series/${s.id}`)}
                       >
                         <HiOutlineEye size={18} />

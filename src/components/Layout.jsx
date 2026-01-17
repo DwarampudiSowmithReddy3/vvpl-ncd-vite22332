@@ -269,6 +269,91 @@ const Layout = ({ children, isInvestor = false }) => {
         isOpen={sidebarOpen}
         onClose={closeSidebar}
         disabled={showFloatingGreeting}
+        mobileHeaderButtons={
+          <div className="mobile-header-buttons-container">
+            <button 
+              className="sop-document-button"
+              onClick={() => setShowSopViewer(true)}
+              title="View SOP Document"
+            >
+              <HiOutlineDocumentText size={18} />
+              SOP
+            </button>
+            <button 
+              className="grievance-button"
+              onClick={() => setShowGrievanceModal(true)}
+              title="Grievances"
+            >
+              <MdReportProblem size={18} />
+              Grievances
+            </button>
+            
+            {/* Account Menu */}
+            <div className="account-menu-container">
+              <button 
+                className="account-button"
+                onClick={toggleAccountMenu}
+                title="Account"
+              >
+                <div className="account-avatar">
+                  {getInitials(user?.name)}
+                </div>
+                <span>Account</span>
+              </button>
+              
+              {showAccountMenu && (
+                <div className="account-dropdown">
+                  <div className="account-dropdown-header">
+                    <div className="account-avatar-large">
+                      {getInitials(user?.name)}
+                    </div>
+                    <div className="account-info">
+                      <div className="account-name">{user?.name || 'User'}</div>
+                      <div className="account-email">{user?.email || 'user@example.com'}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="account-dropdown-divider"></div>
+                  
+                  <div className="account-dropdown-section">
+                    <div className="account-detail-item">
+                      <MdBadge className="account-icon" />
+                      <div className="account-detail-content">
+                        <div className="account-detail-label">User ID</div>
+                        <div className="account-detail-value">{user?.userId || 'USR001'}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="account-detail-item">
+                      <MdPerson className="account-icon" />
+                      <div className="account-detail-content">
+                        <div className="account-detail-label">Role</div>
+                        <div className="account-detail-value">{user?.displayRole || user?.role || 'User'}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="account-detail-item">
+                      <MdAccessTime className="account-icon" />
+                      <div className="account-detail-content">
+                        <div className="account-detail-label">Last Login</div>
+                        <div className="account-detail-value">{formatLastLogin()}</div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="account-dropdown-divider"></div>
+                  
+                  <div className="account-dropdown-actions">
+                    <button className="account-action-button logout-button" onClick={handleLogout}>
+                      <MdExitToApp className="action-icon" />
+                      Sign Out
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        }
       />
 
       {sidebarOpen && (

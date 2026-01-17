@@ -455,6 +455,49 @@
   color: #dc2626;
 }
 
+.status-badge.deleted {
+  background: #991b1b;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.deleted-investor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.refund-amount-small {
+  font-size: 10px;
+  color: #059669;
+  font-weight: 600;
+  background: #ecfdf5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #86efac;
+}
+
+.penalty-amount-small {
+  font-size: 9px;
+  color: #dc2626;
+  font-weight: 600;
+  background: #fef2f2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fecaca;
+}
+
+.lockin-warning-small {
+  font-size: 9px;
+  color: #d97706;
+  font-weight: 600;
+  background: #fffbeb;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid #fed7aa;
+}
+
 .date-cell {
   color: #64748b;
 }

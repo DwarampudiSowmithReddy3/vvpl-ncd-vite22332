@@ -817,13 +817,41 @@
 }
 
 @media (max-width: 768px) {
+  .ncd-series-page {
+    padding: 0 12px;
+  }
+
   .series-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
   
   .series-header {
-    flex-direction: column;
-    gap: 16px;
+    flex-direction: row; /* Keep horizontal layout like desktop */
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .create-button {
+    padding: 10px 16px; /* Reduced padding for mobile */
+    font-size: 14px; /* Smaller font */
+    white-space: nowrap; /* Prevent text wrapping */
+  }
+
+  .section-header {
+    margin: 32px 0 20px 0;
+  }
+
+  .section-title {
+    font-size: 20px; /* Smaller section title */
+    margin-bottom: 8px;
+  }
+
+  .section-subtitle {
+    font-size: 14px; /* Smaller subtitle */
+    display: block; /* Ensure subtitle goes below title */
+    margin-top: 4px;
   }
   
   .modal-content {
@@ -854,22 +882,43 @@
 
 @media (max-width: 480px) {
   .ncd-series-page {
-    padding: 0;
+    padding: 0 8px;
+  }
+
+  .series-header {
+    flex-direction: row; /* Keep horizontal layout */
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
   }
 
   .page-title {
-    font-size: 24px;
+    font-size: 22px; /* Smaller title for phones */
   }
 
   .page-subtitle {
-    font-size: 14px;
+    font-size: 13px;
   }
 
   .create-button {
-    width: 100%;
-    justify-content: center;
-    padding: 12px 20px;
-    font-size: 14px;
+    padding: 8px 12px; /* Compact button for phones */
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .section-header {
+    margin: 28px 0 16px 0;
+  }
+
+  .section-title {
+    font-size: 18px; /* Smaller for phones */
+    margin-bottom: 6px;
+  }
+
+  .section-subtitle {
+    font-size: 13px;
+    display: block;
+    margin-top: 3px;
   }
 
   .series-card {
@@ -912,4 +961,52 @@
     width: 100%;
     min-width: auto;
   }
+}
+/* Matured Series Styles */
+.matured-card {
+  border: 2px solid #9ca3af;
+  background: #f9fafb;
+  opacity: 0.8;
+}
+
+.matured-banner {
+  background: #f3f4f6 !important;
+}
+
+.matured-card .series-name {
+  color: #6b7280;
+}
+
+.matured-card .interest-rate {
+  color: #6b7280;
+}
+
+.matured-card .investors-count {
+  color: #9ca3af;
+}
+
+.matured-card .progress-text {
+  color: #9ca3af;
+}
+
+.matured-card .detail-value {
+  color: #6b7280;
+}
+
+.matured-button {
+  background: #f3f4f6 !important;
+  color: #6b7280 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+.matured-button:hover {
+  background: #e5e7eb !important;
+  color: #374151 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3) !important;
+}
+
+.matured-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
 }

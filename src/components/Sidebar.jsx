@@ -15,7 +15,7 @@ import {
 import { IoChevronBackCircle } from "react-icons/io5";
 import { MdPayment, MdSecurity, MdAdminPanelSettings } from "react-icons/md";
 
-const Sidebar = ({ isInvestor = false, isOpen = true, onClose }) => {
+const Sidebar = ({ isInvestor = false, isOpen = true, onClose, mobileHeaderButtons }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, canAccessModule } = useAuth();
@@ -84,6 +84,14 @@ const Sidebar = ({ isInvestor = false, isOpen = true, onClose }) => {
           </Link>
         ))}
       </nav>
+      
+      {/* Mobile Header Buttons - Only show on mobile */}
+      {mobileHeaderButtons && (
+        <div className="sidebar-mobile-buttons">
+          {mobileHeaderButtons}
+        </div>
+      )}
+      
       <div className="sidebar-footer">
         <button 
           className="sidebar-logout"

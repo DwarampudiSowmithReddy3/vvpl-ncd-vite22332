@@ -3,6 +3,76 @@
   margin: 0 auto;
 }
 
+/* Account Blocked Notice */
+.account-blocked-notice {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 40px 20px;
+}
+
+.blocked-content {
+  background: #fef2f2;
+  border: 2px solid #fecaca;
+  border-radius: 12px;
+  padding: 40px;
+  max-width: 600px;
+  text-align: center;
+}
+
+.blocked-content h1 {
+  color: #dc2626;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+}
+
+.blocked-content p {
+  color: #991b1b;
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.contact-info {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.contact-info p {
+  color: #374151;
+  margin: 0 0 8px 0;
+}
+
+.contact-info p:last-child {
+  margin-bottom: 0;
+}
+.security-warning {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.warning-content h3 {
+  color: #dc2626;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.warning-content p {
+  color: #991b1b;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+
 .series-header {
   margin-bottom: 32px;
 }
@@ -199,6 +269,17 @@
   font-size: 16px;
   font-weight: 600;
   cursor: default;
+}
+
+.disabled-button {
+  background: #fee2e2;
+  color: #dc2626;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: not-allowed;
 }
 
 .modal-overlay {
