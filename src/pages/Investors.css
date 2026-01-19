@@ -102,6 +102,12 @@
   gap: 12px;
 }
 
+.search-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .search-container {
   display: flex;
   align-items: center;
@@ -109,6 +115,10 @@
   border-radius: 8px;
   padding: 8px 12px;
   gap: 8px;
+  width: 300px;
+  min-width: 200px;
+}
+  min-width: 200px;
 }
 
 .search-icon {
@@ -1099,6 +1109,7 @@
     min-width: 0;
     max-width: calc(100% - 50px); /* Just enough space for filter button */
     box-sizing: border-box;
+    width: auto; /* Override desktop fixed width */
   }
 
   .search-input {

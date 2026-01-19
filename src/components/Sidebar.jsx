@@ -66,7 +66,7 @@ const Sidebar = ({ isInvestor = false, isOpen = true, onClose, mobileHeaderButto
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
-        <img className="sidebar-title" src="/logo_lf_ncd.png" alt="NCD Platform Logo" />
+        <img className="sidebar-title" src="/logo_lf_ncd.svg" alt="NCD Platform Logo" />
         <button className="sidebar-close" onClick={onClose}>
           <IoChevronBackCircle style={{color: '#1e40af', paddingLeft: '3px'}} />
         </button>

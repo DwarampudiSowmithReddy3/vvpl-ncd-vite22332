@@ -52,6 +52,7 @@ const Layout = ({ children, isInvestor = false }) => {
     remarks: ''
   });
   const [editingComplaint, setEditingComplaint] = useState(null);
+  const [resolutionComments, setResolutionComments] = useState({}); // Store resolution comments for each complaint
   const [showAccountMenu, setShowAccountMenu] = useState(false);
 
   useEffect(() => {
@@ -181,23 +182,39 @@ const Layout = ({ children, isInvestor = false }) => {
   const handleComplaintStatusChange = (id, isCompleted) => {
     const complaint = complaints.find(c => c.id === id);
     
-    updateComplaintStatus(id, isCompleted);
+    updateComplaintStatus(id, isCompleted, isCompleted ? resolutionComments[id] : null);
     
     // Add audit log for complaint status change
     addAuditLog({
       action: isCompleted ? 'Resolved Grievance' : 'Reopened Grievance',
       adminName: user ? user.name : 'User',
       adminRole: user ? user.displayRole : 'User',
-      details: `${isCompleted ? 'Resolved' : 'Reopened'} grievance for investor "${complaint?.investorId}": ${complaint?.issue}`,
+      details: `${isCompleted ? 'Resolved' : 'Reopened'} grievance for investor "${complaint?.investorId}": ${complaint?.issue}${isCompleted && resolutionComments[id] ? `. Resolution: ${resolutionComments[id]}` : ''}`,
       entityType: 'Grievance',
       entityId: complaint?.investorId || 'Unknown',
       changes: {
         grievanceId: id,
         oldStatus: isCompleted ? 'pending' : 'resolved',
         newStatus: isCompleted ? 'resolved' : 'pending',
-        issue: complaint?.issue
+        issue: complaint?.issue,
+        resolutionComment: isCompleted ? resolutionComments[id] : null
       }
     });
+
+    // Clear resolution comment after resolving
+    if (isCompleted) {
+      setResolutionComments(prev => ({
+        ...prev,
+        [id]: ''
+      }));
+    }
+  };
+
+  const handleResolutionCommentChange = (id, comment) => {
+    setResolutionComments(prev => ({
+      ...prev,
+      [id]: comment
+    }));
   };
 
   const handleDateFilterChange = (field, value) => {
@@ -289,13 +306,14 @@ const Layout = ({ children, isInvestor = false }) => {
             </button>
             
             {/* Account Menu */}
-            <div className="account-menu-container">
+            <div className="account-menu-container" style={{backgroundColor:"transparent"}}>
               <button 
                 className="account-button"
                 onClick={toggleAccountMenu}
                 title="Account"
+                style={{backgroundColor:"transparent"}}
               >
-                <div className="account-avatar">
+                <div className="account-avatar" style={{backgroundColor:"transparent"}}>
                   {getInitials(user?.name)}
                 </div>
                 <span>Account</span>
@@ -378,7 +396,7 @@ const Layout = ({ children, isInvestor = false }) => {
             {!sidebarOpen && (
               <img 
                 className="header-logo" 
-                src="/logo_lf_ncd.png" 
+                src="/logo_lf_ncd.svg" 
                 alt="NCD Platform Logo" 
               />
             )}
@@ -625,6 +643,7 @@ const Layout = ({ children, isInvestor = false }) => {
                         <th>Remarks</th>
                         <th>Timestamp</th>
                         <th>Status</th>
+                        <th>Resolution</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -668,9 +687,39 @@ const Layout = ({ children, isInvestor = false }) => {
                                   checked={complaint.isCompleted}
                                   onChange={(e) => handleComplaintStatusChange(complaint.id, e.target.checked)}
                                   className="status-checkbox"
+                                  disabled={complaint.status === 'pending' && (!resolutionComments[complaint.id] || !resolutionComments[complaint.id].trim())}
                                 />
-                                <label>Mark as resolved</label>
+                                <label className={complaint.status === 'pending' && (!resolutionComments[complaint.id] || !resolutionComments[complaint.id].trim()) ? 'disabled-label' : ''}>
+                                  Mark as resolved
+                                </label>
                               </div>
+                              {/* Resolution Comment Field - Show when complaint is pending */}
+                              {complaint.status === 'pending' && (
+                                <div className="resolution-comment-section">
+                                  <label className="resolution-comment-label">Resolution Comment:</label>
+                                  <textarea
+                                    placeholder="Enter resolution details to communicate with the complainant..."
+                                    value={resolutionComments[complaint.id] || ''}
+                                    onChange={(e) => handleResolutionCommentChange(complaint.id, e.target.value)}
+                                    className="resolution-comment-textarea"
+                                    rows="2"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="resolution-cell">
+                              {complaint.status === 'resolved' && complaint.resolutionComment ? (
+                                <div className="resolution-display">
+                                  <div className="resolution-comment">{complaint.resolutionComment}</div>
+                                  {complaint.resolvedAt && (
+                                    <div className="resolved-timestamp">Resolved: {complaint.resolvedAt}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="no-resolution">-</span>
+                              )}
                             </div>
                           </td>
                           <td>

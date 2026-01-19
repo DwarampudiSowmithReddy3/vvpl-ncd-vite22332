@@ -14,7 +14,7 @@ const NCDSeries = () => {
   const navigate = useNavigate();
   const { showCreateButton, canEdit, canDelete } = usePermissions();
   const { user } = useAuth();
-  const { series, addSeries, deleteSeries, addAuditLog } = useData();
+  const { series, addSeries, deleteSeries, addAuditLog, getSeriesStatus } = useData();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [seriesToDelete, setSeriesToDelete] = useState(null);
@@ -56,35 +56,22 @@ const NCDSeries = () => {
   };
 
   const getStatusInfo = (s) => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const status = getSeriesStatus(s);
     
-    const parseDate = (dateStr) => {
-      if (!dateStr) return null;
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-      return null;
-    };
-    
-    // Handle DRAFT status
-    if (s.status === 'DRAFT') {
-      return { status: 'draft', label: 'Yet to be approved', color: 'gray' };
+    switch (status) {
+      case 'DRAFT':
+        return { status: 'draft', label: 'Yet to be approved', color: 'gray' };
+      case 'upcoming':
+        return { status: 'upcoming', label: 'Releasing soon', color: 'orange' };
+      case 'accepting':
+        return { status: 'accepting', label: 'Accepting investments', color: 'blue' };
+      case 'active':
+        return { status: 'active', label: 'Active', color: 'green' };
+      case 'matured':
+        return { status: 'matured', label: 'Matured', color: 'gray' };
+      default:
+        return { status: 'unknown', label: 'Unknown', color: 'gray' };
     }
-    
-    // Handle UPCOMING status (approved but not released)
-    if (s.status === 'upcoming') {
-      const issueDateStr = s.issueDate || 'TBD';
-      return { status: 'upcoming', label: 'Releasing soon', color: 'orange' };
-    }
-    
-    const maturityDate = parseDate(s.maturityDate);
-    if (maturityDate && maturityDate < today) {
-      return { status: 'expired', label: 'Expired', color: 'red' };
-    }
-    
-    return { status: 'active', label: 'Active', color: 'green' };
   };
 
   const handleSubmit = (e) => {
@@ -242,11 +229,12 @@ const NCDSeries = () => {
     setSeriesToDelete(null);
   };
 
-  // Separate series into 4 categories
-  const draftSeries = series.filter(s => s.status === 'DRAFT');
-  const upcomingSeries = series.filter(s => s.status === 'upcoming');
-  const activeSeries = series.filter(s => s.status === 'active');
-  const maturedSeries = series.filter(s => s.status === 'matured');
+  // Separate series into categories based on actual status
+  const draftSeries = series.filter(s => getSeriesStatus(s) === 'DRAFT');
+  const upcomingSeries = series.filter(s => getSeriesStatus(s) === 'upcoming');
+  const acceptingSeries = series.filter(s => getSeriesStatus(s) === 'accepting');
+  const activeSeries = series.filter(s => getSeriesStatus(s) === 'active');
+  const maturedSeries = series.filter(s => getSeriesStatus(s) === 'matured');
 
   return (
     <Layout>
@@ -434,12 +422,86 @@ const NCDSeries = () => {
           </>
         )}
 
+        {/* Accepting Investments Series Section - Within subscription window */}
+        {acceptingSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Accepting Investments</h2>
+              <p className="section-subtitle">Series currently accepting new investments within subscription window</p>
+            </div>
+            <div className="series-grid">
+              {acceptingSeries.map((s) => {
+                const statusInfo = getStatusInfo(s);
+                const progress = (s.fundsRaised / s.targetAmount) * 100;
+                return (
+                  <div key={s.id} className="series-card accepting-card">
+                    <div className="card-banner accepting-banner">
+                      <div className="banner-content">
+                        <h3 className="series-name">{s.name}</h3>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-text">
+                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Subscription Start:</span>
+                        <span className="detail-value">{s.subscriptionStartDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Subscription End:</span>
+                        <span className="detail-value">{s.subscriptionEndDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Min Investment:</span>
+                        <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button"
+                        onClick={() => navigate(`/ncd-series/${s.id}`)}
+                      >
+                        <HiOutlineEye size={18} />
+                        <span>View Details</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         {/* Active Series Section */}
         {activeSeries.length > 0 && (
           <>
             <div className="section-header">
               <h2 className="section-title">Currently Running</h2>
-              <p className="section-subtitle">Active series accepting investments</p>
             </div>
             <div className="series-grid">
               {activeSeries.map((s) => {

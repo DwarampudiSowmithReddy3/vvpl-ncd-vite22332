@@ -18,10 +18,11 @@ const Communication = () => {
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [showTemplateSection, setShowTemplateSection] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [customMessage, setCustomMessage] = useState(''); // Custom message for bulk contacts
   const [isSending, setIsSending] = useState(false);
   const [communicationHistory, setCommunicationHistory] = useState([]);
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all', 'sms', 'email'
-  const [manualContacts, setManualContacts] = useState(['']); // Array of manually entered contacts
+  const [manualContacts, setManualContacts] = useState(''); // Changed to string for bulk input
   const [selectedTemplateManual, setSelectedTemplateManual] = useState(''); // Template for manual contacts
   const fileInputRef = useRef(null);
 
@@ -348,26 +349,112 @@ const Communication = () => {
     fileInputRef.current?.click();
   };
 
-  // Manual contact handlers
-  const handleManualContactChange = (index, value) => {
-    const updatedContacts = [...manualContacts];
-    updatedContacts[index] = value;
-    setManualContacts(updatedContacts);
+  // Bulk contact handlers
+  const formatPhoneNumbers = (input) => {
+    // Remove all non-digit characters
+    const digitsOnly = input.replace(/\D/g, '');
+    
+    // Split into groups of 10 digits and join with commas
+    const phoneNumbers = [];
+    for (let i = 0; i < digitsOnly.length; i += 10) {
+      const phoneNumber = digitsOnly.substr(i, 10);
+      if (phoneNumber.length === 10) {
+        phoneNumbers.push(phoneNumber);
+      } else if (phoneNumber.length > 0) {
+        // Handle partial numbers at the end
+        phoneNumbers.push(phoneNumber);
+      }
+    }
+    
+    return phoneNumbers.join(', ');
   };
 
-  const handleAddManualContact = () => {
-    setManualContacts([...manualContacts, '']);
+  const formatEmails = (input) => {
+    // If input is empty, return empty
+    if (!input.trim()) return '';
+    
+    // Always try to extract emails using regex first
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+    const emails = input.match(emailPattern) || [];
+    
+    if (emails.length > 1) {
+      // Multiple emails found - join with commas
+      return emails.join(', ');
+    } else if (emails.length === 1) {
+      // Single email found - return as is
+      return emails[0];
+    }
+    
+    // If no emails found by regex, try manual splitting
+    const manualEmails = input
+      .split(/[,;\s\n]+/)
+      .map(email => email.trim())
+      .filter(email => email.length > 0);
+    
+    return manualEmails.join(', ');
   };
 
-  const handleRemoveManualContact = (index) => {
-    if (manualContacts.length > 1) {
-      const updatedContacts = manualContacts.filter((_, i) => i !== index);
-      setManualContacts(updatedContacts);
+  const handleBulkContactChange = (value) => {
+    if (activeTab === 'sms') {
+      // Auto-format phone numbers
+      const formatted = formatPhoneNumbers(value);
+      setManualContacts(formatted);
+    } else {
+      // Auto-format emails
+      const formatted = formatEmails(value);
+      setManualContacts(formatted);
     }
   };
 
+  const getValidBulkContacts = () => {
+    if (!manualContacts.trim()) return [];
+    
+    if (activeTab === 'sms') {
+      // Extract phone numbers
+      return manualContacts
+        .split(',')
+        .map(phone => phone.trim())
+        .filter(phone => phone.length === 10 && /^\d{10}$/.test(phone));
+    } else {
+      // For emails, first try to extract using regex (handles concatenated emails)
+      const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+      const regexEmails = manualContacts.match(emailPattern) || [];
+      
+      if (regexEmails.length > 0) {
+        // Validate each email found by regex
+        return regexEmails.filter(email => {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailRegex.test(email.trim());
+        });
+      }
+      
+      // Fallback: split by commas for manually separated emails
+      return manualContacts
+        .split(',')
+        .map(email => email.trim())
+        .filter(email => {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          return emailRegex.test(email);
+        });
+    }
+  };
+
+  // Manual contact handlers (keeping for backward compatibility but not used)
+  const handleManualContactChange = (index, value) => {
+    // This function is no longer used but kept for compatibility
+  };
+
+  const handleAddManualContact = () => {
+    // This function is no longer used but kept for compatibility
+  };
+
+  const handleRemoveManualContact = (index) => {
+    // This function is no longer used but kept for compatibility
+  };
+
   const getValidManualContacts = () => {
-    return manualContacts.filter(contact => contact.trim() !== '');
+    // Updated to use bulk contacts
+    return getValidBulkContacts();
   };
 
   const handleSendManualMessages = async () => {
@@ -461,7 +548,7 @@ const Communication = () => {
       alert(`Successfully sent ${results.filter(r => r.status === 'Success').length} ${messageType} message(s)!`);
       
       // Clear manual contacts after sending
-      setManualContacts(['']);
+      setManualContacts('');
       setSelectedTemplateManual('');
 
     } catch (error) {
@@ -547,37 +634,25 @@ const Communication = () => {
                     {!uploadedFileName && (
                       <div className="manual-contact-section">
                         <label className="manual-contact-label">
-                          Enter Mobile Numbers
+                          Enter Mobile Numbers (Bulk Input)
                         </label>
-                        {manualContacts.map((contact, index) => (
-                          <div key={index} className="manual-contact-input-row">
-                            <input
-                              type="tel"
-                              placeholder="Enter mobile number"
-                              value={contact}
-                              onChange={(e) => handleManualContactChange(index, e.target.value)}
-                              className="manual-contact-input"
-                            />
-                            {manualContacts.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveManualContact(index)}
-                                className="remove-contact-btn"
-                                title="Remove"
-                              >
-                                <MdClose size={20} />
-                              </button>
-                            )}
+                        <div className="bulk-input-container">
+                          <textarea
+                            placeholder="Paste mobile numbers here. They'll be auto-formatted with commas every 10 digits.&#10;Example: 98765432109876543210 → 9876543210, 9876543210"
+                            value={manualContacts}
+                            onChange={(e) => handleBulkContactChange(e.target.value)}
+                            className="bulk-contact-textarea"
+                            rows="3"
+                          />
+                          <div className="input-info">
+                            <span className="contact-count">
+                              {getValidBulkContacts().length} valid phone number(s) detected
+                            </span>
+                            <span className="format-hint">
+                              Tip: Just paste numbers - they'll be auto-formatted with commas
+                            </span>
                           </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={handleAddManualContact}
-                          className="add-contact-btn"
-                        >
-                          <MdAdd size={20} />
-                          Add Mobile Number
-                        </button>
+                        </div>
                       </div>
                     )}
 
@@ -704,41 +779,29 @@ const Communication = () => {
                     {!uploadedFileName && (
                       <div className="manual-contact-section">
                         <label className="manual-contact-label">
-                          Enter Email Addresses
+                          Enter Email Addresses (Bulk Input)
                         </label>
-                        {manualContacts.map((contact, index) => (
-                          <div key={index} className="manual-contact-input-row">
-                            <input
-                              type="email"
-                              placeholder="Enter email address"
-                              value={contact}
-                              onChange={(e) => handleManualContactChange(index, e.target.value)}
-                              className="manual-contact-input"
-                            />
-                            {manualContacts.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveManualContact(index)}
-                                className="remove-contact-btn"
-                                title="Remove"
-                              >
-                                <MdClose size={20} />
-                              </button>
-                            )}
+                        <div className="bulk-input-container">
+                          <textarea
+                            placeholder="Paste email addresses here. They'll be auto-separated with commas.&#10;Example: john@gmail.comjane@yahoo.com → john@gmail.com, jane@yahoo.com"
+                            value={manualContacts}
+                            onChange={(e) => handleBulkContactChange(e.target.value)}
+                            className="bulk-contact-textarea"
+                            rows="3"
+                          />
+                          <div className="input-info">
+                            <span className="contact-count">
+                              {getValidBulkContacts().length} valid email address(es) detected
+                            </span>
+                            <span className="format-hint">
+                              Tip: Just paste emails - they'll be auto-separated with commas
+                            </span>
                           </div>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={handleAddManualContact}
-                          className="add-contact-btn"
-                        >
-                          <MdAdd size={20} />
-                          Add Email
-                        </button>
+                        </div>
                       </div>
                     )}
 
-                    {/* Template Section for Manual Contacts (shown when at least one contact is entered) */}
+                    {/* Message Section for Manual Contacts (shown when at least one contact is entered) */}
                     {getValidManualContacts().length > 0 && (
                       <div className="template-section">
                         <div className="template-selector">

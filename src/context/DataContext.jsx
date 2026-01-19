@@ -625,7 +625,7 @@ export const DataProvider = ({ children }) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
-    // Parse issue date to determine status
+    // Parse dates
     const parseDate = (dateStr) => {
       if (!dateStr) return null;
       const parts = dateStr.split('/');
@@ -635,16 +635,26 @@ export const DataProvider = ({ children }) => {
       return null;
     };
     
-    const issueDate = parseDate(approvedData.issueDate);
+    const subscriptionStartDate = parseDate(approvedData.subscriptionStartDate);
+    const subscriptionEndDate = parseDate(approvedData.subscriptionEndDate);
     
-    // Determine status based on issue date
+    // Determine status based on subscription window
     let status = 'upcoming'; // Default to upcoming
-    if (issueDate) {
-      if (issueDate <= today) {
-        // If issue date is today or in the past, make it active immediately
+    
+    if (subscriptionStartDate && subscriptionEndDate) {
+      if (today < subscriptionStartDate) {
+        status = 'upcoming'; // Before subscription starts
+      } else if (today >= subscriptionStartDate && today <= subscriptionEndDate) {
+        status = 'accepting'; // Within subscription window
+      } else if (today > subscriptionEndDate) {
+        status = 'active'; // After subscription ends
+      }
+    } else {
+      // Fallback to old logic if no subscription dates
+      const issueDate = parseDate(approvedData.issueDate);
+      if (issueDate && issueDate <= today) {
         status = 'active';
       } else {
-        // If issue date is in the future, keep it as upcoming
         status = 'upcoming';
       }
     }
@@ -912,9 +922,15 @@ export const DataProvider = ({ children }) => {
     setComplaints(complaints.map(c => c.id === id ? { ...c, ...updates } : c));
   };
 
-  const updateComplaintStatus = (id, isCompleted) => {
+  const updateComplaintStatus = (id, isCompleted, resolutionComment = null) => {
     setComplaints(complaints.map(c => 
-      c.id === id ? { ...c, isCompleted, status: isCompleted ? 'resolved' : 'pending' } : c
+      c.id === id ? { 
+        ...c, 
+        isCompleted, 
+        status: isCompleted ? 'resolved' : 'pending',
+        resolutionComment: isCompleted ? resolutionComment : null,
+        resolvedAt: isCompleted ? new Date().toLocaleString() : null
+      } : c
     ));
   };
 
@@ -1041,6 +1057,218 @@ export const DataProvider = ({ children }) => {
     return complianceSeries.filter(s => getComplianceStatus(s.name) === 'yet-to-be-submitted');
   };
 
+  // Check if series is within subscription window
+  const isWithinSubscriptionWindow = (series) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return null;
+    };
+    
+    const subscriptionStartDate = parseDate(series.subscriptionStartDate);
+    const subscriptionEndDate = parseDate(series.subscriptionEndDate);
+    
+    if (!subscriptionStartDate || !subscriptionEndDate) {
+      return false; // No subscription window defined
+    }
+    
+    return today >= subscriptionStartDate && today <= subscriptionEndDate;
+  };
+
+  // Get series status based on subscription window and dates
+  const getSeriesStatus = (series) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return null;
+    };
+    
+    // Handle DRAFT status
+    if (series.status === 'DRAFT') {
+      return 'DRAFT';
+    }
+    
+    const subscriptionStartDate = parseDate(series.subscriptionStartDate);
+    const subscriptionEndDate = parseDate(series.subscriptionEndDate);
+    const maturityDate = parseDate(series.maturityDate);
+    
+    // Check if matured
+    if (maturityDate && maturityDate < today) {
+      return 'matured';
+    }
+    
+    // If no subscription dates, use old logic
+    if (!subscriptionStartDate || !subscriptionEndDate) {
+      return series.status;
+    }
+    
+    // Subscription window logic
+    if (today < subscriptionStartDate) {
+      return 'upcoming'; // Before subscription starts
+    } else if (today >= subscriptionStartDate && today <= subscriptionEndDate) {
+      return 'accepting'; // Within subscription window - accepting investments
+    } else if (today > subscriptionEndDate) {
+      return 'active'; // After subscription ends - active but no new investments
+    }
+    
+    return series.status;
+  };
+
+  // Auto-update series statuses based on subscription dates
+  const updateSeriesStatuses = useCallback(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return null;
+    };
+    
+    let hasUpdates = false;
+    const updatedSeries = series.map(s => {
+      const currentStatus = getSeriesStatus(s);
+      
+      // Only update if status has changed
+      if (s.status !== currentStatus) {
+        hasUpdates = true;
+        console.log(`Auto-updating series ${s.name} status from ${s.status} to ${currentStatus}`);
+        return { ...s, status: currentStatus };
+      }
+      
+      return s;
+    });
+    
+    if (hasUpdates) {
+      setSeries(updatedSeries);
+      localStorage.setItem('series', JSON.stringify(updatedSeries));
+    }
+  }, [series, getSeriesStatus]);
+
+  // Run status updates on component mount and periodically
+  useEffect(() => {
+    updateSeriesStatuses();
+    
+    // Update statuses every hour
+    const interval = setInterval(updateSeriesStatuses, 60 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [updateSeriesStatuses]);
+
+  // Add transaction to investor's transaction history
+  const addTransactionToInvestor = (investorId, transaction) => {
+    console.log('Adding transaction to investor:', investorId, transaction);
+    
+    const updatedInvestors = investors.map(inv => {
+      if (inv.investorId === investorId || inv.id === investorId) {
+        const currentTransactions = inv.transactions || [];
+        const newTransaction = {
+          ...transaction,
+          date: transaction.date || new Date().toLocaleDateString('en-GB'),
+          timestamp: transaction.timestamp || new Date().toISOString()
+        };
+        
+        // Add new transaction and sort by date (newest first)
+        const updatedTransactions = [newTransaction, ...currentTransactions]
+          .sort((a, b) => new Date(b.timestamp || b.date) - new Date(a.timestamp || a.date));
+        
+        return {
+          ...inv,
+          transactions: updatedTransactions
+        };
+      }
+      return inv;
+    });
+    
+    setInvestors(updatedInvestors);
+    localStorage.setItem('investors', JSON.stringify(updatedInvestors));
+    console.log('Transaction added successfully');
+  };
+
+  // Add investment transaction (called when new investment is made)
+  const addInvestmentTransaction = (investorId, seriesName, amount, date) => {
+    const transaction = {
+      type: 'Investment',
+      series: seriesName,
+      amount: amount,
+      description: `Investment in ${seriesName}`,
+      date: date || new Date().toLocaleDateString('en-GB'),
+      timestamp: new Date().toISOString()
+    };
+    
+    addTransactionToInvestor(investorId, transaction);
+  };
+
+  // Add interest payout transaction (called when interest is paid)
+  const addInterestPayoutTransaction = (investorId, seriesName, amount, date, month) => {
+    const transaction = {
+      type: 'Interest Credit',
+      series: seriesName,
+      amount: amount,
+      description: `Monthly interest for ${seriesName}${month ? ` - ${month}` : ''}`,
+      date: date || new Date().toLocaleDateString('en-GB'),
+      timestamp: new Date().toISOString()
+    };
+    
+    addTransactionToInvestor(investorId, transaction);
+  };
+
+  // Document management functions
+  const addInvestorDocument = (investorId, document) => {
+    console.log('Adding document to investor:', investorId, document);
+    
+    const updatedInvestors = investors.map(inv => {
+      if (inv.investorId === investorId || inv.id === investorId) {
+        const currentDocuments = inv.seriesDocuments || [];
+        const newDocument = {
+          ...document,
+          id: Date.now() + Math.random(), // Unique ID
+          uploadDate: document.uploadDate || new Date().toLocaleDateString('en-GB'),
+          timestamp: document.timestamp || new Date().toISOString()
+        };
+        
+        return {
+          ...inv,
+          seriesDocuments: [...currentDocuments, newDocument]
+        };
+      }
+      return inv;
+    });
+    
+    setInvestors(updatedInvestors);
+    localStorage.setItem('investors', JSON.stringify(updatedInvestors));
+    console.log('Document added successfully');
+  };
+
+  // Get documents for specific investor
+  const getInvestorDocuments = (investorId, seriesName = null) => {
+    const investor = investors.find(inv => inv.investorId === investorId || inv.id === investorId);
+    if (!investor || !investor.seriesDocuments) {
+      return [];
+    }
+    
+    if (seriesName) {
+      return investor.seriesDocuments.filter(doc => doc.seriesName === seriesName);
+    }
+    
+    return investor.seriesDocuments;
+  };
+
   return (
     <DataContext.Provider value={{
       investors,
@@ -1074,7 +1302,14 @@ export const DataProvider = ({ children }) => {
       getYetToBeSubmittedSeries,
       updateComplianceStatus,
       recalculateSeriesMetrics,
-      forceRecalculateAllSeries
+      forceRecalculateAllSeries,
+      addTransactionToInvestor,
+      addInvestmentTransaction,
+      addInterestPayoutTransaction,
+      isWithinSubscriptionWindow,
+      getSeriesStatus,
+      addInvestorDocument,
+      getInvestorDocuments
     }}>
       {children}
     </DataContext.Provider>

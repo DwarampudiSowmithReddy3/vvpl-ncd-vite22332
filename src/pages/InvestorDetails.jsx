@@ -22,13 +22,15 @@ import 'jspdf-autotable';
 const InvestorDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { investors = [], getInvestorComplaints, addAuditLog, updateInvestor, setInvestors, series, setSeries } = useData();
+  const { investors = [], getInvestorComplaints, addAuditLog, updateInvestor, setInvestors, series, setSeries, getInvestorDocuments } = useData();
   const { user } = useAuth();
   
   // Edit modal state
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({});
   const [confirmAction, setConfirmAction] = useState(null); // 'delete' or 'deactivate'
+  const [showDocumentsModal, setShowDocumentsModal] = useState(false);
+  const [selectedSeriesDocuments, setSelectedSeriesDocuments] = useState([]);
 
   // Hardcoded default data
   const defaultInvestor = {
@@ -587,6 +589,96 @@ const InvestorDetails = () => {
     // The DataContext should handle the global state update
   };
 
+  // Handle checking documents for a specific series
+  const handleCheckDocuments = (seriesName) => {
+    const documents = getInvestorDocuments(investor.investorId, seriesName);
+    setSelectedSeriesDocuments(documents);
+    setShowDocumentsModal(true);
+  };
+
+  // Handle document download
+  const handleDocumentDownload = (document) => {
+    try {
+      let blob;
+      let fileName = document.fileName || `${document.type.replace(/\s+/g, '_')}_${investor.name.replace(/\s+/g, '_')}.txt`;
+      
+      if (document.fileData) {
+        // If we have the actual file data (base64), convert it back to blob
+        const base64Data = document.fileData.split(',')[1]; // Remove data:type;base64, prefix
+        const mimeType = document.fileType || 'application/octet-stream';
+        
+        // Convert base64 to binary
+        const binaryString = window.atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        blob = new Blob([bytes], { type: mimeType });
+      } else {
+        // Fallback: Create a mock document
+        const mockFileContent = `Document: ${document.type}
+Investor: ${investor.name}
+Investor ID: ${investor.investorId}
+Series: ${document.seriesName}
+Upload Date: ${document.uploadDate}
+Uploaded By: ${document.uploadedBy}
+
+This is a mock document file for demonstration purposes.
+The original file data was not stored in this demo version.`;
+
+        blob = new Blob([mockFileContent], { type: 'text/plain' });
+        fileName = fileName.replace(/\.[^/.]+$/, '') + '.txt'; // Change extension to .txt for mock files
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Clean up
+      window.URL.revokeObjectURL(url);
+      
+      console.log(`Downloaded: ${fileName}`);
+      
+      // Add audit log for document download
+      addAuditLog({
+        action: 'Downloaded Document',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Downloaded document "${document.type}" (${fileName}) for investor "${investor.name}" (ID: ${investor.investorId}) from series "${document.seriesName}"`,
+        entityType: 'Document',
+        entityId: investor.investorId,
+        changes: {
+          documentType: document.type,
+          fileName: fileName,
+          originalFileName: document.fileName,
+          seriesName: document.seriesName,
+          investorName: investor.name,
+          investorId: investor.investorId,
+          downloadMethod: document.fileData ? 'Actual File' : 'Mock File',
+          fileSize: document.fileSize || 'Unknown'
+        }
+      });
+      
+      // Show success message
+      const message = document.fileData ? 
+        `Document "${fileName}" downloaded successfully!` : 
+        `Mock document "${fileName}" downloaded (original file data not available in demo)`;
+      alert(message);
+      
+    } catch (error) {
+      console.error('Error downloading document:', error);
+      alert('Error downloading document. Please try again.');
+    }
+  };
+
   // Handle delete investor - PERMANENT DELETION WITH LOCK-IN PERIOD CHECK
   const handleDeleteInvestor = () => {
     console.log('=== PERMANENT DELETE FUNCTION CALLED ===');
@@ -1142,6 +1234,7 @@ The investor's funds have been processed according to lock-in period rules.`;
                       <th>Investment</th>
                       <th>Next Payout</th>
                       <th>Status</th>
+                      <th>Documents</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1182,6 +1275,14 @@ The investor's funds have been processed according to lock-in period rules.`;
                         <td>{holding.nextPayout}</td>
                         <td>
                           <span className="status-pill active">{holding.status}</span>
+                        </td>
+                        <td>
+                          <button 
+                            className="check-documents-button"
+                            onClick={() => handleCheckDocuments(holding.series)}
+                          >
+                            Check Documents
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1239,7 +1340,7 @@ The investor's funds have been processed according to lock-in period rules.`;
               <h2 className="section-title">Recent Transactions</h2>
               {investor.transactions && investor.transactions.length > 0 ? (
                 <div className="transactions-list">
-                  {investor.transactions.slice(0, 10).map((transaction, index) => (
+                  {investor.transactions.map((transaction, index) => (
                     <div key={index} className="transaction-item">
                       <div className="transaction-info">
                         <div className="transaction-type">{transaction.type}</div>
@@ -1255,11 +1356,6 @@ The investor's funds have been processed according to lock-in period rules.`;
                       </span>
                     </div>
                   ))}
-                  {investor.transactions.length > 10 && (
-                    <div className="transaction-item more-transactions">
-                      <span>... and {investor.transactions.length - 10} more transactions</span>
-                    </div>
-                  )}
                 </div>
               ) : (
                 <div className="empty-state">
@@ -1285,6 +1381,7 @@ The investor's funds have been processed according to lock-in period rules.`;
                         <th>Remarks</th>
                         <th>Timestamp</th>
                         <th>Status</th>
+                        <th>Resolution</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1300,6 +1397,22 @@ The investor's funds have been processed according to lock-in period rules.`;
                             <span className={`status-badge ${complaint.status}`}>
                               {complaint.status === 'resolved' ? 'Resolved' : 'Pending'}
                             </span>
+                          </td>
+                          <td>
+                            <div className="resolution-cell">
+                              {complaint.status === 'resolved' && complaint.resolutionComment ? (
+                                <div className="resolution-display">
+                                  <div className="resolution-comment">{complaint.resolutionComment}</div>
+                                  {complaint.resolvedAt && (
+                                    <div className="resolved-timestamp">Resolved: {complaint.resolvedAt}</div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="no-resolution">
+                                  {complaint.status === 'pending' ? 'Pending resolution' : '-'}
+                                </span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1726,6 +1839,63 @@ The investor's funds have been processed according to lock-in period rules.`;
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Documents Viewer Modal */}
+        {showDocumentsModal && (
+          <div className="modal-overlay" onClick={() => setShowDocumentsModal(false)}>
+            <div className="modal-content documents-viewer-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Documents - {investor.name}</h2>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowDocumentsModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="documents-info">
+                  <p><strong>Investor:</strong> {investor.name}</p>
+                  <p><strong>Investor ID:</strong> {investor.investorId}</p>
+                </div>
+                
+                {selectedSeriesDocuments && selectedSeriesDocuments.length > 0 ? (
+                  <div className="documents-list">
+                    {selectedSeriesDocuments.map((document, index) => (
+                      <div key={index} className="document-card">
+                        <div className="document-info">
+                          <div className="document-icon">📄</div>
+                          <div className="document-details">
+                            <div className="document-name">{document.type}</div>
+                            <div className="document-meta">
+                              <span className="document-filename">{document.fileName}</span>
+                              <span className="document-date">Uploaded: {document.uploadDate}</span>
+                              <span className="document-series">Series: {document.seriesName}</span>
+                              {document.uploadedBy && (
+                                <span className="document-uploader">By: {document.uploadedBy}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <button 
+                          className="download-document-button"
+                          onClick={() => handleDocumentDownload(document)}
+                        >
+                          Download
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="no-documents-found">
+                    <div className="no-docs-icon">📄</div>
+                    <p>No documents uploaded for this series yet</p>
+                    <span>Documents will appear here once they are uploaded from the Series Details page.</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

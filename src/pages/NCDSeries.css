@@ -101,6 +101,11 @@
   color: #c2410c;
 }
 
+.ncd-series-page .status-pill.blue {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
 .ncd-series-page .frequency-pill {
   font-size: 13px;
   color: #64748b;
@@ -212,6 +217,10 @@
   background: #d97706;
 }
 
+.progress-fill.blue {
+  background: #3b82f6;
+}
+
 .progress-text {
   font-size: 14px;
   color: #64748b;
@@ -314,6 +323,15 @@
 
 .upcoming-banner {
   background: #fed7aa !important;
+}
+
+.accepting-card {
+  border: 2px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.accepting-banner {
+  background: #dbeafe !important;
 }
 
 .status-pill.gray {

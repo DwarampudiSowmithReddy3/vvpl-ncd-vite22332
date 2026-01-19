@@ -25,10 +25,17 @@ import 'jspdf-autotable';
 const SeriesDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { series = [], investors = [], addAuditLog } = useData();
+  const { series = [], investors = [], addAuditLog, addInvestorDocument, getInvestorDocuments } = useData();
   const { user } = useAuth();
   const [showFundsModal, setShowFundsModal] = useState(false);
   const [showInvestorsModal, setShowInvestorsModal] = useState(false);
+  const [showDocumentUploadModal, setShowDocumentUploadModal] = useState(false);
+  const [selectedInvestorForUpload, setSelectedInvestorForUpload] = useState(null);
+  const [uploadDocuments, setUploadDocuments] = useState({
+    form15G: null,
+    form15H: null,
+    bondPaper: null
+  });
 
   // Check if we came from investor details by looking at the referrer or state
   const handleBackNavigation = () => {
@@ -502,6 +509,120 @@ const SeriesDetails = () => {
     return diffDays > 0 ? diffDays + ' days' : 'Matured';
   };
 
+  // Document upload functions
+  const handleDocumentUpload = (investorId, investorName) => {
+    setSelectedInvestorForUpload({ id: investorId, name: investorName });
+    setShowDocumentUploadModal(true);
+    setUploadDocuments({
+      form15G: null,
+      form15H: null,
+      bondPaper: null
+    });
+  };
+
+  const handleFileUpload = (documentType, file) => {
+    if (file) {
+      console.log(`Uploading ${documentType}:`, file.name);
+      
+      // Read the file as base64 for storage
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const fileData = {
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: e.target.result, // This contains the base64 data
+          lastModified: file.lastModified
+        };
+        
+        setUploadDocuments(prev => ({
+          ...prev,
+          [documentType]: fileData
+        }));
+      };
+      
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const triggerFileInput = (inputId) => {
+    const fileInput = document.getElementById(inputId);
+    if (fileInput) {
+      fileInput.click();
+    }
+  };
+
+  const handleUploadSubmit = () => {
+    if (!selectedInvestorForUpload) return;
+
+    const uploadedDocs = [];
+    const timestamp = new Date().toISOString();
+    const uploadDate = new Date().toLocaleDateString('en-GB');
+
+    // Process each document type
+    Object.entries(uploadDocuments).forEach(([docType, fileData]) => {
+      if (fileData) {
+        const documentName = docType === 'form15G' ? '15G Document' : 
+                           docType === 'form15H' ? '15H Document' : 
+                           'Bond Paper Document';
+        
+        const documentRecord = {
+          type: documentName,
+          fileName: fileData.name,
+          fileType: fileData.type,
+          fileSize: fileData.size,
+          fileData: fileData.data, // Store the base64 data
+          uploadDate: uploadDate,
+          timestamp: timestamp,
+          seriesName: seriesData.name,
+          uploadedBy: user ? user.name : 'Admin',
+          uploadedByRole: user ? user.displayRole : 'Admin'
+        };
+        
+        uploadedDocs.push(documentRecord);
+
+        // Add document to investor's record
+        if (addInvestorDocument) {
+          addInvestorDocument(selectedInvestorForUpload.id, documentRecord);
+        }
+      }
+    });
+
+    if (uploadedDocs.length > 0) {
+      // Add audit log for document uploads
+      addAuditLog({
+        action: 'Uploaded Documents',
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Uploaded ${uploadedDocs.length} document(s) for investor "${selectedInvestorForUpload.name}" (ID: ${selectedInvestorForUpload.id}) in series "${seriesData.name}": ${uploadedDocs.map(doc => doc.type).join(', ')}`,
+        entityType: 'Document',
+        entityId: selectedInvestorForUpload.id,
+        changes: {
+          investorName: selectedInvestorForUpload.name,
+          investorId: selectedInvestorForUpload.id,
+          seriesName: seriesData.name,
+          documentsUploaded: uploadedDocs.map(doc => ({
+            type: doc.type,
+            fileName: doc.fileName,
+            fileSize: doc.fileSize
+          })),
+          uploadCount: uploadedDocs.length
+        }
+      });
+
+      alert(`Successfully uploaded ${uploadedDocs.length} document(s) for ${selectedInvestorForUpload.name}`);
+      setShowDocumentUploadModal(false);
+      setSelectedInvestorForUpload(null);
+      setUploadDocuments({
+        form15G: null,
+        form15H: null,
+        bondPaper: null
+      });
+    } else {
+      alert('Please select at least one document to upload.');
+    }
+  };
+
   return (
     <Layout>
       <div className="series-details-page">
@@ -668,6 +789,72 @@ const SeriesDetails = () => {
           </div>
         </div>
 
+        {/* Investor Documents */}
+        <div className="documents-section">
+          <h2 className="section-title">Investor Documents</h2>
+          <div className="documents-table-card">
+            {investorDetails && investorDetails.length > 0 ? (
+              <table className="documents-table">
+                <thead>
+                  <tr>
+                    <th>Investor Name</th>
+                    <th>Investor ID</th>
+                    <th>Amount Invested</th>
+                    <th>Investment Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {investorDetails.map((inv, index) => {
+                    // Find the investment timestamp for this investor in this series
+                    const investorData = seriesInvestors.find(investor => investor.investorId === inv.investorId);
+                    const seriesInvestment = investorData?.investments?.find(investment => investment.seriesName === seriesData.name);
+                    const investmentDate = seriesInvestment?.date || 'N/A';
+                    const investmentTimestamp = seriesInvestment?.timestamp;
+                    
+                    return (
+                      <tr key={index}>
+                        <td>{inv.name}</td>
+                        <td>
+                          <span className="investor-id-badge">{inv.investorId}</span>
+                        </td>
+                        <td className="amount-cell">₹{inv.amount.toLocaleString('en-IN')}</td>
+                        <td>
+                          <div className="date-time-cell">
+                            <div className="date">{investmentDate}</div>
+                            {investmentTimestamp && (
+                              <div className="time">
+                                {new Date(investmentTimestamp).toLocaleTimeString('en-IN', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit',
+                                  hour12: true 
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <button 
+                            className="upload-button"
+                            onClick={() => handleDocumentUpload(inv.investorId, inv.name)}
+                          >
+                            Upload
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="no-documents">
+                <p>No investors in this series yet</p>
+                <p className="draft-message">Investor documents will appear here once investments are made in this series.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Recent Transactions */}
         <div className="transactions-section">
           <h2 className="section-title">Recent Transactions</h2>
@@ -814,6 +1001,125 @@ const SeriesDetails = () => {
                     )}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Document Upload Modal */}
+        {showDocumentUploadModal && selectedInvestorForUpload && (
+          <div className="modal-overlay" onClick={() => setShowDocumentUploadModal(false)}>
+            <div className="modal-content document-upload-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Upload Documents - {selectedInvestorForUpload.name}</h2>
+                <button className="close-button" onClick={() => setShowDocumentUploadModal(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="upload-info">
+                  <p><strong>Investor:</strong> {selectedInvestorForUpload.name}</p>
+                  <p><strong>Investor ID:</strong> {selectedInvestorForUpload.id}</p>
+                  <p><strong>Series:</strong> {seriesData.name}</p>
+                </div>
+                
+                <div className="upload-sections">
+                  {/* 15G Document Upload */}
+                  <div className="upload-section">
+                    <h3>15G Document</h3>
+                    <div className="file-upload-area" onClick={() => triggerFileInput('form15G-upload')}>
+                      <input
+                        type="file"
+                        id="form15G-upload"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          console.log('15G file selected:', e.target.files[0]);
+                          handleFileUpload('form15G', e.target.files[0]);
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      <div className="upload-content">
+                        <div className="upload-icon">📄</div>
+                        <div className="upload-text">
+                          {uploadDocuments.form15G ? (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              ✓ {uploadDocuments.form15G.name}
+                            </span>
+                          ) : (
+                            'Click to upload 15G document'
+                          )}
+                        </div>
+                        <div className="upload-hint">PDF, JPG, PNG, DOC files supported</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 15H Document Upload */}
+                  <div className="upload-section">
+                    <h3>15H Document</h3>
+                    <div className="file-upload-area" onClick={() => triggerFileInput('form15H-upload')}>
+                      <input
+                        type="file"
+                        id="form15H-upload"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          console.log('15H file selected:', e.target.files[0]);
+                          handleFileUpload('form15H', e.target.files[0]);
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      <div className="upload-content">
+                        <div className="upload-icon">📄</div>
+                        <div className="upload-text">
+                          {uploadDocuments.form15H ? (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              ✓ {uploadDocuments.form15H.name}
+                            </span>
+                          ) : (
+                            'Click to upload 15H document'
+                          )}
+                        </div>
+                        <div className="upload-hint">PDF, JPG, PNG, DOC files supported</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bond Paper Document Upload */}
+                  <div className="upload-section">
+                    <h3>Bond Paper Document</h3>
+                    <div className="file-upload-area" onClick={() => triggerFileInput('bondPaper-upload')}>
+                      <input
+                        type="file"
+                        id="bondPaper-upload"
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        onChange={(e) => {
+                          console.log('Bond Paper file selected:', e.target.files[0]);
+                          handleFileUpload('bondPaper', e.target.files[0]);
+                        }}
+                        style={{ display: 'none' }}
+                      />
+                      <div className="upload-content">
+                        <div className="upload-icon">📄</div>
+                        <div className="upload-text">
+                          {uploadDocuments.bondPaper ? (
+                            <span style={{ color: '#10b981', fontWeight: '600' }}>
+                              ✓ {uploadDocuments.bondPaper.name}
+                            </span>
+                          ) : (
+                            'Click to upload bond paper document'
+                          )}
+                        </div>
+                        <div className="upload-hint">PDF, JPG, PNG, DOC files supported</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-actions">
+                  <button className="cancel-button" onClick={() => setShowDocumentUploadModal(false)}>
+                    Cancel
+                  </button>
+                  <button className="upload-submit-button" onClick={handleUploadSubmit}>
+                    Upload Documents
+                  </button>
+                </div>
               </div>
             </div>
           </div>

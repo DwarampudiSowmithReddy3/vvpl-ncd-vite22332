@@ -19,7 +19,7 @@ const Investors = () => {
   const navigate = useNavigate();
   const { showCreateButton, showEditButton, canEdit } = usePermissions();
   const { user } = useAuth();
-  const { investors, series, getTotalInvestors, getKYCCompleted, getKYCRejected, getPendingKYC, addInvestor, updateInvestor, updateSeries, addAuditLog } = useData();
+  const { investors, series, getTotalInvestors, getKYCCompleted, getKYCRejected, getPendingKYC, addInvestor, updateInvestor, updateSeries, addAuditLog, addInvestmentTransaction, isWithinSubscriptionWindow, getSeriesStatus } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -439,6 +439,41 @@ const Investors = () => {
   };
 
   const handleSeriesSelect = (series) => {
+    // Check subscription window before allowing series selection
+    const seriesStatus = getSeriesStatus(series);
+    
+    if (seriesStatus !== 'accepting') {
+      let message = '';
+      if (seriesStatus === 'upcoming') {
+        message = `🚫 INVESTMENT BLOCKED: Series "${series.name}" subscription has not started yet. Subscription starts on ${series.subscriptionStartDate}.`;
+      } else if (seriesStatus === 'active') {
+        message = `🚫 INVESTMENT BLOCKED: Series "${series.name}" subscription window has ended on ${series.subscriptionEndDate}. No new investments are accepted.`;
+      } else if (seriesStatus === 'DRAFT') {
+        message = `🚫 INVESTMENT BLOCKED: Series "${series.name}" is still in draft status and not approved for investments.`;
+      } else if (seriesStatus === 'matured') {
+        message = `🚫 INVESTMENT BLOCKED: Series "${series.name}" has matured and no longer accepts investments.`;
+      } else {
+        message = `🚫 INVESTMENT BLOCKED: Series "${series.name}" is not currently accepting investments.`;
+      }
+      
+      alert(message);
+      console.log('🚫 BLOCKED: Investment blocked due to subscription window:', {
+        series: series.name,
+        status: seriesStatus,
+        subscriptionStart: series.subscriptionStartDate,
+        subscriptionEnd: series.subscriptionEndDate
+      });
+      return;
+    }
+    
+    // Only proceed if within subscription window
+    console.log('✅ SUBSCRIPTION WINDOW CHECK PASSED:', {
+      series: series.name,
+      status: seriesStatus,
+      subscriptionStart: series.subscriptionStartDate,
+      subscriptionEnd: series.subscriptionEndDate
+    });
+    
     setSelectedSeries(series);
     setShowSeriesSelection(false);
     setShowInvestmentForm(true);
@@ -508,6 +543,14 @@ const Investors = () => {
     
     updateSeries(selectedSeries.id, updatedSeries);
     
+    // Add transaction to investor's transaction history
+    addInvestmentTransaction(
+      selectedInvestor.investorId,
+      selectedSeries.name,
+      parseInt(investmentAmount),
+      new Date().toLocaleDateString('en-GB')
+    );
+    
     console.log('✅ INVESTMENT PROCESSED: Security checks passed');
     alert(`Investment of ₹${parseInt(investmentAmount).toLocaleString('en-IN')} added successfully for ${selectedInvestor.name} in ${selectedSeries.name}`);
     
@@ -544,8 +587,8 @@ const Investors = () => {
     return `₹${(amount / 100000).toFixed(2)} L`;
   };
 
-  // Filter series for investment (upcoming and ready to release)
-  const availableSeries = series.filter(s => s.status === 'upcoming' || s.status === 'active');
+  // Filter series for investment (only accepting investments within subscription window)
+  const availableSeries = series.filter(s => getSeriesStatus(s) === 'accepting');
 
   return (
     <Layout>
@@ -684,10 +727,10 @@ const Investors = () => {
                   </div>
                 )}
               </div>
+                <button onClick={handleExport} className="export-button">
+                  <MdOutlineFileDownload size={18} /> Export
+                </button>
               </div>
-              <button onClick={handleExport} className="export-button">
-                <MdOutlineFileDownload size={18} /> Export
-              </button>
             </div>
           </div>
 

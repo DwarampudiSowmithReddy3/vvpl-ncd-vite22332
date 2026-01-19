@@ -30,6 +30,16 @@ input[type="reset"] {
   transition: all 0.3s ease !important;
 }
 
+.account-button{
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.account-button:hover{
+  border: none !important;
+  background-color: transparent !important;
+}
+
 /* Global Button Hover Styles */
 button:hover,
 .btn:hover,

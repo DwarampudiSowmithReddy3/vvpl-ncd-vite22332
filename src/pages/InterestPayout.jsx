@@ -16,7 +16,7 @@ const InterestPayout = () => {
   const navigate = useNavigate();
   const { showCreateButton, canEdit } = usePermissions();
   const { user } = useAuth();
-  const { series, investors, addAuditLog } = useData();
+  const { series, investors, addAuditLog, addInterestPayoutTransaction } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeries, setFilterSeries] = useState('all');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -772,6 +772,31 @@ const InterestPayout = () => {
             
             // Update the status for this specific payout
             newStatusUpdates[payoutKey] = status;
+            
+            // Add transaction to investor's history when status is 'Paid'
+            if (status === 'Paid') {
+              // Calculate the interest amount for this payout
+              const seriesData = series.find(s => s.name === seriesName);
+              if (seriesData && investor.investments) {
+                const investment = investor.investments.find(inv => inv.seriesName === seriesName);
+                if (investment) {
+                  // Calculate monthly interest (assuming annual rate)
+                  const monthlyInterestRate = seriesData.interestRate / 100 / 12;
+                  const interestAmount = Math.round(investment.amount * monthlyInterestRate);
+                  
+                  // Add transaction to investor's history
+                  addInterestPayoutTransaction(
+                    investorId,
+                    seriesName,
+                    interestAmount,
+                    interestDate || new Date().toLocaleDateString('en-GB'),
+                    interestMonth || payoutMonth
+                  );
+                  
+                  console.log(`Added interest transaction: ${investorId}, ${seriesName}, ₹${interestAmount}`);
+                }
+              }
+            }
             
             // Store additional payout metadata for custom month/date
             if (interestMonth || interestDate) {

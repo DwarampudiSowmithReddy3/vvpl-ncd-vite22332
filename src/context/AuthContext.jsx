@@ -56,6 +56,17 @@ const PERMISSIONS = {
     administrator: { view: false, create: false, edit: false, delete: false },
     approval: { view: false, create: false, edit: false, delete: false }
   },
+  'Compliance Manager': {
+    dashboard: { view: true, create: false, edit: false, delete: false },
+    ncdSeries: { view: true, create: true, edit: true, delete: false },
+    investors: { view: true, create: false, edit: true, delete: false },
+    reports: { view: true, create: true, edit: true, delete: false },
+    compliance: { view: true, create: true, edit: true, delete: true },
+    interestPayout: { view: true, create: false, edit: false, delete: false },
+    communication: { view: true, create: true, edit: false, delete: false },
+    administrator: { view: false, create: false, edit: false, delete: false },
+    approval: { view: true, create: false, edit: false, delete: false }
+  },
   'Investor Relationship Executive': {
     dashboard: { view: true, create: false, edit: false, delete: false },
     ncdSeries: { view: true, create: false, edit: false, delete: false },
@@ -173,6 +184,61 @@ export const AuthProvider = ({ children }) => {
         role: 'Admin',
         name: 'Demo Admin',
         displayRole: 'Admin'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    // Finance Manager
+    else if (username === 'Finance Manager' && password === 'Finance Manager') {
+      const userData = {
+        username: 'FM',
+        role: 'Finance Manager',
+        name: 'Finance Manager',
+        displayRole: 'Finance Manager'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    // Compliance Manager
+    else if (username === 'finance_executive' && password === 'financeexecutive') {
+      const userData = {
+        username: 'finance_executive',
+        role: 'Finance Executive',
+        name: 'Finance Executive',
+        displayRole: 'Finance Executive'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    else if (username === 'compliance_manager' && password === 'compliancemanager') {
+      const userData = {
+        username: 'compliance_manager',
+        role: 'Compliance Manager',
+        name: 'Compliance Manager',
+        displayRole: 'Compliance Manager'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    // Board Member Base
+    else if (username === 'board_member' && password === 'boardmember') {
+      const userData = {
+        username: 'board_member',
+        role: 'Board Member Base',
+        name: 'Board Member Base',
+        displayRole: 'Board Member Base'
       };
       setUser(userData);
       setIsAuthenticated(true);
