@@ -95,6 +95,9 @@ const initialInvestors = [
     phone: '+91 98765 43211',
     series: ['Series B'],
     investment: 1000000,
+    investments: [
+      { seriesName: 'Series B', amount: 1000000, date: '20/9/2023', timestamp: new Date('2023-09-20').toISOString() }
+    ],
     kycStatus: 'Pending',
     dateJoined: '20/9/2023',
     bankAccountNumber: '9876543210987654',
@@ -109,6 +112,9 @@ const initialInvestors = [
     phone: '+91 98765 43212',
     series: ['Series A'],
     investment: 750000,
+    investments: [
+      { seriesName: 'Series A', amount: 750000, date: '10/7/2023', timestamp: new Date('2023-07-10').toISOString() }
+    ],
     kycStatus: 'Completed',
     dateJoined: '10/7/2023',
     bankAccountNumber: '5678901234567890',
@@ -123,6 +129,9 @@ const initialInvestors = [
     phone: '+91 98765 43213',
     series: ['Series C'],
     investment: 1500000,
+    investments: [
+      { seriesName: 'Series C', amount: 1500000, date: '5/1/2024', timestamp: new Date('2024-01-05').toISOString() }
+    ],
     kycStatus: 'Pending',
     dateJoined: '5/1/2024',
     bankAccountNumber: '3456789012345678',
@@ -135,8 +144,15 @@ const initialInvestors = [
     investorId: 'EFGHI5678J',
     email: 'vikram.singh@email.com',
     phone: '+91 98765 43215',
-    series: ['Series A', 'Series B', 'Series C', 'Series D' , 'Series E', 'Series F', 'Series G', 'Series H', 'Series I', 'Series J', 'Series K', 'Series L', 'Series M', 'Series N', 'Series O', 'Series P', 'Series Q', 'Series R', 'Series S', 'Series T'],
+    series: ['Series A', 'Series B', 'Series C', 'Series D' , 'Series E'],
     investment: 3500000,
+    investments: [
+      { seriesName: 'Series A', amount: 700000, date: '1/6/2023', timestamp: new Date('2023-06-01').toISOString() },
+      { seriesName: 'Series B', amount: 700000, date: '15/9/2023', timestamp: new Date('2023-09-15').toISOString() },
+      { seriesName: 'Series C', amount: 700000, date: '1/1/2024', timestamp: new Date('2024-01-01').toISOString() },
+      { seriesName: 'Series D', amount: 700000, date: '1/3/2024', timestamp: new Date('2024-03-01').toISOString() },
+      { seriesName: 'Series E', amount: 700000, date: '15/5/2024', timestamp: new Date('2024-05-15').toISOString() }
+    ],
     kycStatus: 'Completed',
     dateJoined: '1/6/2023',
     bankAccountNumber: '7890123456789012',
@@ -151,6 +167,9 @@ const initialInvestors = [
     phone: '+91 98765 43215',
     series: ['Series B'],
     investment: 800000,
+    investments: [
+      { seriesName: 'Series B', amount: 800000, date: '15/10/2023', timestamp: new Date('2023-10-15').toISOString() }
+    ],
     kycStatus: 'Rejected',
     dateJoined: '15/10/2023',
     bankAccountNumber: '2345678901234567',
@@ -165,6 +184,9 @@ const initialInvestors = [
     phone: '+91 98765 43216',
     series: ['Series D'],
     investment: 2000000,
+    investments: [
+      { seriesName: 'Series D', amount: 2000000, date: '10/3/2024', timestamp: new Date('2024-03-10').toISOString() }
+    ],
     kycStatus: 'Completed',
     dateJoined: '10/3/2024',
     bankAccountNumber: '6789012345678901',
@@ -179,11 +201,31 @@ const initialInvestors = [
     phone: '+91 98765 43217',
     series: ['Series E'],
     investment: 1200000,
+    investments: [
+      { seriesName: 'Series E', amount: 1200000, date: '20/5/2024', timestamp: new Date('2024-05-20').toISOString() }
+    ],
     kycStatus: 'Pending',
     dateJoined: '20/5/2024',
     bankAccountNumber: '4567890123456789',
     ifscCode: 'AXIS0005678',
     bankName: 'Axis Bank'
+  },
+  {
+    id: 9,
+    name: 'Dwarampudi Sowmith Reddy',
+    investorId: 'IJKLM9012N',
+    email: 'dsowmithreddy@gmail.com',
+    phone: '+91 90637 61569',
+    series: ['Series AB'],
+    investment: 500000,
+    investments: [
+      { seriesName: 'Series AB', amount: 500000, date: '1/12/2024', timestamp: new Date('2024-12-01').toISOString() }
+    ],
+    kycStatus: 'Completed',
+    dateJoined: '1/12/2024',
+    bankAccountNumber: '9876543210123456',
+    ifscCode: 'SBIN0001234',
+    bankName: 'State Bank of India'
   }
 ];
 
@@ -270,25 +312,126 @@ const initialSeries = [
   },
   {
     id: 6,
-    name: 'Series Z',
-    status: 'matured',
+    name: 'Series AB',
+    status: 'active',
     interestFrequency: 'Quarterly Interest',
-    interestRate: 8.5,
+    interestRate: 9.0,
     investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 75000000,
-    targetAmount: 75000000,
-    issueDate: '1/1/2020',
-    maturityDate: '1/1/2025',
+    fundsRaised: 25000000,
+    targetAmount: 60000000,
+    issueDate: '1/12/2024',
+    maturityDate: '1/12/2029',
     faceValue: 1000,
-    minInvestment: 10000,
-    releaseDate: '1/1/2020',
-    lockInPeriod: 12 // 12 months lock-in period
+    minInvestment: 15000,
+    releaseDate: '1/12/2024',
+    lockInPeriod: 18 // 18 months lock-in period
   }
 ];
 
 export const DataProvider = ({ children }) => {
-  // Cleanup code removed - Series AB is now a valid series
-  // No automatic deletion of any series
+  // Data validation and consistency check
+  const validateAndFixData = () => {
+    try {
+      // Check data version for consistency
+      const dataVersion = localStorage.getItem('dataVersion');
+      const currentVersion = '1.1.0'; // Updated version to trigger data reset
+      
+      if (dataVersion !== currentVersion) {
+        console.log(`🔄 Data version mismatch (${dataVersion} → ${currentVersion}). Resetting to ensure consistency.`);
+        localStorage.clear(); // Clear all localStorage data
+        localStorage.setItem('dataVersion', currentVersion);
+        localStorage.setItem('investors', JSON.stringify(initialInvestors));
+        localStorage.setItem('series', JSON.stringify(initialSeries));
+        return;
+      }
+      
+      // Check if essential data exists and is valid
+      const savedInvestors = localStorage.getItem('investors');
+      const savedSeries = localStorage.getItem('series');
+      
+      let investorsValid = true;
+      let seriesValid = true;
+      
+      // Validate investors data
+      if (savedInvestors) {
+        try {
+          const parsedInvestors = JSON.parse(savedInvestors);
+          if (!Array.isArray(parsedInvestors) || parsedInvestors.length === 0) {
+            investorsValid = false;
+          } else {
+            // Check if essential investors exist
+            const hasRajeshKumar = parsedInvestors.some(inv => inv.investorId === 'ABCDE1234F');
+            const hasSowmithReddy = parsedInvestors.some(inv => inv.name === 'Dwarampudi Sowmith Reddy');
+            if (!hasRajeshKumar || !hasSowmithReddy) {
+              investorsValid = false;
+            }
+          }
+        } catch (e) {
+          investorsValid = false;
+        }
+      } else {
+        investorsValid = false;
+      }
+      
+      // Validate series data
+      if (savedSeries) {
+        try {
+          const parsedSeries = JSON.parse(savedSeries);
+          if (!Array.isArray(parsedSeries) || parsedSeries.length === 0) {
+            seriesValid = false;
+          } else {
+            // Check if essential series exist
+            const hasSeriesAB = parsedSeries.some(s => s.name === 'Series AB');
+            const hasSeriesA = parsedSeries.some(s => s.name === 'Series A');
+            const hasSeriesZ = parsedSeries.some(s => s.name === 'Series Z'); // Should NOT exist
+            if (!hasSeriesAB || !hasSeriesA || hasSeriesZ) {
+              seriesValid = false;
+            }
+          }
+        } catch (e) {
+          seriesValid = false;
+        }
+      } else {
+        seriesValid = false;
+      }
+      
+      // Reset data if validation fails
+      if (!investorsValid) {
+        console.log('🔄 Resetting investors data to ensure consistency');
+        localStorage.setItem('investors', JSON.stringify(initialInvestors));
+      }
+      
+      if (!seriesValid) {
+        console.log('🔄 Resetting series data to ensure consistency');
+        localStorage.setItem('series', JSON.stringify(initialSeries));
+      }
+      
+      // Set data version if not set
+      if (!dataVersion) {
+        localStorage.setItem('dataVersion', currentVersion);
+      }
+      
+      // Log data validation result
+      if (investorsValid && seriesValid) {
+        console.log('✅ Data validation passed - all essential data is present');
+      } else {
+        console.log('⚠️ Data validation failed - reset to initial state');
+      }
+      
+    } catch (error) {
+      console.error('❌ Data validation error:', error);
+      // Reset all data on critical error
+      localStorage.clear();
+      localStorage.setItem('dataVersion', '1.1.0');
+      localStorage.setItem('investors', JSON.stringify(initialInvestors));
+      localStorage.setItem('series', JSON.stringify(initialSeries));
+    }
+  };
+
+  // Run data validation on component mount
+  validateAndFixData();
+
+  // Data consistency ensured - Series AB and essential investors are maintained
 
   const [investors, setInvestors] = useState(() => {
     const saved = localStorage.getItem('investors');

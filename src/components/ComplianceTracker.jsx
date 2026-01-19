@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
 import './ComplianceTracker.css';
 import { 
   HiOutlineDownload,
@@ -25,7 +26,8 @@ import {
 
 const ComplianceTracker = ({ onClose, seriesData = null }) => {
   const navigate = useNavigate();
-  const { updateComplianceStatus } = useData();
+  const { updateComplianceStatus, addAuditLog } = useData();
+  const { user } = useAuth();
   
   // State for modals
   const [showExportModal, setShowExportModal] = useState(false);
@@ -138,6 +140,30 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           item.id === itemId ? { ...item, completed: true, checked: true } : item
         );
         
+        // Find the item that was updated for audit logging
+        const updatedItem = prev.find(item => item.id === itemId);
+        
+        // Add audit log for compliance status change
+        if (updatedItem && addAuditLog) {
+          addAuditLog({
+            action: 'Updated Compliance Status',
+            adminName: user ? user.name : 'Admin',
+            adminRole: user ? user.displayRole : 'Admin',
+            details: `Changed compliance status from PENDING to RECEIVED for "${updatedItem.title}" in ${seriesData?.seriesName || 'Series A NCD'}`,
+            entityType: 'Compliance',
+            entityId: seriesData?.seriesName || 'Series A NCD',
+            changes: {
+              complianceItem: updatedItem.title,
+              section: updatedItem.section,
+              previousStatus: 'PENDING',
+              newStatus: 'RECEIVED',
+              seriesName: seriesData?.seriesName || 'Series A NCD',
+              trusteeCompany: seriesData?.trusteeCompany || 'SBICAP Trustee Co. Ltd.',
+              itemId: itemId
+            }
+          });
+        }
+        
         // Update compliance status in DataContext
         updateComplianceStatusInContext(updated);
         
@@ -158,6 +184,31 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
             completed: true
           }
         };
+        
+        // Find the item that was updated for audit logging
+        const updatedItem = complianceItems.find(item => item.id === itemId);
+        
+        // Add audit log for historical compliance status change
+        if (updatedItem && addAuditLog) {
+          addAuditLog({
+            action: 'Updated Historical Compliance Status',
+            adminName: user ? user.name : 'Admin',
+            adminRole: user ? user.displayRole : 'Admin',
+            details: `Changed historical compliance status from PENDING to RECEIVED for "${updatedItem.title}" in ${seriesData?.seriesName || 'Series A NCD'} (${selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})`,
+            entityType: 'Compliance',
+            entityId: seriesData?.seriesName || 'Series A NCD',
+            changes: {
+              complianceItem: updatedItem.title,
+              section: updatedItem.section,
+              previousStatus: 'PENDING',
+              newStatus: 'RECEIVED',
+              seriesName: seriesData?.seriesName || 'Series A NCD',
+              trusteeCompany: seriesData?.trusteeCompany || 'SBICAP Trustee Co. Ltd.',
+              historicalDate: selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+              itemId: itemId
+            }
+          });
+        }
         
         // Update compliance status in DataContext for historical data
         updateComplianceStatusInContextHistorical(updated);
@@ -448,6 +499,31 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           completed: true
         }
       };
+      
+      // Find the item that was updated for audit logging
+      const updatedItem = complianceItems.find(item => item.id === itemId);
+      
+      // Add audit log for historical compliance status change
+      if (updatedItem && addAuditLog) {
+        addAuditLog({
+          action: 'Updated Historical Compliance Status',
+          adminName: user ? user.name : 'Admin',
+          adminRole: user ? user.displayRole : 'Admin',
+          details: `Changed historical compliance status from PENDING to RECEIVED for "${updatedItem.title}" in ${seriesData?.seriesName || 'Series A NCD'} (${selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })})`,
+          entityType: 'Compliance',
+          entityId: seriesData?.seriesName || 'Series A NCD',
+          changes: {
+            complianceItem: updatedItem.title,
+            section: updatedItem.section,
+            previousStatus: 'PENDING',
+            newStatus: 'RECEIVED',
+            seriesName: seriesData?.seriesName || 'Series A NCD',
+            trusteeCompany: seriesData?.trusteeCompany || 'SBICAP Trustee Co. Ltd.',
+            historicalDate: selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+            itemId: itemId
+          }
+        });
+      }
       
       // Update compliance status in DataContext for historical data
       updateComplianceStatusInContextHistorical(updated);

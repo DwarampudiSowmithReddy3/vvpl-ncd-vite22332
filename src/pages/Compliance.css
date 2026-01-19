@@ -183,7 +183,7 @@
 /* Series Grid - 3 per row */
 .series-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 24px;
 }
 
@@ -450,12 +450,6 @@
 }
 
 /* Responsive Design */
-@media (max-width: 800px) {
-  .series-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 768px) {
   .compliance-header {
     flex-direction: column;

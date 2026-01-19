@@ -592,23 +592,24 @@ const Investors = () => {
           <div className="table-header">
             <h3 className="section-title">All Investors</h3>
             <div className="table-actions">
-              <div className="search-container">
-                <FiSearch size={16} />
-                <input
-                  type="text"
-                  placeholder="Search investors..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="search-input"
-                />
-              </div>
-              <div className="filter-container">
-                <button className="filter-button" onClick={handleFilterToggle}>
-                  <FiFilter size={16} />
-                  {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
-                    <span className="filter-indicator"></span>
-                  )}
-                </button>
+              <div className="search-filter-row">
+                <div className="search-container">
+                  <FiSearch size={16} />
+                  <input
+                    type="text"
+                    placeholder="Search investors..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="search-input"
+                  />
+                </div>
+                <div className="filter-container">
+                  <button className="filter-button" onClick={handleFilterToggle}>
+                    <FiFilter size={16} />
+                    {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
+                      <span className="filter-indicator"></span>
+                    )}
+                  </button>
                 
                 {showFilterDropdown && (
                   <div className="filter-dropdown">
@@ -682,6 +683,7 @@ const Investors = () => {
                     )}
                   </div>
                 )}
+              </div>
               </div>
               <button onClick={handleExport} className="export-button">
                 <MdOutlineFileDownload size={18} /> Export

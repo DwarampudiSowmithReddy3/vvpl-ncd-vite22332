@@ -669,29 +669,195 @@
     align-items: stretch;
   }
 
-  .date-range-selector {
+  .audit-log-actions {
     flex-direction: column;
     gap: 12px;
+    align-items: stretch;
   }
 
-  .date-input-group {
+  .audit-log-actions .date-range-selector {
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+  }
+
+  .audit-log-actions .date-input-group {
     justify-content: space-between;
+    width: 100%;
+  }
+
+  .audit-log-actions .export-button {
+    width: 100%;
+    justify-content: center;
   }
 
   /* Hide desktop tables on mobile */
   .users-table,
-  .logs-table {
+  .logs-table,
+  .audit-logs-table {
     display: none;
   }
 
   /* Show mobile card layouts */
-  .mobile-users-list {
-    display: block;
-  }
-
+  .mobile-users-list,
   .mobile-logs-list {
     display: block;
   }
+
+  /* Mobile Audit Log Cards - Enhanced */
+  .mobile-logs-list {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mobile-log-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mobile-log-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .mobile-log-time {
+    font-size: 11px;
+    color: #64748b;
+    font-family: 'Courier New', monospace;
+    white-space: nowrap;
+  }
+
+  .mobile-log-details {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+
+  .mobile-log-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-log-item .mobile-user-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mobile-log-admin {
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 14px;
+  }
+
+  .mobile-log-role {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .mobile-log-affected {
+    font-weight: 600;
+    color: #1e293b;
+    font-size: 13px;
+  }
+
+  .mobile-log-affected-type {
+    font-size: 11px;
+    color: #64748b;
+    font-style: italic;
+  }
+
+  .mobile-log-entity {
+    font-weight: 500;
+    color: #1e293b;
+    font-size: 13px;
+  }
+
+  .mobile-log-details {
+    color: #475569;
+    line-height: 1.5;
+    font-size: 13px;
+    max-height: none;
+    overflow: visible;
+    word-wrap: break-word;
+    white-space: normal;
+  }
+
+  .mobile-log-item.full-width {
+    grid-column: 1 / -1;
+  }
+
+  /* Action badges on mobile */
+  .action-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  /* Mobile Audit Log Section Improvements */
+  .logs-section {
+    margin-bottom: 40px;
+    padding: 0 16px;
+  }
+
+  .logs-section .section-title {
+    font-size: 18px;
+    margin-bottom: 16px;
+  }
+
+  /* See All Logs Button Mobile */
+  .see-all-logs-container {
+    padding: 16px;
+    margin: 0 -16px;
+  }
+  
+  .see-all-logs-button {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 13px;
+  }
+
+  /* Table Container Mobile */
+  .table-container {
+    margin: 0 -16px;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* No logs message on mobile */
+  .no-logs {
+    padding: 60px 20px;
+    text-align: center;
+  }
+
+  .no-logs h3 {
+    font-size: 16px;
+  }
+
+  .no-logs p {
+    font-size: 13px;
+  }
+}
 }
 
 /* Mobile Users Cards */
@@ -778,7 +944,21 @@
 
 /* Mobile Logs Cards */
 .mobile-logs-list {
-  display: none;
+  display: none; /* Hidden on desktop */
+}
+
+/* Desktop - Ensure tables are visible */
+@media (min-width: 769px) {
+  .users-table,
+  .logs-table,
+  .audit-logs-table {
+    display: table;
+  }
+
+  .mobile-users-list,
+  .mobile-logs-list {
+    display: none;
+  }
 }
 
 .mobile-log-card {

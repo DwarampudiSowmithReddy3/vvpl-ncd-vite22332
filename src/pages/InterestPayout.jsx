@@ -38,6 +38,9 @@ const InterestPayout = () => {
     return saved ? JSON.parse(saved) : {};
   });
 
+  // Add state to trigger re-renders when metadata changes
+  const [metadataUpdateTrigger, setMetadataUpdateTrigger] = useState(0);
+
   // Save payout status updates to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('payoutStatusUpdates', JSON.stringify(payoutStatusUpdates));
@@ -67,50 +70,15 @@ const InterestPayout = () => {
     // Get current and next month
     const currentDate = new Date();
     const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-    const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
-    const upcomingMonth = nextMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
     
-    // Helper function to parse date string (DD/MM/YYYY)
-    const parseDate = (dateStr) => {
-      if (!dateStr) return null;
-      const parts = dateStr.split('/');
-      if (parts.length === 3) {
-        return new Date(parts[2], parts[1] - 1, parts[0]);
-      }
-      return null;
-    };
-    
-    // Helper function to check if payout is due
-    const isPayoutDue = (issueDate, frequency) => {
-      const issue = parseDate(issueDate);
-      if (!issue) return false;
-      
-      const today = new Date();
-      const daysDiff = Math.floor((today - issue) / (1000 * 60 * 60 * 24));
-      
-      // Check based on frequency
-      if (frequency === 'Monthly Interest') {
-        // At least 30 days must have passed
-        return daysDiff >= 30;
-      } else if (frequency === 'Quarterly Interest') {
-        // At least 90 days must have passed
-        return daysDiff >= 90;
-      } else {
-        // Annual - at least 365 days
-        return daysDiff >= 365;
-      }
-    };
+    // Load payout metadata from localStorage
+    const payoutMetadata = JSON.parse(localStorage.getItem('payoutMetadata') || '{}');
+    console.log('Loaded payout metadata:', payoutMetadata);
     
     // Only generate payouts for active series
     const activeSeries = series.filter(s => s.status === 'active');
     
     activeSeries.forEach(s => {
-      // Temporarily skip the payout due check for debugging
-      // if (!isPayoutDue(s.issueDate, s.interestFrequency)) {
-      //   // Skip this series - no payout due yet
-      //   return;
-      // }
-      
       // Get investors for this series
       const seriesInvestors = investors.filter(inv => inv.series && inv.series.includes(s.name));
       
@@ -128,34 +96,97 @@ const InterestPayout = () => {
           interestAmount = (investmentPerSeries * s.interestRate) / 100;
         }
         
-        // Create unique key for this payout
-        const payoutKey = `${investor.investorId}-${s.name}-${currentMonth}`;
+        // Check if there are any custom payouts for this investor-series combination
+        const relevantStatusKeys = Object.keys(payoutStatusUpdates).filter(key => 
+          key.startsWith(`${investor.investorId}-${s.name}-`)
+        );
         
-        // Check if there's a status update for this payout, otherwise default to 'Paid'
-        const payoutStatus = payoutStatusUpdates[payoutKey] || 'Paid';
+        const relevantMetadataKeys = Object.keys(payoutMetadata).filter(key => 
+          key.startsWith(`${investor.investorId}-${s.name}-`) && key.endsWith('_metadata')
+        );
         
-        // Current month payout only (for main table display)
-        const payoutObject = {
-          id: payoutId++,
-          investorId: investor.investorId,
-          investorName: investor.name,
-          seriesName: s.name,
-          seriesId: s.id,
-          interestMonth: currentMonth,
-          interestDate: `15-${currentDate.toLocaleString('default', { month: 'short' })}-${currentDate.getFullYear()}`,
-          amount: Math.round(interestAmount),
-          status: payoutStatus,
-          bankName: investor.bankName || 'N/A',
-          bankAccountNumber: investor.bankAccountNumber || 'N/A',
-          ifscCode: investor.ifscCode || 'N/A'
-        };
+        // Combine all relevant keys to get unique months
+        const allRelevantKeys = new Set([
+          ...relevantStatusKeys,
+          ...relevantMetadataKeys.map(key => key.replace('_metadata', ''))
+        ]);
         
-        payouts.push(payoutObject);
+        if (allRelevantKeys.size === 0) {
+          // No custom data, create default current month payout
+          const defaultPayoutKey = `${investor.investorId}-${s.name}-${currentMonth}`;
+          const payoutStatus = payoutStatusUpdates[defaultPayoutKey] || 'Paid';
+          
+          payouts.push({
+            id: payoutId++,
+            investorId: investor.investorId,
+            investorName: investor.name,
+            seriesName: s.name,
+            seriesId: s.id,
+            interestMonth: currentMonth,
+            interestDate: `15-${currentDate.toLocaleString('default', { month: 'short' })}-${currentDate.getFullYear()}`,
+            amount: Math.round(interestAmount),
+            status: payoutStatus,
+            bankName: investor.bankName || 'N/A',
+            bankAccountNumber: investor.bankAccountNumber || 'N/A',
+            ifscCode: investor.ifscCode || 'N/A'
+          });
+        } else {
+          // Create payouts for each custom entry
+          allRelevantKeys.forEach(payoutKey => {
+            const metadataKey = `${payoutKey}_metadata`;
+            const metadata = payoutMetadata[metadataKey];
+            const payoutStatus = payoutStatusUpdates[payoutKey] || 'Paid';
+            
+            // Extract month from the payout key or use metadata
+            const keyParts = payoutKey.split('-');
+            const monthFromKey = keyParts.slice(2).join('-');
+            
+            // Use custom metadata if available, otherwise derive from key or use current month
+            let displayMonth = currentMonth;
+            let displayDate = `15-${currentDate.toLocaleString('default', { month: 'short' })}-${currentDate.getFullYear()}`;
+            
+            if (metadata) {
+              // Use metadata values if they exist
+              if (metadata.customMonth && metadata.customMonth.trim()) {
+                displayMonth = metadata.customMonth.trim();
+              }
+              if (metadata.customDate && metadata.customDate.trim()) {
+                displayDate = metadata.customDate.trim();
+              }
+            } else if (monthFromKey && monthFromKey !== currentMonth) {
+              // Use the month from the key if it's different from current month
+              displayMonth = monthFromKey;
+            }
+            
+            console.log(`Creating payout for ${payoutKey}:`, {
+              metadata,
+              displayMonth,
+              displayDate,
+              monthFromKey,
+              currentMonth
+            });
+            
+            payouts.push({
+              id: payoutId++,
+              investorId: investor.investorId,
+              investorName: investor.name,
+              seriesName: s.name,
+              seriesId: s.id,
+              interestMonth: displayMonth,
+              interestDate: displayDate,
+              amount: Math.round(interestAmount),
+              status: payoutStatus,
+              bankName: investor.bankName || 'N/A',
+              bankAccountNumber: investor.bankAccountNumber || 'N/A',
+              ifscCode: investor.ifscCode || 'N/A'
+            });
+          });
+        }
       });
     });
     
     return payouts;
-  }, [series, investors, payoutStatusUpdates]);
+  }, [series, investors, payoutStatusUpdates, metadataUpdateTrigger]); // Include trigger for metadata changes
   
   // Generate export data with both current and upcoming months (for export modal only)
   const generateExportPayoutData = useMemo(() => {
@@ -266,14 +297,22 @@ const InterestPayout = () => {
     return payouts;
   }, [series, investors, payoutStatusUpdates]);
 
-  // Calculate summary statistics (current month only)
-  const totalInterestPaid = payoutData
-    .filter(payout => payout.status === 'Paid')
-    .reduce((sum, payout) => sum + payout.amount, 0);
+  // Calculate summary statistics (current month only) - wrapped in useMemo to ensure updates
+  const summaryStats = useMemo(() => {
+    const totalInterestPaid = payoutData
+      .filter(payout => payout.status === 'Paid')
+      .reduce((sum, payout) => sum + payout.amount, 0);
 
-  const totalPayouts = payoutData.length;
-  
-  const totalInvestorsCount = new Set(payoutData.map(p => p.investorId)).size;
+    const totalPayouts = payoutData.length;
+    
+    const totalInvestorsCount = new Set(payoutData.map(p => p.investorId)).size;
+
+    return {
+      totalInterestPaid,
+      totalPayouts,
+      totalInvestorsCount
+    };
+  }, [payoutData, metadataUpdateTrigger]); // Include metadataUpdateTrigger to ensure updates after import
 
   const filteredPayouts = useMemo(() => {
     return payoutData.filter(payout => {
@@ -506,21 +545,53 @@ const InterestPayout = () => {
       {
         'Investor ID': 'ABCDE1234F',
         'Series Name': 'Series A',
-        'Status': 'Paid'
+        'Status': 'Paid',
+        'Interest Month': 'Feb-26',
+        'Interest Date': '15-Feb-2026'
       },
       {
         'Investor ID': 'ABCDE1234F',
         'Series Name': 'Series B',
-        'Status': 'Pending'
+        'Status': 'Pending',
+        'Interest Month': 'Jan-26',
+        'Interest Date': '15-Jan-2026'
       },
       {
         'Investor ID': 'FGHIJ5678K',
         'Series Name': 'Series A',
-        'Status': 'Scheduled'
+        'Status': 'Scheduled',
+        'Interest Month': 'Mar-26',
+        'Interest Date': '15-Mar-2026'
       }
     ];
 
     const ws = XLSX.utils.json_to_sheet(sampleData);
+    
+    // Set column widths for better readability
+    ws['!cols'] = [
+      { wch: 15 }, // Investor ID
+      { wch: 15 }, // Series Name
+      { wch: 12 }, // Status
+      { wch: 18 }, // Interest Month
+      { wch: 15 }  // Interest Date
+    ];
+    
+    // Format the Interest Month and Interest Date columns as text to prevent Excel date conversion
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let row = range.s.r + 1; row <= range.e.r; row++) {
+      // Interest Month column (D)
+      const monthCell = XLSX.utils.encode_cell({ r: row, c: 3 });
+      if (ws[monthCell]) {
+        ws[monthCell].t = 's'; // Set as string
+      }
+      
+      // Interest Date column (E)
+      const dateCell = XLSX.utils.encode_cell({ r: row, c: 4 });
+      if (ws[dateCell]) {
+        ws[dateCell].t = 's'; // Set as string
+      }
+    }
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Interest Payout');
     
@@ -532,13 +603,15 @@ const InterestPayout = () => {
       action: 'Downloaded Report',
       adminName: user ? user.name : 'Admin',
       adminRole: user ? user.displayRole : 'Admin',
-      details: `Downloaded Interest Payout Sample Template (Excel format)`,
+      details: `Downloaded Interest Payout Sample Template with Status, Interest Month, and Interest Date columns (Excel format)`,
       entityType: 'Payout',
       entityId: 'Sample Template',
       changes: {
         documentType: 'Interest Payout Sample',
         fileName: fileName,
-        format: 'Excel'
+        format: 'Excel',
+        columnsIncluded: ['Investor ID', 'Series Name', 'Status', 'Interest Month', 'Interest Date'],
+        note: 'Date columns formatted as text to prevent Excel auto-conversion'
       }
     });
   };
@@ -562,24 +635,45 @@ const InterestPayout = () => {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
+        console.log('Processing file:', uploadedFile.name);
         const data = new Uint8Array(e.target.result);
         const workbook = XLSX.read(data, { type: 'array' });
+        
+        console.log('Workbook sheets:', workbook.SheetNames);
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          setImportStatus('error:No sheets found in the Excel file');
+          return;
+        }
+        
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
+        
+        if (!worksheet) {
+          setImportStatus('error:Could not read the worksheet');
+          return;
+        }
+        
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
+        console.log('Parsed data:', jsonData);
 
         if (jsonData.length === 0) {
-          setImportStatus('error:The uploaded file is empty');
+          setImportStatus('error:The uploaded file is empty or has no data rows');
           return;
         }
 
         // Validate required columns - need Investor ID, Series Name, and Status
+        // Optional columns: Interest Month, Interest Date
         const requiredColumns = ['Investor ID', 'Series Name', 'Status'];
+        const optionalColumns = ['Interest Month', 'Interest Date'];
         const firstRow = jsonData[0];
+        
+        console.log('First row columns:', Object.keys(firstRow));
+        console.log('Required columns:', requiredColumns);
+        
         const missingColumns = requiredColumns.filter(col => !(col in firstRow));
         
         if (missingColumns.length > 0) {
-          setImportStatus(`error:Missing required columns: ${missingColumns.join(', ')}`);
+          setImportStatus(`error:Missing required columns: ${missingColumns.join(', ')}. Found columns: ${Object.keys(firstRow).join(', ')}`);
           return;
         }
 
@@ -588,41 +682,129 @@ const InterestPayout = () => {
         let notFoundCount = 0;
         let totalPayoutsUpdated = 0;
         const newStatusUpdates = { ...payoutStatusUpdates };
+        const errors = [];
 
         jsonData.forEach((row, index) => {
-          const investorId = row['Investor ID'];
-          const seriesName = row['Series Name'];
-          const status = row['Status'];
-          
-          if (investorId && seriesName && status) {
+          try {
+            const investorId = row['Investor ID'];
+            const seriesName = row['Series Name'];
+            const status = row['Status'];
+            let interestMonth = row['Interest Month']; // Optional
+            let interestDate = row['Interest Date']; // Optional
+            
+            console.log(`Raw data for row ${index + 1}:`, { 
+              investorId, 
+              seriesName, 
+              status, 
+              interestMonth: interestMonth, 
+              interestMonthType: typeof interestMonth,
+              interestDate: interestDate,
+              interestDateType: typeof interestDate
+            });
+            
+            // Convert Excel date serial numbers to proper dates - Fixed Excel date conversion
+            if (interestMonth !== undefined && interestMonth !== null && interestMonth !== '') {
+              if (typeof interestMonth === 'number' && interestMonth > 1000) {
+                // Excel serial date conversion: Excel epoch is January 1, 1900
+                // But Excel incorrectly treats 1900 as a leap year, so we need to account for that
+                const excelEpoch = new Date(1899, 11, 30); // December 30, 1899 (Excel's actual epoch)
+                const jsDate = new Date(excelEpoch.getTime() + interestMonth * 24 * 60 * 60 * 1000);
+                interestMonth = jsDate.toLocaleString('default', { month: 'short', year: '2-digit' });
+              } else {
+                interestMonth = String(interestMonth).trim();
+              }
+            }
+            
+            if (interestDate !== undefined && interestDate !== null && interestDate !== '') {
+              if (typeof interestDate === 'number' && interestDate > 1000) {
+                // Excel serial date conversion
+                const excelEpoch = new Date(1899, 11, 30); // December 30, 1899 (Excel's actual epoch)
+                const jsDate = new Date(excelEpoch.getTime() + interestDate * 24 * 60 * 60 * 1000);
+                const day = jsDate.getDate().toString().padStart(2, '0');
+                const month = jsDate.toLocaleString('default', { month: 'short' });
+                const year = jsDate.getFullYear();
+                interestDate = `${day}-${month}-${year}`;
+              } else {
+                interestDate = String(interestDate).trim();
+              }
+            }
+            
+            console.log(`Final processed data for row ${index + 1}:`, { investorId, seriesName, status, interestMonth, interestDate });
+            
+            if (!investorId || !seriesName || !status) {
+              errors.push(`Row ${index + 2}: Missing required data (Investor ID: ${investorId}, Series: ${seriesName}, Status: ${status})`);
+              notFoundCount++;
+              return;
+            }
+            
             // Find investor in the system
             const investor = investors.find(inv => inv.investorId === investorId);
             
-            if (investor) {
-              // Check if investor is actually invested in this series
-              if (investor.series && investor.series.includes(seriesName)) {
-                
-                // Get current month for the payout key
-                const currentDate = new Date();
-                const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
-                
-                // Create unique key for this specific series payout
-                const payoutKey = `${investorId}-${seriesName}-${currentMonth}`;
-                
-                // Update the status for this specific series only
-                newStatusUpdates[payoutKey] = status;
-                totalPayoutsUpdated++;
-                updatedCount++;
-              } else {
-                notFoundCount++;
-              }
-            } else {
+            if (!investor) {
+              errors.push(`Row ${index + 2}: Investor ID "${investorId}" not found in system`);
               notFoundCount++;
+              return;
             }
-          } else {
+            
+            // Check if investor is actually invested in this series
+            if (!investor.series || !investor.series.includes(seriesName)) {
+              errors.push(`Row ${index + 2}: Investor "${investorId}" is not invested in series "${seriesName}"`);
+              notFoundCount++;
+              return;
+            }
+            
+            // Determine which month to use for the payout key
+            let payoutMonth;
+            if (interestMonth && interestMonth.toString().trim()) {
+              // Use the provided Interest Month from the file
+              payoutMonth = interestMonth.toString().trim();
+            } else {
+              // Fall back to current month if not provided
+              const currentDate = new Date();
+              payoutMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+            }
+            
+            console.log(`Using payout month: ${payoutMonth} for investor ${investorId}, series ${seriesName}`);
+            
+            // Create unique key for this specific series payout
+            const payoutKey = `${investorId}-${seriesName}-${payoutMonth}`;
+            console.log(`Created payout key: ${payoutKey}`);
+            
+            // Update the status for this specific payout
+            newStatusUpdates[payoutKey] = status;
+            
+            // Store additional payout metadata for custom month/date
+            if (interestMonth || interestDate) {
+              const metadataKey = `${payoutKey}_metadata`;
+              const existingMetadata = JSON.parse(localStorage.getItem('payoutMetadata') || '{}');
+              
+              const newMetadata = {
+                customMonth: interestMonth ? interestMonth.toString().trim() : payoutMonth,
+                customDate: interestDate ? interestDate.toString().trim() : null,
+                updatedAt: new Date().toISOString()
+              };
+              
+              existingMetadata[metadataKey] = newMetadata;
+              
+              console.log(`Storing metadata for ${metadataKey}:`, newMetadata);
+              localStorage.setItem('payoutMetadata', JSON.stringify(existingMetadata));
+              
+              // Verify it was saved
+              const savedMetadata = JSON.parse(localStorage.getItem('payoutMetadata') || '{}');
+              console.log(`Verified saved metadata for ${metadataKey}:`, savedMetadata[metadataKey]);
+            }
+            
+            totalPayoutsUpdated++;
+            updatedCount++;
+            
+          } catch (rowError) {
+            console.error(`Error processing row ${index + 1}:`, rowError);
+            errors.push(`Row ${index + 2}: ${rowError.message}`);
             notFoundCount++;
           }
         });
+
+        console.log('Processing complete:', { updatedCount, notFoundCount, errors });
 
         // Save the updated statuses
         setPayoutStatusUpdates(newStatusUpdates);
@@ -630,16 +812,27 @@ const InterestPayout = () => {
         // Force immediate localStorage update
         localStorage.setItem('payoutStatusUpdates', JSON.stringify(newStatusUpdates));
 
+        // Trigger re-render for metadata changes
+        setMetadataUpdateTrigger(prev => prev + 1);
+
         // Show success message
         if (updatedCount > 0) {
-          setImportStatus(`success:Successfully updated ${updatedCount} payout(s). ${notFoundCount > 0 ? `${notFoundCount} record(s) not found or invalid.` : ''}`);
+          let message = `Successfully updated ${updatedCount} payout(s) including status, interest month, and interest date where provided.`;
+          if (notFoundCount > 0) {
+            message += ` ${notFoundCount} record(s) had issues.`;
+          }
+          if (errors.length > 0 && errors.length <= 3) {
+            message += ` Issues: ${errors.slice(0, 3).join('; ')}`;
+          }
+          
+          setImportStatus(`success:${message}`);
           
           // Add audit log
           addAuditLog({
             action: 'Imported Data',
             adminName: user ? user.name : 'Admin',
             adminRole: user ? user.displayRole : 'Admin',
-            details: `Imported Interest Payout data: ${updatedCount} payouts updated, ${notFoundCount} not found/invalid`,
+            details: `Imported Interest Payout data: ${updatedCount} payouts updated (status, month, date), ${notFoundCount} not found/invalid`,
             entityType: 'Payout',
             entityId: 'Bulk Import',
             changes: {
@@ -649,24 +842,35 @@ const InterestPayout = () => {
               payoutsUpdated: updatedCount,
               recordsNotFound: notFoundCount,
               totalRecords: jsonData.length,
-              updatedKeys: Object.keys(newStatusUpdates).filter(key => newStatusUpdates[key] !== payoutStatusUpdates[key])
+              updatedKeys: Object.keys(newStatusUpdates).filter(key => newStatusUpdates[key] !== payoutStatusUpdates[key]),
+              fieldsUpdated: ['Status', 'Interest Month', 'Interest Date'],
+              errors: errors.slice(0, 5) // Log first 5 errors
             }
           });
 
-          // Reset after 3 seconds
+          // Reset after 5 seconds to give time to read the message
           setTimeout(() => {
             setShowImportModal(false);
             setUploadedFile(null);
             setImportStatus('');
-          }, 3000);
+          }, 5000);
         } else {
-          setImportStatus('error:No valid records found to process');
+          let errorMessage = 'No valid records found to process.';
+          if (errors.length > 0) {
+            errorMessage += ` Issues found: ${errors.slice(0, 3).join('; ')}`;
+          }
+          setImportStatus(`error:${errorMessage}`);
         }
 
       } catch (error) {
         console.error('Error processing file:', error);
-        setImportStatus('error:Error processing file. Please check the format and try again.');
+        setImportStatus(`error:Error processing file: ${error.message}. Please check the file format and try again.`);
       }
+    };
+
+    reader.onerror = (error) => {
+      console.error('File reader error:', error);
+      setImportStatus('error:Error reading file. Please try again.');
     };
 
     reader.readAsArrayBuffer(uploadedFile);
@@ -696,7 +900,7 @@ const InterestPayout = () => {
             <div className="card-content">
               <p className="card-label">Current Month Total Payout</p>
               <div className="card-value-row">
-                <h2 className="card-value">₹{totalInterestPaid.toLocaleString('en-IN')}</h2>
+                <h2 className="card-value">₹{summaryStats.totalInterestPaid.toLocaleString('en-IN')}</h2>
                 <FaRupeeSign className="card-icon-green" />
               </div>
             </div>
@@ -706,7 +910,7 @@ const InterestPayout = () => {
             <div className="card-content">
               <p className="card-label">Total Payouts This Month</p>
               <div className="card-value-row">
-                <h2 className="card-value">{totalPayouts}</h2>
+                <h2 className="card-value">{summaryStats.totalPayouts}</h2>
                 <MdTrendingUp className="card-icon-orange" />
               </div>
             </div>
@@ -716,7 +920,7 @@ const InterestPayout = () => {
             <div className="card-content">
               <p className="card-label">Total Investors</p>
               <div className="card-value-row">
-                <h2 className="card-value">{totalInvestorsCount}</h2>
+                <h2 className="card-value">{summaryStats.totalInvestorsCount}</h2>
                 <HiUsers className="card-icon-blue" />
               </div>
             </div>
