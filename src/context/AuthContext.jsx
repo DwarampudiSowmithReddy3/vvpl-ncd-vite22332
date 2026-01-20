@@ -21,7 +21,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: false, edit: false, delete: false },
     communication: { view: false, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: false, create: false, edit: false, delete: false }
   },
   'Finance Manager': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -32,7 +33,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: true, edit: false, delete: false },
     communication: { view: false, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: false, edit: false, delete: false }
   },
   'Compliance Base': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -43,7 +45,8 @@ const PERMISSIONS = {
     interestPayout: { view: false, create: false, edit: false, delete: false },
     communication: { view: false, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: false, edit: false, delete: false }
   },
   'Compliance Officer': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -54,7 +57,8 @@ const PERMISSIONS = {
     interestPayout: { view: false, create: false, edit: false, delete: false },
     communication: { view: true, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: false }
   },
   'Compliance Manager': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -65,7 +69,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: false, edit: false, delete: false },
     communication: { view: true, create: true, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: true, create: false, edit: false, delete: false }
+    approval: { view: true, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: true }
   },
   'Investor Relationship Executive': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -76,7 +81,8 @@ const PERMISSIONS = {
     interestPayout: { view: false, create: false, edit: false, delete: false },
     communication: { view: true, create: true, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: false }
   },
   'Investor Relationship Manager': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -87,7 +93,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: false, edit: false, delete: false },
     communication: { view: true, create: true, edit: true, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: false }
   },
   'Board Member Base': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -98,7 +105,8 @@ const PERMISSIONS = {
     interestPayout: { view: false, create: false, edit: false, delete: false },
     communication: { view: false, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: true, create: false, edit: false, delete: false }
+    approval: { view: true, create: false, edit: false, delete: false },
+    grievanceManagement: { view: true, create: false, edit: false, delete: false }
   },
   'Board Member Head': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -109,7 +117,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: false, edit: false, delete: false },
     communication: { view: true, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: true, create: true, edit: true, delete: false }
+    approval: { view: true, create: true, edit: true, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: false }
   },
   'Admin': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -120,7 +129,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: true, edit: true, delete: false },
     communication: { view: true, create: true, edit: true, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: true, create: true, edit: true, delete: false }
+    approval: { view: true, create: true, edit: true, delete: false },
+    grievanceManagement: { view: true, create: true, edit: true, delete: false }
   },
   'Super Admin': {
     dashboard: { view: true, create: true, edit: true, delete: true },
@@ -131,7 +141,8 @@ const PERMISSIONS = {
     interestPayout: { view: true, create: true, edit: true, delete: true },
     communication: { view: true, create: true, edit: true, delete: true },
     administrator: { view: true, create: true, edit: true, delete: true },
-    approval: { view: true, create: true, edit: true, delete: true }
+    approval: { view: true, create: true, edit: true, delete: true },
+    grievanceManagement: { view: true, create: true, edit: true, delete: true }
   },
   'Investor': {
     dashboard: { view: true, create: false, edit: false, delete: false },
@@ -142,7 +153,8 @@ const PERMISSIONS = {
     interestPayout: { view: false, create: false, edit: false, delete: false },
     communication: { view: false, create: false, edit: false, delete: false },
     administrator: { view: false, create: false, edit: false, delete: false },
-    approval: { view: false, create: false, edit: false, delete: false }
+    approval: { view: false, create: false, edit: false, delete: false },
+    grievanceManagement: { view: false, create: false, edit: false, delete: false }
   }
 };
 
@@ -177,6 +189,20 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       return { success: true, role: 'admin' };
     } 
+    // Super Admin (existing)
+    if (username === 'super_admin' && password === 'super_admin') {
+      const userData = {
+        username: 'super_admin',
+        role: 'Super Admin',
+        name: 'Super Admin',
+        displayRole: 'Super Admin'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    } 
     // Demo Admin Account (new)
     else if (username === 'demo' && password === 'demo') {
       const userData = {
@@ -191,12 +217,12 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       return { success: true, role: 'admin' };
     }
-    // Finance Manager
-    else if (username === 'Finance Manager' && password === 'Finance Manager') {
+    // Finance Manager (FM)
+    else if (username === 'finance_manager' && password === 'finance_manager') {
       const userData = {
-        username: 'FM',
+        username: 'finance_manager',
         role: 'Finance Manager',
-        name: 'Finance Manager',
+        name: 'finance_manager',
         displayRole: 'Finance Manager'
       };
       setUser(userData);
@@ -205,7 +231,35 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       return { success: true, role: 'admin' };
     }
-    // Compliance Manager
+    // Compliance Manager (CM)
+    else if (username === 'compliance_manager' && password === 'compliance_manager') {
+      const userData = {
+        username: 'compliance_manager',
+        role: 'Compliance Manager',
+        name: 'compliance_manager',
+        displayRole: 'Compliance Manager'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    // Board Member Base (BMB)
+    else if (username === 'board_member' && password === 'board_member') {
+      const userData = {
+        username: 'board_member',
+        role: 'Board Member Base',
+        name: 'board_member',
+        displayRole: 'Board Member Base'
+      };
+      setUser(userData);
+      setIsAuthenticated(true);
+      setJustLoggedIn(true);
+      localStorage.setItem('user', JSON.stringify(userData));
+      return { success: true, role: 'admin' };
+    }
+    // Finance Executive (existing)
     else if (username === 'finance_executive' && password === 'financeexecutive') {
       const userData = {
         username: 'finance_executive',
@@ -219,26 +273,13 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('user', JSON.stringify(userData));
       return { success: true, role: 'admin' };
     }
-    else if (username === 'compliance_manager' && password === 'compliancemanager') {
+    // Investor
+    else if (username === 'investor' && password === 'investor') {
       const userData = {
-        username: 'compliance_manager',
-        role: 'Compliance Manager',
-        name: 'Compliance Manager',
-        displayRole: 'Compliance Manager'
-      };
-      setUser(userData);
-      setIsAuthenticated(true);
-      setJustLoggedIn(true);
-      localStorage.setItem('user', JSON.stringify(userData));
-      return { success: true, role: 'admin' };
-    }
-    // Board Member Base
-    else if (username === 'board_member' && password === 'boardmember') {
-      const userData = {
-        username: 'board_member',
-        role: 'Board Member Base',
-        name: 'Board Member Base',
-        displayRole: 'Board Member Base'
+        username: 'investor',
+        role: 'Investor',
+        name: 'Investor',
+        displayRole: 'Investor'
       };
       setUser(userData);
       setIsAuthenticated(true);

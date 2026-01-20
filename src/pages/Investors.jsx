@@ -5,6 +5,7 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import './Investors.css';
+import './investors-responsive-fixes.css';
 import { MdOutlineFileDownload, MdTrendingUp, MdCurrencyRupee } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
 import { FiFilter } from "react-icons/fi";
@@ -588,7 +589,13 @@ const Investors = () => {
   };
 
   // Filter series for investment (only accepting investments within subscription window)
-  const availableSeries = series.filter(s => getSeriesStatus(s) === 'accepting');
+  const availableSeries = series.filter(s => {
+    const status = getSeriesStatus(s);
+    console.log(`Series ${s.name}: status = ${status}, subscriptionStart = ${s.subscriptionStartDate}, subscriptionEnd = ${s.subscriptionEndDate}`);
+    return status === 'accepting';
+  });
+
+  console.log('Available series for investment:', availableSeries.length);
 
   return (
     <Layout>
@@ -1507,67 +1514,67 @@ const Investors = () => {
           </div>
         )}
 
-        {/* Investor Details Modal */}
+        {/* Investor Details Modal - Rebuilt from scratch */}
         {showInvestorDetails && selectedInvestor && (
           <div className="modal-overlay" onClick={handleCloseInvestorDetails}>
-            <div className="modal-content investor-details-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content investor-details-modal-new" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h2>Investor Details</h2>
                 <button className="close-button" onClick={handleCloseInvestorDetails}>×</button>
               </div>
               
               <div className="modal-body">
-                <div className="investor-info-header">
-                  <div className="investor-name-section">
+                <div className="investor-info-header-new">
+                  <div className="investor-name-section-new">
                     <h3>{selectedInvestor.name}</h3>
-                    <span className="investor-id-display">{selectedInvestor.investorId}</span>
+                    <span className="investor-id-display-new">{selectedInvestor.investorId}</span>
                   </div>
-                  <span className={`kyc-status-badge kyc-${selectedInvestor.kycStatus.toLowerCase()}`}>
+                  <span className={`kyc-status-badge-new kyc-${selectedInvestor.kycStatus.toLowerCase()}`}>
                     {selectedInvestor.kycStatus}
                   </span>
                 </div>
 
-                <div className="investor-details-grid">
-                  <div className="detail-item">
-                    <div className="detail-item-header">
-                      <HiOutlineMail className="detail-icon" />
-                      <span className="detail-label">Email</span>
+                <div className="investor-details-grid-new">
+                  <div className="detail-card-new">
+                    <div className="detail-header-new">
+                      <HiOutlineMail className="detail-icon-new" />
+                      <span className="detail-title-new">Email</span>
                     </div>
-                    <span className="detail-value">{selectedInvestor.email}</span>
+                    <div className="detail-content-new">{selectedInvestor.email}</div>
                   </div>
                   
-                  <div className="detail-item">
-                    <div className="detail-item-header">
-                      <HiOutlinePhone className="detail-icon" />
-                      <span className="detail-label">Phone</span>
+                  <div className="detail-card-new">
+                    <div className="detail-header-new">
+                      <HiOutlinePhone className="detail-icon-new" />
+                      <span className="detail-title-new">Phone</span>
                     </div>
-                    <span className="detail-value">{selectedInvestor.phone}</span>
+                    <div className="detail-content-new">{selectedInvestor.phone}</div>
                   </div>
                   
-                  <div className="detail-item">
-                    <div className="detail-item-header">
-                      <HiOutlineCalendar className="detail-icon" />
-                      <span className="detail-label">Date Joined</span>
+                  <div className="detail-card-new">
+                    <div className="detail-header-new">
+                      <HiOutlineCalendar className="detail-icon-new" />
+                      <span className="detail-title-new">Date Joined</span>
                     </div>
-                    <span className="detail-value">{selectedInvestor.dateJoined}</span>
+                    <div className="detail-content-new">{selectedInvestor.dateJoined}</div>
                   </div>
                   
-                  <div className="detail-item">
-                    <div className="detail-item-header">
-                      <MdCurrencyRupee className="detail-icon" />
-                      <span className="detail-label">Current Investment</span>
+                  <div className="detail-card-new">
+                    <div className="detail-header-new">
+                      <MdCurrencyRupee className="detail-icon-new" />
+                      <span className="detail-title-new">Current Investment</span>
                     </div>
-                    <span className="detail-value investment-amount">₹{selectedInvestor.investment.toLocaleString('en-IN')}</span>
+                    <div className="detail-content-new investment-amount-new">₹{selectedInvestor.investment.toLocaleString('en-IN')}</div>
                   </div>
                   
-                  <div className="detail-item full-width">
-                    <div className="detail-item-header">
-                      <HiOutlineChartBar className="detail-icon" />
-                      <span className="detail-label">Active Series</span>
+                  <div className="detail-card-new full-width-new">
+                    <div className="detail-header-new">
+                      <HiOutlineChartBar className="detail-icon-new" />
+                      <span className="detail-title-new">Active Series</span>
                     </div>
-                    <div className="series-tags">
+                    <div className="series-tags-new">
                       {selectedInvestor.series.map((series, index) => (
-                        <span key={index} className="series-tag">{series}</span>
+                        <span key={index} className="series-tag-new">{series}</span>
                       ))}
                     </div>
                   </div>
@@ -1595,42 +1602,116 @@ const Investors = () => {
                 <button className="close-button" onClick={handleCloseSeriesSelection}>×</button>
               </div>
               <div className="modal-body">
-                <div className="series-grid">
-                  {availableSeries.map((series) => {
-                    const progress = (series.fundsRaised / series.targetAmount) * 100;
-                    return (
-                      <div key={series.id} className="series-card" onClick={() => handleSeriesSelect(series)}>
-                        <div className="series-header">
-                          <h3>{series.name}</h3>
-                          <span className={`status-badge ${series.status}`}>{series.status}</span>
-                        </div>
-                        <div className="series-details">
-                          <div className="detail-row">
-                            <span>Interest Rate:</span>
-                            <span>{series.interestRate}%</span>
+                {availableSeries.length > 0 ? (
+                  <div className="series-selection-container">
+                    <div className="series-selection-header">
+                      <h3>Available Investment Opportunities</h3>
+                      <p>Select a series to invest in. Only series currently accepting investments are shown.</p>
+                    </div>
+                    
+                    <div className="series-cards-grid">
+                      {availableSeries.map((series) => {
+                        const progress = (series.fundsRaised / series.targetAmount) * 100;
+                        return (
+                          <div key={series.id} className="investment-series-card" onClick={() => handleSeriesSelect(series)}>
+                            <div className="series-card-header">
+                              <div className="series-title-section">
+                                <h4 className="series-title">{series.name}</h4>
+                                <span className="series-status-badge accepting">
+                                  ✓ Accepting Investments
+                                </span>
+                              </div>
+                              <div className="series-interest-rate">
+                                <span className="rate-value">{series.interestRate}%</span>
+                                <span className="rate-label">Interest Rate</span>
+                              </div>
+                            </div>
+                            
+                            <div className="series-card-body">
+                              <div className="series-info-grid">
+                                <div className="info-item">
+                                  <span className="info-label">Frequency</span>
+                                  <span className="info-value">{series.interestFrequency}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Min Investment</span>
+                                  <span className="info-value">₹{series.minInvestment.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Subscription Period</span>
+                                  <span className="info-value subscription-dates">
+                                    {series.subscriptionStartDate} to {series.subscriptionEndDate}
+                                  </span>
+                                </div>
+                                <div className="info-item">
+                                  <span className="info-label">Maturity Date</span>
+                                  <span className="info-value">{series.maturityDate}</span>
+                                </div>
+                              </div>
+                              
+                              <div className="funding-progress-section">
+                                <div className="progress-header">
+                                  <span className="progress-label">Funding Progress</span>
+                                  <span className="progress-percentage">{progress.toFixed(1)}%</span>
+                                </div>
+                                <div className="progress-bar-container">
+                                  <div className="progress-bar-track">
+                                    <div className="progress-bar-fill" style={{ width: `${progress}%` }}></div>
+                                  </div>
+                                </div>
+                                <div className="progress-amounts">
+                                  <span className="raised-amount">₹{series.fundsRaised.toLocaleString('en-IN')} raised</span>
+                                  <span className="target-amount">₹{series.targetAmount.toLocaleString('en-IN')} target</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            <div className="series-card-footer">
+                              <button className="invest-now-button">
+                                <span>Invest Now</span>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                  <path d="M5 12h14M12 5l7 7-7 7"/>
+                                </svg>
+                              </button>
+                            </div>
                           </div>
-                          <div className="detail-row">
-                            <span>Frequency:</span>
-                            <span>{series.interestFrequency}</span>
-                          </div>
-                          <div className="detail-row">
-                            <span>Min Investment:</span>
-                            <span>₹{series.minInvestment.toLocaleString('en-IN')}</span>
-                          </div>
-                        </div>
-                        <div className="funds-progress">
-                          <div className="progress-info">
-                            <span>{formatCurrency(series.fundsRaised)} / {formatCurrency(series.targetAmount)}</span>
-                            <span>{progress.toFixed(1)}%</span>
-                          </div>
-                          <div className="progress-bar">
-                            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
-                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="no-series-message">
+                    <div className="no-series-icon">
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                      </svg>
+                    </div>
+                    <h3>No Investment Opportunities Available</h3>
+                    <p>Currently, there are no series accepting new investments. Please check back later or contact support for more information.</p>
+                    
+                    {series.length > 0 && (
+                      <div className="series-status-overview">
+                        <h4>Current Series Status</h4>
+                        <div className="status-list">
+                          {series.map(s => (
+                            <div key={s.id} className="status-item">
+                              <span className="status-series-name">{s.name}</span>
+                              <span className={`status-badge ${getSeriesStatus(s)}`}>
+                                {getSeriesStatus(s) === 'upcoming' && '⏳ Upcoming'}
+                                {getSeriesStatus(s) === 'accepting' && '✅ Accepting'}
+                                {getSeriesStatus(s) === 'active' && '🔒 Closed'}
+                                {getSeriesStatus(s) === 'DRAFT' && '📝 Draft'}
+                              </span>
+                              <span className="status-dates">
+                                {s.subscriptionStartDate} - {s.subscriptionEndDate}
+                              </span>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -14,12 +14,14 @@ import Communication from './pages/Communication';
 import Compliance from './pages/Compliance';
 import Administrator from './pages/Administrator';
 import Approval from './pages/Approval';
+import GrievanceManagement from './pages/GrievanceManagement';
 import InvestorDashboard from './pages/InvestorDashboard';
 import InvestorSeries from './pages/InvestorSeries';
 import InvestorAccount from './pages/InvestorAccount';
 import InvestorDetails from './pages/InvestorDetails';
 import SeriesDetails from './pages/SeriesDetails';
 import TestIcon from './TestIcon'; // <-- Added for testing react-icons
+import './responsive-utilities.css'; // Import responsive utilities
 
 function AuthenticatedRoute({ children, requireAdmin = false }) {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -68,6 +70,16 @@ function App() {
                 <AuthenticatedRoute requireAdmin={true}>
                   <ProtectedRoute module="dashboard">
                     <Dashboard />
+                  </ProtectedRoute>
+                </AuthenticatedRoute>
+              } 
+            />
+            <Route 
+              path="/grievance-management" 
+              element={
+                <AuthenticatedRoute requireAdmin={true}>
+                  <ProtectedRoute module="grievanceManagement">
+                    <GrievanceManagement />
                   </ProtectedRoute>
                 </AuthenticatedRoute>
               } 

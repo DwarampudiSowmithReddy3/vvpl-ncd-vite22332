@@ -113,7 +113,7 @@ const InvestorDashboard = () => {
             <div className="payouts-list">
               {participatingSeries.length > 0 ? (
                 participatingSeries.map((s) => {
-                  const monthlyPayout = (investor.investment / (investor.series?.length || 1)) * (s.interestRate / 100) / (s.interestFrequency === 'Monthly Interest' ? 12 : 4);
+                  const monthlyPayout = (investor.investment / (investor.series?.length || 1)) * (s.interestRate / 100) / 12;
                   return (
                     <div key={s.id} className="payout-item">
                       <div className="payout-info">

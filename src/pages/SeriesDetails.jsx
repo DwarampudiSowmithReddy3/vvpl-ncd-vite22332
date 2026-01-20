@@ -60,7 +60,7 @@ const SeriesDetails = () => {
         progress: 70,
         issueDate: '1/6/2023',
         maturityDate: '1/6/2028',
-        interestFrequency: 'Quarterly',
+        interestFrequency: 'Monthly',
         faceValue: 1000,
         minInvestment: 10000,
         targetAmount: 50000000
@@ -75,7 +75,7 @@ const SeriesDetails = () => {
         progress: 84,
         issueDate: '15/9/2023',
         maturityDate: '15/9/2028',
-        interestFrequency: 'Quarterly',
+        interestFrequency: 'Monthly',
         faceValue: 1000,
         minInvestment: 15000,
         targetAmount: 50000000
@@ -414,7 +414,7 @@ const SeriesDetails = () => {
       const analysisData = [
         ['Subscription Ratio', seriesData.progress + '%'],
         ['Average Investment per Investor', formatCurrency(seriesData.fundsRaised / seriesData.investors)],
-        ['Quarterly Interest per Investor', formatCurrency((seriesData.fundsRaised / seriesData.investors) * (seriesData.interestRate / 100) / 4)],
+        ['Monthly Interest per Investor', formatCurrency((seriesData.fundsRaised / seriesData.investors) * (seriesData.interestRate / 100) / 12)],
         ['Annual Interest Payout', formatCurrency(seriesData.fundsRaised * (seriesData.interestRate / 100))],
         ['Remaining Target', formatCurrency(seriesData.targetAmount - seriesData.fundsRaised)],
         ['Days to Maturity', calculateDaysToMaturity(seriesData.maturityDate)]

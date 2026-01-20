@@ -233,8 +233,9 @@ const initialSeries = [
   {
     id: 1,
     name: 'Series A',
+    seriesCode: 'NCD-A-2023',
     status: 'active',
-    interestFrequency: 'Quarterly Interest',
+    interestFrequency: 'Monthly Interest',
     interestRate: 9.5,
     investors: 0, // Will be calculated from actual investor data
     fundsRaised: 35000000,
@@ -244,11 +245,13 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 10000,
     releaseDate: '1/6/2023',
-    lockInPeriod: 12 // 12 months lock-in period
+    lockInPeriod: 12, // 12 months lock-in period
+    debentureTrustee: 'IDBI Trusteeship Services Ltd'
   },
   {
     id: 2,
     name: 'Series B',
+    seriesCode: 'NCD-B-2023',
     status: 'active',
     interestFrequency: 'Monthly Interest',
     interestRate: 10,
@@ -260,13 +263,15 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 25000,
     releaseDate: '15/9/2023',
-    lockInPeriod: 18 // 18 months lock-in period
+    lockInPeriod: 18, // 18 months lock-in period
+    debentureTrustee: 'Catalyst Trusteeship Ltd'
   },
   {
     id: 3,
     name: 'Series C',
+    seriesCode: 'NCD-C-2024',
     status: 'active',
-    interestFrequency: 'Quarterly Interest',
+    interestFrequency: 'Monthly Interest',
     interestRate: 10.5,
     investors: 0, // Will be calculated from actual investor data
     fundsRaised: 28000000,
@@ -276,13 +281,15 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 50000,
     releaseDate: '1/1/2024',
-    lockInPeriod: 24 // 24 months lock-in period
+    lockInPeriod: 24, // 24 months lock-in period
+    debentureTrustee: 'Axis Trustee Services Ltd'
   },
   {
     id: 4,
     name: 'Series D',
+    seriesCode: 'NCD-D-2024',
     status: 'active',
-    interestFrequency: 'Quarterly Interest',
+    interestFrequency: 'Monthly Interest',
     interestRate: 11,
     investors: 0, // Will be calculated from actual investor data
     fundsRaised: 45000000,
@@ -292,11 +299,13 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 100000,
     releaseDate: '1/3/2024',
-    lockInPeriod: 15 // 15 months lock-in period
+    lockInPeriod: 15, // 15 months lock-in period
+    debentureTrustee: 'SBICAP Trustee Company Ltd'
   },
   {
     id: 5,
     name: 'Series E',
+    seriesCode: 'NCD-E-2024',
     status: 'active',
     interestFrequency: 'Monthly Interest',
     interestRate: 11.5,
@@ -308,13 +317,15 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 75000,
     releaseDate: '15/5/2024',
-    lockInPeriod: 36 // 36 months lock-in period
+    lockInPeriod: 36, // 36 months lock-in period
+    debentureTrustee: 'Vistra ITCL (India) Ltd'
   },
   {
     id: 6,
     name: 'Series AB',
+    seriesCode: 'NCD-AB-2024',
     status: 'active',
-    interestFrequency: 'Quarterly Interest',
+    interestFrequency: 'Monthly Interest',
     interestRate: 9.0,
     investors: 0, // Will be calculated from actual investor data
     fundsRaised: 25000000,
@@ -324,7 +335,8 @@ const initialSeries = [
     faceValue: 1000,
     minInvestment: 15000,
     releaseDate: '1/12/2024',
-    lockInPeriod: 18 // 18 months lock-in period
+    lockInPeriod: 18, // 18 months lock-in period
+    debentureTrustee: 'IDBI Trusteeship Services Ltd'
   }
 ];
 
@@ -332,18 +344,14 @@ export const DataProvider = ({ children }) => {
   // Data validation and consistency check
   const validateAndFixData = () => {
     try {
-      // Check data version for consistency
-      const dataVersion = localStorage.getItem('dataVersion');
-      const currentVersion = '1.1.0'; // Updated version to trigger data reset
-      
-      if (dataVersion !== currentVersion) {
-        console.log(`🔄 Data version mismatch (${dataVersion} → ${currentVersion}). Resetting to ensure consistency.`);
-        localStorage.clear(); // Clear all localStorage data
-        localStorage.setItem('dataVersion', currentVersion);
-        localStorage.setItem('investors', JSON.stringify(initialInvestors));
-        localStorage.setItem('series', JSON.stringify(initialSeries));
-        return;
-      }
+      // FORCE RESET - Clear all data to ensure new fields are loaded
+      console.log('🔄 FORCING COMPLETE DATA RESET for series code and trustee name update');
+      localStorage.clear();
+      localStorage.setItem('dataVersion', '1.2.0');
+      localStorage.setItem('investors', JSON.stringify(initialInvestors));
+      localStorage.setItem('series', JSON.stringify(initialSeries));
+      console.log('✅ Data reset complete - series codes and trustee names should now be visible');
+      return;
       
       // Check if essential data exists and is valid
       const savedInvestors = localStorage.getItem('investors');
@@ -499,6 +507,15 @@ export const DataProvider = ({ children }) => {
     
     // Load all series from localStorage (no filtering)
     let parsedSeries = savedSeries ? JSON.parse(savedSeries) : initialSeries;
+    
+    // DEBUG: Log the first series to check if fields exist
+    if (parsedSeries.length > 0) {
+      console.log('🔍 DEBUG - First series data:', {
+        name: parsedSeries[0].name,
+        seriesCode: parsedSeries[0].seriesCode,
+        debentureTrustee: parsedSeries[0].debentureTrustee
+      });
+    }
     
     // ALWAYS RECALCULATE: Always recalculate series data based on actual investor investments (excluding deleted investors)
     if (savedInvestors) {
@@ -970,9 +987,7 @@ export const DataProvider = ({ children }) => {
     // Calculate based on active series and their interest rates
     let totalPayout = 0;
     series.filter(s => s.status === 'active').forEach(s => {
-      const monthlyRate = s.interestFrequency === 'Monthly Interest' 
-        ? s.interestRate / 100 / 12
-        : s.interestRate / 100 / 4 / 3; // Quarterly divided by 3 months
+      const monthlyRate = s.interestRate / 100 / 12; // Always monthly
       totalPayout += s.fundsRaised * monthlyRate;
     });
     return totalPayout;
@@ -995,7 +1010,7 @@ export const DataProvider = ({ children }) => {
     const payouts = [];
     series.filter(s => s.status === 'active').forEach(s => {
       const nextPayoutDate = new Date();
-      nextPayoutDate.setMonth(nextPayoutDate.getMonth() + (s.interestFrequency === 'Monthly Interest' ? 1 : 3));
+      nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1); // Always monthly
       const investorsInSeries = investors.filter(inv => inv.series.includes(s.name));
       const totalAmount = investorsInSeries.reduce((sum, inv) => {
         const seriesInvestment = inv.series.includes(s.name) ? inv.investment / inv.series.length : 0;
@@ -1005,7 +1020,7 @@ export const DataProvider = ({ children }) => {
       payouts.push({
         series: s.name,
         investors: investorsInSeries.length,
-        amount: totalAmount * (s.interestRate / 100) / (s.interestFrequency === 'Monthly Interest' ? 12 : 4),
+        amount: totalAmount * (s.interestRate / 100) / 12, // Always monthly
         date: nextPayoutDate.toISOString().split('T')[0]
       });
     });

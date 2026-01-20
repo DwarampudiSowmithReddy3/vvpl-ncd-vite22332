@@ -351,8 +351,6 @@ const Approval = () => {
                           className="edit-input"
                         >
                           <option value="Monthly Interest">Monthly Interest</option>
-                          <option value="Quarterly Interest">Quarterly Interest</option>
-                          <option value="Annual Interest">Annual Interest</option>
                         </select>
                       ) : (
                         <span className="value">{selectedSeries.interestFrequency}</span>

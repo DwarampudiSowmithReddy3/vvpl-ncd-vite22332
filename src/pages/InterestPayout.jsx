@@ -86,15 +86,9 @@ const InterestPayout = () => {
         // Calculate investment amount for this series
         const investmentPerSeries = investor.investment / investor.series.length;
         
-        // Calculate interest based on frequency
+        // Calculate interest based on frequency (always monthly)
         let interestAmount = 0;
-        if (s.interestFrequency === 'Monthly Interest') {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100 / 12;
-        } else if (s.interestFrequency === 'Quarterly Interest') {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100 / 4;
-        } else {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100;
-        }
+        interestAmount = (investmentPerSeries * s.interestRate) / 100 / 12;
         
         // Check if there are any custom payouts for this investor-series combination
         const relevantStatusKeys = Object.keys(payoutStatusUpdates).filter(key => 
@@ -216,17 +210,9 @@ const InterestPayout = () => {
       const today = new Date();
       const daysDiff = Math.floor((today - issue) / (1000 * 60 * 60 * 24));
       
-      // Check based on frequency
-      if (frequency === 'Monthly Interest') {
-        // At least 30 days must have passed
-        return daysDiff >= 30;
-      } else if (frequency === 'Quarterly Interest') {
-        // At least 90 days must have passed
-        return daysDiff >= 90;
-      } else {
-        // Annual - at least 365 days
-        return daysDiff >= 365;
-      }
+      // Check based on frequency (always monthly)
+      // At least 30 days must have passed
+      return daysDiff >= 30;
     };
     
     const activeSeries = series.filter(s => s.status === 'active');
@@ -244,13 +230,8 @@ const InterestPayout = () => {
         const investmentPerSeries = investor.investment / investor.series.length;
         
         let interestAmount = 0;
-        if (s.interestFrequency === 'Monthly Interest') {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100 / 12;
-        } else if (s.interestFrequency === 'Quarterly Interest') {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100 / 4;
-        } else {
-          interestAmount = (investmentPerSeries * s.interestRate) / 100;
-        }
+        // Always monthly interest calculation
+        interestAmount = (investmentPerSeries * s.interestRate) / 100 / 12;
         
         // Create unique keys for payouts
         const currentPayoutKey = `${investor.investorId}-${s.name}-${currentMonth}`;

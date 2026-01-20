@@ -29,7 +29,8 @@ const Sidebar = ({ isInvestor = false, isOpen = true, onClose, mobileHeaderButto
     { path: '/communication', label: 'Communication', icon: <HiOutlineMail />, module: 'communication' },
     { path: '/compliance', label: 'Compliance', icon: <MdSecurity />, module: 'compliance' },
     { path: '/administrator', label: 'Administrator', icon: <MdAdminPanelSettings />, module: 'administrator' },
-    { path: '/approval', label: 'Approval', icon: <HiOutlineDocumentText />, module: 'approval' }
+    { path: '/approval', label: 'Approval', icon: <HiOutlineDocumentText />, module: 'approval' },
+    { path: '/grievance-management', label: 'Grievance Management', icon: <HiOutlineDocumentText />, module: 'grievanceManagement' }
   ];
 
   const investorNavItems = [

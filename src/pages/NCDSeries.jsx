@@ -113,7 +113,7 @@ const NCDSeries = () => {
       totalIssueSize: parseFloat(formData.totalIssueSize),
       status: formData.status,
       description: formData.description,
-      debentureTrusteeName: formData.debentureTrusteeName,
+      debentureTrustee: formData.debentureTrusteeName,
       investorsSize: parseInt(formData.investorsSize),
       minSubscriptionPercentage: parseFloat(formData.minSubscriptionPercentage),
       documents: {
@@ -236,6 +236,13 @@ const NCDSeries = () => {
   const activeSeries = series.filter(s => getSeriesStatus(s) === 'active');
   const maturedSeries = series.filter(s => getSeriesStatus(s) === 'matured');
 
+  // DEBUG: Log series data to check fields
+  console.log('🔍 DEBUG - Active series data:', activeSeries.map(s => ({
+    name: s.name,
+    seriesCode: s.seriesCode,
+    debentureTrustee: s.debentureTrustee
+  })));
+
   return (
     <Layout>
       <div className="ncd-series-page">
@@ -269,7 +276,10 @@ const NCDSeries = () => {
                   <div key={s.id} className="series-card draft-card">
                     <div className="card-banner draft-banner">
                       <div className="banner-content">
-                        <h3 className="series-name">{s.name}</h3>
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
                         <div className="banner-status">
                           <span className={`status-pill ${statusInfo.color}`}>
                             {statusInfo.label.toUpperCase()}
@@ -291,8 +301,13 @@ const NCDSeries = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="progress-text">
-                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
                       </div>
                     </div>
                     <div className="series-details">
@@ -353,7 +368,10 @@ const NCDSeries = () => {
                   <div key={s.id} className="series-card upcoming-card">
                     <div className="card-banner upcoming-banner">
                       <div className="banner-content">
-                        <h3 className="series-name">{s.name}</h3>
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
                         <div className="banner-status">
                           <span className={`status-pill ${statusInfo.color}`}>
                             {statusInfo.label.toUpperCase()}
@@ -375,8 +393,13 @@ const NCDSeries = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="progress-text">
-                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
                       </div>
                     </div>
                     <div className="series-details">
@@ -437,7 +460,10 @@ const NCDSeries = () => {
                   <div key={s.id} className="series-card accepting-card">
                     <div className="card-banner accepting-banner">
                       <div className="banner-content">
-                        <h3 className="series-name">{s.name}</h3>
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
                         <div className="banner-status">
                           <span className={`status-pill ${statusInfo.color}`}>
                             {statusInfo.label.toUpperCase()}
@@ -459,8 +485,13 @@ const NCDSeries = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="progress-text">
-                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
                       </div>
                     </div>
                     <div className="series-details">
@@ -511,7 +542,10 @@ const NCDSeries = () => {
                   <div key={s.id} className="series-card">
                     <div className="card-banner">
                       <div className="banner-content">
-                        <h3 className="series-name">{s.name}</h3>
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
                         <div className="banner-status">
                           <span className={`status-pill ${statusInfo.color}`}>
                             {statusInfo.label.toUpperCase()}
@@ -533,8 +567,13 @@ const NCDSeries = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="progress-text">
-                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
                       </div>
                     </div>
                     <div className="series-details">
@@ -586,7 +625,10 @@ const NCDSeries = () => {
                   <div key={s.id} className="series-card matured-card">
                     <div className="card-banner matured-banner">
                       <div className="banner-content">
-                        <h3 className="series-name">{s.name}</h3>
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
                         <div className="banner-status">
                           <span className={`status-pill ${statusInfo.color}`}>
                             {statusInfo.label.toUpperCase()}
@@ -608,8 +650,13 @@ const NCDSeries = () => {
                           style={{ width: `${progress}%` }}
                         ></div>
                       </div>
-                      <div className="progress-text">
-                        {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
                       </div>
                     </div>
                     <div className="series-details">
@@ -935,8 +982,6 @@ const NCDSeries = () => {
                         required
                       >
                         <option value="Monthly Interest">Monthly Interest</option>
-                        <option value="Quarterly Interest">Quarterly Interest</option>
-                        <option value="Annual Interest">Annual Interest</option>
                       </select>
                     </div>
                     <div className="form-group">
