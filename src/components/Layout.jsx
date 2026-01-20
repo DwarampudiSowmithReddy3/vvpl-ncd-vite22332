@@ -318,14 +318,14 @@ const Layout = ({ children, isInvestor = false }) => {
             <div className="sop-modal-body">
               <iframe
                 title="SOP - NCD -VVPL_v1.0"
-                src="public\sop_ncd_vvpl_v1.0.pdf"
+                src="/sop_ncd_vvpl_v1.0.pdf"
                 className="sop-iframe"
               />
             </div>
             <div className="sop-modal-footer">
               <button
                 className="sop-download"
-                onClick={() => window.open("public\sop_ncd_vvpl_v1.0.pdf", '_blank')}
+                onClick={() => window.open("/sop_ncd_vvpl_v1.0.pdf", "_blank")}
               >
                 Download
               </button>
