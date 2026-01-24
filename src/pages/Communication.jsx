@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -39,6 +39,37 @@ const Communication = () => {
   // Legacy state for backward compatibility
   const [historyFilter, setHistoryFilter] = useState('all');
   const fileInputRef = useRef(null);
+  
+  // Refs for height matching
+  const leftPanelRef = useRef(null);
+  const rightPanelRef = useRef(null);
+  
+  // Effect to match panel heights
+  useEffect(() => {
+    const matchPanelHeights = () => {
+      if (leftPanelRef.current && rightPanelRef.current) {
+        const rightPanelHeight = rightPanelRef.current.offsetHeight;
+        leftPanelRef.current.style.height = `${rightPanelHeight}px`;
+      }
+    };
+    
+    // Match heights after component mounts and updates
+    matchPanelHeights();
+    
+    // Also match heights when window resizes
+    window.addEventListener('resize', matchPanelHeights);
+    
+    // Use ResizeObserver to watch for content changes in right panel
+    const resizeObserver = new ResizeObserver(matchPanelHeights);
+    if (rightPanelRef.current) {
+      resizeObserver.observe(rightPanelRef.current);
+    }
+    
+    return () => {
+      window.removeEventListener('resize', matchPanelHeights);
+      resizeObserver.disconnect();
+    };
+  }, [selectedSeries, messageContent, selectedTemplate, communicationType]); // Re-run when content changes
 
   // Default templates
   const smsTemplates = [
@@ -77,23 +108,81 @@ const Communication = () => {
     }
   ];
 
-  // Filter series based on search and status
-  const filteredSeries = useMemo(() => {
-    return series.filter(s => {
-      const matchesSearch = s.name.toLowerCase().includes(searchTerm.toLowerCase());
+  // Enhanced search that includes both series and investors
+  const searchResults = useMemo(() => {
+    if (!searchTerm.trim()) {
+      // No search term - show all series
+      return {
+        type: 'series',
+        results: series.filter(s => {
+          const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
+          return matchesStatus;
+        })
+      };
+    }
+
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    
+    // Search in series names
+    const matchingSeries = series.filter(s => {
+      const matchesSearch = s.name.toLowerCase().includes(lowerSearchTerm);
       const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [series, searchTerm, statusFilter]);
+
+    // Search in investor names, emails, phone numbers, and investor IDs
+    const matchingInvestors = investors.filter(inv => {
+      const matchesName = inv.name.toLowerCase().includes(lowerSearchTerm);
+      const matchesEmail = inv.email && inv.email.toLowerCase().includes(lowerSearchTerm);
+      const matchesPhone = inv.phone && inv.phone.includes(searchTerm);
+      const matchesId = inv.investorId && inv.investorId.toLowerCase().includes(lowerSearchTerm);
+      const notDeleted = inv.status !== 'deleted';
+      
+      return (matchesName || matchesEmail || matchesPhone || matchesId) && notDeleted;
+    });
+
+    // If we have both series and investor matches, prioritize series
+    if (matchingSeries.length > 0) {
+      return {
+        type: 'series',
+        results: matchingSeries
+      };
+    } else if (matchingInvestors.length > 0) {
+      return {
+        type: 'investors',
+        results: matchingInvestors
+      };
+    } else {
+      return {
+        type: 'none',
+        results: []
+      };
+    }
+  }, [series, investors, searchTerm, statusFilter]);
 
   // Get investors for selected series
   const getInvestorsForSeries = (seriesName) => {
-    return investors.filter(inv => 
-      inv.series && 
-      Array.isArray(inv.series) && 
-      inv.series.includes(seriesName) &&
-      inv.status !== 'deleted' // Exclude deleted investors
-    );
+    console.log(`🔍 Getting investors for series: ${seriesName}`);
+    console.log(`📊 Total investors available:`, investors.length);
+    
+    const filtered = investors.filter(inv => {
+      const hasSeriesArray = inv.series && Array.isArray(inv.series);
+      const includesSeries = hasSeriesArray && inv.series.includes(seriesName);
+      const notDeleted = inv.status !== 'deleted';
+      
+      console.log(`👤 Investor ${inv.name}:`, {
+        hasSeriesArray,
+        series: inv.series,
+        includesSeries,
+        notDeleted,
+        status: inv.status
+      });
+      
+      return hasSeriesArray && includesSeries && notDeleted;
+    });
+    
+    console.log(`✅ Filtered investors for ${seriesName}:`, filtered.length);
+    return filtered;
   };
 
   // Get all selected investors across all series
@@ -111,6 +200,40 @@ const Communication = () => {
       });
     });
     return allSelected;
+  };
+
+  // Handle individual investor selection from search results
+  const handleIndividualInvestorSelect = (investor) => {
+    // Find all series this investor belongs to
+    const investorSeries = investor.series || [];
+    
+    if (investorSeries.length === 0) {
+      alert('This investor is not associated with any series.');
+      return;
+    }
+
+    // For simplicity, use the first series the investor belongs to
+    const primarySeries = investorSeries[0];
+    
+    // Add the series to selected series if not already selected
+    if (!selectedSeries.includes(primarySeries)) {
+      setSelectedSeries(prev => [...prev, primarySeries]);
+    }
+    
+    // Add this specific investor to the selected investors for this series
+    setSelectedInvestors(prev => {
+      const newMap = new Map(prev);
+      const currentSet = newMap.get(primarySeries) || new Set();
+      currentSet.add(investor.investorId);
+      newMap.set(primarySeries, currentSet);
+      return newMap;
+    });
+    
+    // Expand the series to show the investor is selected
+    setExpandedSeries(prev => new Set([...prev, primarySeries]));
+    
+    // Clear search to show the selected series
+    setSearchTerm('');
   };
 
   // Handle series selection
@@ -512,7 +635,7 @@ const Communication = () => {
 
               <div className="compose-layout">
                 {/* Left Panel - Series Selection */}
-                <div className="series-selection-panel">
+                <div className="series-selection-panel" ref={leftPanelRef}>
                   <div className="panel-header">
                     <h3>Select Series & Investors</h3>
                     <div className="search-filter-controls">
@@ -520,7 +643,7 @@ const Communication = () => {
                         <FiSearch size={16} />
                         <input
                           type="text"
-                          placeholder="Search series..."
+                          placeholder="Search series or investors..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           className="search-input"
@@ -554,169 +677,183 @@ const Communication = () => {
                     </div>
                   )}
 
-                  {/* Series List */}
                   <div className="series-list">
-                    {filteredSeries.length === 0 ? (
-                      <div className="no-series">
-                        <p>No series found matching your criteria.</p>
-                      </div>
-                    ) : (
-                      filteredSeries.map(seriesItem => {
-                        const seriesInvestors = getInvestorsForSeries(seriesItem.name);
-                        const selectedInvestorSet = selectedInvestors.get(seriesItem.name) || new Set();
-                        const isSeriesSelected = selectedSeries.includes(seriesItem.name);
-                        
-                        return (
-                          <div key={seriesItem.id} className={`series-card ${isSeriesSelected ? 'selected' : ''}`}>
-                            <div className="series-header" onClick={() => handleSeriesSelect(seriesItem.name)}>
-                              <div className="series-info">
-                                <h4>{seriesItem.name}</h4>
-                                <div className="series-meta">
-                                  <span className={`status-badge ${seriesItem.status}`}>
-                                    {seriesItem.status}
-                                  </span>
-                                  <span className="investor-count">
-                                    <FiUsers size={14} />
-                                    {seriesInvestors.length} investors
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="selection-controls">
-                                {isSeriesSelected && seriesInvestors.length > 0 && (
-                                  <button 
-                                    className="expand-toggle-btn"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleInvestorListExpansion(seriesItem.name);
-                                    }}
-                                    title={expandedSeries.has(seriesItem.name) ? "Collapse investor list" : "Expand investor list"}
-                                  >
-                                    {expandedSeries.has(seriesItem.name) ? <FiMinimize2 size={16} /> : <FiMaximize2 size={16} />}
-                                  </button>
-                                )}
-                                <div className="selection-indicator">
-                                  {isSeriesSelected ? <MdCheck size={20} /> : <MdAdd size={20} />}
-                                </div>
+                    {searchResults.type === 'series' && searchResults.results.map(seriesItem => {
+                      const seriesInvestors = getInvestorsForSeries(seriesItem.name);
+                      const selectedInvestorSet = selectedInvestors.get(seriesItem.name) || new Set();
+                      const isExpanded = expandedSeries.has(seriesItem.name);
+                      
+                      return (
+                        <div key={seriesItem.id} className="series-card">
+                          <div className="series-header">
+                            <div className="series-info">
+                              <h4>{seriesItem.name}</h4>
+                              <div className="series-meta">
+                                <span className="status-badge">ACTIVE</span>
+                                <span className="investor-count">
+                                  <FiUsers size={14} />
+                                  {seriesInvestors.length} investors
+                                </span>
                               </div>
                             </div>
+                            <button 
+                              className="expand-toggle-btn"
+                              onClick={() => {
+                                // First select the series
+                                if (!selectedSeries.includes(seriesItem.name)) {
+                                  handleSeriesSelect(seriesItem.name);
+                                }
+                                // Then toggle expansion
+                                toggleInvestorListExpansion(seriesItem.name);
+                              }}
+                              title="Expand to select investors"
+                            >
+                              <MdAdd size={28} style={{color: 'white', fontWeight: 'bold'}} />
+                            </button>
+                          </div>
 
-                            {/* Investor List (shown when series is selected and expanded) */}
-                            {isSeriesSelected && expandedSeries.has(seriesItem.name) && (
-                              <div className="investors-list-container">
-                                <div className="investors-list-header">
-                                  <div className="drag-handle" title="Drag to resize">
-                                    <MdDragIndicator size={16} />
-                                  </div>
-                                  <span>Select Investors ({selectedInvestorSet.size}/{seriesInvestors.length})</span>
-                                  <div className="bulk-actions">
-                                    <button 
-                                      className="bulk-action-btn select-all"
-                                      onClick={() => handleSelectAllInvestors(seriesItem.name)}
-                                      disabled={selectedInvestorSet.size === seriesInvestors.length}
-                                    >
-                                      Select All
-                                    </button>
-                                    <button 
-                                      className="bulk-action-btn deselect-all"
-                                      onClick={() => handleDeselectAllInvestors(seriesItem.name)}
-                                      disabled={selectedInvestorSet.size === 0}
-                                    >
-                                      Deselect All
-                                    </button>
-                                  </div>
-                                </div>
-                                
-                                <div 
-                                  className="investors-grid resizable-investors-grid"
-                                  style={{
-                                    height: investorListHeights.get(seriesItem.name) || '320px',
-                                    minHeight: '200px',
-                                    maxHeight: '600px',
-                                    resize: 'vertical',
-                                    overflow: 'auto'
-                                  }}
-                                  ref={(el) => {
-                                    if (el) {
-                                      // Add resize event listener
-                                      const handleResize = () => {
-                                        const newHeight = el.offsetHeight;
-                                        if (newHeight !== (investorListHeights.get(seriesItem.name) || 320)) {
-                                          handleInvestorListResize(seriesItem.name, newHeight);
-                                        }
-                                      };
-                                      
-                                      // Use MutationObserver to detect style changes
-                                      const observer = new MutationObserver(handleResize);
-                                      observer.observe(el, { 
-                                        attributes: true, 
-                                        attributeFilter: ['style'] 
-                                      });
-                                      
-                                      // Cleanup function
-                                      return () => observer.disconnect();
-                                    }
-                                  }}
-                                >
-                                  {seriesInvestors.map(investor => {
-                                    const isSelected = selectedInvestorSet.has(investor.investorId);
-                                    const contactInfo = communicationType === 'sms' ? investor.phone : investor.email;
-                                    
-                                    return (
-                                      <div 
-                                        key={investor.investorId} 
-                                        className={`investor-item ${isSelected ? 'selected' : ''} ${!contactInfo ? 'no-contact' : ''}`}
-                                        onClick={() => {
-                                          console.log(`🔥 CLICKED: ${investor.name} (${investor.investorId}) - Selected: ${isSelected}`);
-                                          handleInvestorToggle(seriesItem.name, investor.investorId);
-                                        }}
-                                        style={{ cursor: 'pointer' }}
-                                        title={`Click to ${isSelected ? 'deselect' : 'select'} ${investor.name}`}
-                                      >
-                                        <div className="investor-info">
-                                          <div className="investor-name">{investor.name}</div>
-                                          <div className="investor-id">{investor.investorId}</div>
-                                          <div className="contact-info">
-                                            {communicationType === 'sms' ? (
-                                              <span className="contact-item">
-                                                <FiPhone size={12} />
-                                                {investor.phone || 'No phone'}
-                                              </span>
-                                            ) : (
-                                              <span className="contact-item">
-                                                <FiMail size={12} />
-                                                {investor.email || 'No email'}
-                                              </span>
-                                            )}
-                                          </div>
-                                        </div>
-                                        <div className="selection-checkbox">
-                                          {isSelected ? (
-                                            <div className="selected-indicator" title="Selected - Click to deselect">
-                                              <MdCheck size={16} />
-                                            </div>
-                                          ) : (
-                                            <div className="empty-checkbox" title="Not selected - Click to select"></div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                                
-                                <div className="resize-hint">
-                                  <span>Drag the bottom-right corner or bottom edge to resize this list</span>
+                          {/* Investor List (shown when expanded) */}
+                          {isExpanded && (
+                            <div className="investor-list-section">
+                              <div className="investor-list-header">
+                                <span className="investor-list-title">
+                                  Select Investors ({seriesInvestors.length - selectedInvestorSet.size}/{seriesInvestors.length})
+                                </span>
+                                <div className="bulk-actions">
+                                  <button 
+                                    className="bulk-btn"
+                                    onClick={() => handleDeselectAllInvestors(seriesItem.name)}
+                                    disabled={selectedInvestorSet.size === 0}
+                                  >
+                                    Deselect All
+                                  </button>
+                                  <button 
+                                    className="bulk-btn"
+                                    onClick={() => handleSelectAllInvestors(seriesItem.name)}
+                                    disabled={selectedInvestorSet.size === seriesInvestors.length}
+                                  >
+                                    Select All
+                                  </button>
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        );
-                      })
+                              
+                              <div className="investor-cards-container">
+                                {seriesInvestors.map(investor => {
+                                  const isSelected = !selectedInvestorSet.has(investor.investorId); // Inverted logic - selected means included
+                                  const contactInfo = communicationType === 'sms' ? investor.phone : investor.email;
+                                  
+                                  return (
+                                    <div 
+                                      key={investor.investorId} 
+                                      className={`investor-card ${!isSelected ? 'excluded' : ''}`}
+                                      onClick={() => handleInvestorToggle(seriesItem.name, investor.investorId)}
+                                    >
+                                      <div className="investor-card-header">
+                                        <h4 className="investor-name">{investor.name}</h4>
+                                        <div className={`investor-checkbox ${isSelected ? 'checked' : ''}`}>
+                                          {isSelected && <MdCheck size={12} />}
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="investor-id-section">
+                                        <p className="investor-id">{investor.investorId}</p>
+                                      </div>
+                                      
+                                      <div className="investor-contact">
+                                        <span className="contact-icon">
+                                          {communicationType === 'sms' ? <FiPhone size={14} /> : <FiMail size={14} />}
+                                        </span>
+                                        <span className="contact-text">
+                                          {contactInfo || `No ${communicationType === 'sms' ? 'phone' : 'email'}`}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Individual Investor Search Results */}
+                    {searchResults.type === 'investors' && (
+                      <div className="search-results-section">
+                        <div className="search-results-header">
+                          <h4>Found {searchResults.results.length} investor(s)</h4>
+                          <p className="search-hint">Click on an investor to select them</p>
+                        </div>
+                        <div className="investor-search-results">
+                          {searchResults.results.map(investor => {
+                            const contactInfo = communicationType === 'sms' ? investor.phone : investor.email;
+                            const investorSeries = investor.series || [];
+                            
+                            return (
+                              <div 
+                                key={investor.investorId} 
+                                className="investor-search-card"
+                                onClick={() => handleIndividualInvestorSelect(investor)}
+                              >
+                                <div className="investor-search-header">
+                                  <h4 className="investor-name">{investor.name}</h4>
+                                  <div className="investor-id-badge">{investor.investorId}</div>
+                                </div>
+                                
+                                <div className="investor-search-details">
+                                  <div className="investor-contact">
+                                    <span className="contact-icon">
+                                      {communicationType === 'sms' ? <FiPhone size={14} /> : <FiMail size={14} />}
+                                    </span>
+                                    <span className="contact-text">
+                                      {contactInfo || `No ${communicationType === 'sms' ? 'phone' : 'email'}`}
+                                    </span>
+                                  </div>
+                                  
+                                  {investorSeries.length > 0 && (
+                                    <div className="investor-series-info">
+                                      <span className="series-label">Series:</span>
+                                      <div className="series-tags-small">
+                                        {investorSeries.slice(0, 2).map((seriesName, idx) => (
+                                          <span key={idx} className="series-tag-small">{seriesName}</span>
+                                        ))}
+                                        {investorSeries.length > 2 && (
+                                          <span className="series-tag-small more">+{investorSeries.length - 2} more</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                <div className="select-investor-hint">
+                                  <span>Click to select</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No Results */}
+                    {searchResults.type === 'none' && (
+                      <div className="no-results">
+                        <div className="no-results-icon">🔍</div>
+                        <h4>No results found</h4>
+                        <p>No series or investors match your search term "{searchTerm}"</p>
+                        <button 
+                          className="clear-search-btn"
+                          onClick={() => setSearchTerm('')}
+                        >
+                          Clear Search
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
 
                 {/* Right Panel - Message Composition */}
-                <div className="message-composition-panel">
+                <div className="message-composition-panel" ref={rightPanelRef}>
                   <div className="panel-header">
                     <h3>Compose {communicationType === 'sms' ? 'SMS' : 'Email'}</h3>
                     {selectedSeries.length > 0 && (
@@ -726,7 +863,6 @@ const Communication = () => {
                       </button>
                     )}
                   </div>
-
                   {/* Selection Summary */}
                   {selectedSeries.length > 0 && (
                     <div className="selection-summary">
@@ -741,21 +877,22 @@ const Communication = () => {
                       </div>
                       <div className="selected-series-tags">
                         {selectedSeries.map(seriesName => {
-                          const count = selectedInvestors.get(seriesName)?.size || 0;
+                          const seriesInvestors = getInvestorsForSeries(seriesName);
+                          const excludedSet = selectedInvestors.get(seriesName) || new Set();
+                          const includedCount = seriesInvestors.length - excludedSet.size;
+                          
                           return (
                             <div key={seriesName} className="series-tag">
-                              <span className="series-tag-content">
+                              <div className="series-tag-content">
                                 <span className="series-name">{seriesName}</span>
-                                <span className="investor-count">({count})</span>
-                              </span>
+                                <span className="investor-count">({includedCount})</span>
+                              </div>
                               <button 
                                 className="remove-series-btn"
                                 onClick={() => handleSeriesSelect(seriesName)}
                                 title={`Remove ${seriesName} from selection`}
-                                aria-label={`Remove ${seriesName}`}
-                                type="button"
                               >
-                                <span className="remove-icon">×</span>
+                                ×
                               </button>
                             </div>
                           );
@@ -763,8 +900,6 @@ const Communication = () => {
                       </div>
                     </div>
                   )}
-
-                  {/* Template Selection */}
                   <div className="template-section">
                     <label htmlFor="template-select">Quick Templates:</label>
                     <select

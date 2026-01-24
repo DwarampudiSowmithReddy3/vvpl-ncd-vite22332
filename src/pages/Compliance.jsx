@@ -29,26 +29,76 @@ const Compliance = () => {
   const [showComplianceTracker, setShowComplianceTracker] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fixed compliance data - stable across page visits
-  const complianceSeries = [
-    // Yet to be Submitted (4 series)
-    { id: 'comp-1', name: 'Series A NCD', interestRate: 8.5, interestFrequency: 'Monthly', investors: 45, fundsRaised: 25000000, targetAmount: 100000000, issueDate: '2024-01-15', maturityDate: '2027-01-15', lastUpdated: '2024-01-08', status: 'yet-to-be-submitted' },
-    { id: 'comp-2', name: 'Series B NCD', interestRate: 9.0, interestFrequency: 'Monthly', investors: 32, fundsRaised: 18000000, targetAmount: 75000000, issueDate: '2024-02-01', maturityDate: '2027-02-01', lastUpdated: '2024-01-07', status: 'yet-to-be-submitted' },
-    { id: 'comp-3', name: 'Series D NCD', interestRate: 8.75, interestFrequency: 'Monthly', investors: 28, fundsRaised: 15000000, targetAmount: 60000000, issueDate: '2024-03-10', maturityDate: '2027-03-10', lastUpdated: '2024-01-06', status: 'yet-to-be-submitted' },
-    { id: 'comp-4', name: 'Series E NCD', interestRate: 9.25, interestFrequency: 'Monthly', investors: 38, fundsRaised: 22000000, targetAmount: 80000000, issueDate: '2024-04-05', maturityDate: '2027-04-05', lastUpdated: '2024-01-05', status: 'yet-to-be-submitted' },
+  // Get real series data from DataContext and convert to compliance format
+  const getComplianceSeries = () => {
+    // Filter series that need compliance tracking (approved and beyond)
+    const complianceEligibleSeries = series.filter(s => 
+      s.status === 'active' || 
+      s.status === 'accepting' || 
+      s.status === 'upcoming' ||
+      (s.status === 'DRAFT' && s.approvalStatus === 'approved') // Include approved drafts
+    );
     
-    // Pending (4 series)
-    { id: 'comp-5', name: 'Series F NCD', interestRate: 8.8, interestFrequency: 'Monthly', investors: 52, fundsRaised: 45000000, targetAmount: 90000000, issueDate: '2024-01-20', maturityDate: '2027-01-20', lastUpdated: '2024-01-04', status: 'pending' },
-    { id: 'comp-6', name: 'Series G NCD', interestRate: 9.1, interestFrequency: 'Monthly', investors: 41, fundsRaised: 35000000, targetAmount: 70000000, issueDate: '2024-02-15', maturityDate: '2027-02-15', lastUpdated: '2024-01-03', status: 'pending' },
-    { id: 'comp-7', name: 'Series H NCD', interestRate: 8.9, interestFrequency: 'Monthly', investors: 47, fundsRaised: 40000000, targetAmount: 85000000, issueDate: '2024-03-01', maturityDate: '2027-03-01', lastUpdated: '2024-01-02', status: 'pending' },
-    { id: 'comp-8', name: 'Series I NCD', interestRate: 9.3, interestFrequency: 'Monthly', investors: 36, fundsRaised: 30000000, targetAmount: 65000000, issueDate: '2024-04-12', maturityDate: '2027-04-12', lastUpdated: '2024-01-01', status: 'pending' },
-    
-    // Submitted (4 series)
-    { id: 'comp-9', name: 'Series J NCD', interestRate: 8.6, interestFrequency: 'Monthly', investors: 65, fundsRaised: 85000000, targetAmount: 100000000, issueDate: '2024-01-10', maturityDate: '2027-01-10', lastUpdated: '2023-12-31', status: 'submitted' },
-    { id: 'comp-10', name: 'Series K NCD', interestRate: 9.2, interestFrequency: 'Monthly', investors: 58, fundsRaised: 70000000, targetAmount: 90000000, issueDate: '2024-02-08', maturityDate: '2027-02-08', lastUpdated: '2023-12-30', status: 'submitted' },
-    { id: 'comp-11', name: 'Series L NCD', interestRate: 8.95, interestFrequency: 'Monthly', investors: 72, fundsRaised: 95000000, targetAmount: 120000000, issueDate: '2024-03-05', maturityDate: '2027-03-05', lastUpdated: '2023-12-29', status: 'submitted' },
-    { id: 'comp-12', name: 'Series M NCD', interestRate: 9.4, interestFrequency: 'Monthly', investors: 61, fundsRaised: 80000000, targetAmount: 110000000, issueDate: '2024-04-18', maturityDate: '2027-04-18', lastUpdated: '2023-12-28', status: 'submitted' }
-  ];
+    return complianceEligibleSeries.map((s, index) => {
+      // Assign compliance status based on series characteristics
+      let complianceStatus = 'yet-to-be-submitted'; // Default for all new series
+      
+      // Only assign better status to series that have been around longer and have activity
+      if (s.status === 'active' && s.fundsRaised > 0) {
+        const fundingProgress = s.targetAmount > 0 ? (s.fundsRaised / s.targetAmount) * 100 : 0;
+        
+        // Only well-established series with significant funding get better status
+        if (fundingProgress > 90 && s.investors > 50) {
+          complianceStatus = 'submitted';
+        } else if (fundingProgress > 60 && s.investors > 20) {
+          complianceStatus = 'pending';
+        }
+        
+        // Check if series has been active for a reasonable time
+        if (s.issueDate) {
+          const issueDate = new Date(s.issueDate.split('/').reverse().join('-'));
+          const daysSinceIssue = (new Date() - issueDate) / (1000 * 60 * 60 * 24);
+          
+          // Only series active for more than 6 months can have submitted status
+          if (daysSinceIssue < 180 && complianceStatus === 'submitted') {
+            complianceStatus = 'pending';
+          }
+          
+          // Series active for less than 30 days should be yet-to-be-submitted
+          if (daysSinceIssue < 30) {
+            complianceStatus = 'yet-to-be-submitted';
+          }
+        }
+      }
+      
+      // All DRAFT series (even approved ones) should be yet-to-be-submitted
+      if (s.status === 'DRAFT') {
+        complianceStatus = 'yet-to-be-submitted';
+      }
+      
+      // New series without investments should be yet-to-be-submitted
+      if (s.fundsRaised === 0 || s.investors === 0) {
+        complianceStatus = 'yet-to-be-submitted';
+      }
+      
+      return {
+        id: `comp-${s.id}`,
+        name: `${s.name} NCD`,
+        interestRate: s.interestRate,
+        interestFrequency: s.interestFrequency || 'Monthly',
+        investors: s.investors || 0,
+        fundsRaised: s.fundsRaised || 0,
+        targetAmount: s.targetAmount || 0,
+        issueDate: s.issueDate || 'TBD',
+        maturityDate: s.maturityDate || 'TBD',
+        lastUpdated: new Date().toISOString().split('T')[0],
+        status: complianceStatus,
+        originalSeries: s // Keep reference to original series data
+      };
+    });
+  };
+
+  const complianceSeries = getComplianceSeries();
 
   // Filter series based on search term
   const filteredComplianceSeries = complianceSeries.filter(s => 
@@ -123,8 +173,7 @@ const Compliance = () => {
       <div className="compliance-container">
         <div className="compliance-header">
           <div className="header-content">
-            <h1>Compliance Management</h1>
-            <p>Monitor regulatory compliance status across all NCD series</p>
+            <h1 className="page-title">Compliance Management</h1>
           </div>
           <div className="header-actions">
             <div className="search-container">
@@ -140,7 +189,19 @@ const Compliance = () => {
           </div>
         </div>
 
+        {/* Show message if no series available for compliance tracking */}
+        {complianceSeries.length === 0 && (
+          <div className="compliance-empty-state">
+            <div className="empty-state-content">
+              <MdInfo size={48} className="empty-state-icon" />
+              <h3>No Series Available for Compliance Tracking</h3>
+              <p>Only active, accepting, or upcoming series appear in compliance management. Create and approve series to see them here.</p>
+            </div>
+          </div>
+        )}
+
         {/* Yet to be Submitted - Red Theme */}
+        {categorizedSeries['yet-to-be-submitted'].length > 0 && (
         <div className="compliance-section red-theme">
           <div className="section-header">
             <h2 className="section-title">
@@ -153,34 +214,34 @@ const Compliance = () => {
             {categorizedSeries['yet-to-be-submitted'].map((s) => {
               const statusInfo = getStatusInfo('yet-to-be-submitted');
               return (
-                <div key={s.id} className="series-card red-card">
-                  <div className="card-banner">
-                    <div className="banner-content">
-                      <h3 className="series-name">{s.name}</h3>
-                      <div className="banner-status">
-                        <span className={`status-pill ${statusInfo.color}`}>
+                <div key={s.id} className="compliance-series-card compliance-red-card">
+                  <div className="compliance-card-banner">
+                    <div className="compliance-banner-content">
+                      <h3 className="compliance-series-name">{s.name}</h3>
+                      <div className="compliance-banner-status">
+                        <span className={`compliance-status-pill compliance-${statusInfo.color}`}>
                           {statusInfo.label.toUpperCase()}
                         </span>
-                        <span className="frequency-pill">{s.interestFrequency}</span>
+                        <span className="compliance-frequency-pill">{s.interestFrequency}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="series-details">
-                    <div className="detail-item">
-                      <span className="detail-label">Issue Date:</span>
-                      <span className="detail-value">{s.issueDate}</span>
+                  <div className="compliance-series-details">
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Issue Date:</span>
+                      <span className="compliance-detail-value">{s.issueDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Maturity Date:</span>
-                      <span className="detail-value">{s.maturityDate}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Maturity Date:</span>
+                      <span className="compliance-detail-value">{s.maturityDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Last Updated:</span>
-                      <span className="detail-value">{s.lastUpdated}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Last Updated:</span>
+                      <span className="compliance-detail-value">{s.lastUpdated}</span>
                     </div>
                   </div>
                   <button 
-                    className="view-details-button red-button"
+                    className="compliance-view-details-button compliance-red-button"
                     onClick={() => handleViewDetails(s)}
                   >
                     <HiOutlineEye size={18} /> View Details
@@ -190,8 +251,10 @@ const Compliance = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* Pending - Orange Theme */}
+        {categorizedSeries['pending'].length > 0 && (
         <div className="compliance-section orange-theme">
           <div className="section-header">
             <h2 className="section-title">
@@ -204,34 +267,34 @@ const Compliance = () => {
             {categorizedSeries['pending'].map((s) => {
               const statusInfo = getStatusInfo('pending');
               return (
-                <div key={s.id} className="series-card orange-card">
-                  <div className="card-banner">
-                    <div className="banner-content">
-                      <h3 className="series-name">{s.name}</h3>
-                      <div className="banner-status">
-                        <span className={`status-pill ${statusInfo.color}`}>
+                <div key={s.id} className="compliance-series-card compliance-orange-card">
+                  <div className="compliance-card-banner">
+                    <div className="compliance-banner-content">
+                      <h3 className="compliance-series-name">{s.name}</h3>
+                      <div className="compliance-banner-status">
+                        <span className={`compliance-status-pill compliance-${statusInfo.color}`}>
                           {statusInfo.label.toUpperCase()}
                         </span>
-                        <span className="frequency-pill">{s.interestFrequency}</span>
+                        <span className="compliance-frequency-pill">{s.interestFrequency}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="series-details">
-                    <div className="detail-item">
-                      <span className="detail-label">Issue Date:</span>
-                      <span className="detail-value">{s.issueDate}</span>
+                  <div className="compliance-series-details">
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Issue Date:</span>
+                      <span className="compliance-detail-value">{s.issueDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Maturity Date:</span>
-                      <span className="detail-value">{s.maturityDate}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Maturity Date:</span>
+                      <span className="compliance-detail-value">{s.maturityDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Last Updated:</span>
-                      <span className="detail-value">{s.lastUpdated}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Last Updated:</span>
+                      <span className="compliance-detail-value">{s.lastUpdated}</span>
                     </div>
                   </div>
                   <button 
-                    className="view-details-button orange-button"
+                    className="compliance-view-details-button compliance-orange-button"
                     onClick={() => handleViewDetails(s)}
                   >
                     <HiOutlineEye size={18} /> View Details
@@ -241,8 +304,10 @@ const Compliance = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* Submitted - Green Theme */}
+        {categorizedSeries['submitted'].length > 0 && (
         <div className="compliance-section green-theme">
           <div className="section-header">
             <h2 className="section-title">
@@ -255,34 +320,34 @@ const Compliance = () => {
             {categorizedSeries['submitted'].map((s) => {
               const statusInfo = getStatusInfo('submitted');
               return (
-                <div key={s.id} className="series-card green-card">
-                  <div className="card-banner">
-                    <div className="banner-content">
-                      <h3 className="series-name">{s.name}</h3>
-                      <div className="banner-status">
-                        <span className={`status-pill ${statusInfo.color}`}>
+                <div key={s.id} className="compliance-series-card compliance-green-card">
+                  <div className="compliance-card-banner">
+                    <div className="compliance-banner-content">
+                      <h3 className="compliance-series-name">{s.name}</h3>
+                      <div className="compliance-banner-status">
+                        <span className={`compliance-status-pill compliance-${statusInfo.color}`}>
                           {statusInfo.label.toUpperCase()}
                         </span>
-                        <span className="frequency-pill">{s.interestFrequency}</span>
+                        <span className="compliance-frequency-pill">{s.interestFrequency}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="series-details">
-                    <div className="detail-item">
-                      <span className="detail-label">Issue Date:</span>
-                      <span className="detail-value">{s.issueDate}</span>
+                  <div className="compliance-series-details">
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Issue Date:</span>
+                      <span className="compliance-detail-value">{s.issueDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Maturity Date:</span>
-                      <span className="detail-value">{s.maturityDate}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Maturity Date:</span>
+                      <span className="compliance-detail-value">{s.maturityDate}</span>
                     </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Last Updated:</span>
-                      <span className="detail-value">{s.lastUpdated}</span>
+                    <div className="compliance-detail-item">
+                      <span className="compliance-detail-label">Last Updated:</span>
+                      <span className="compliance-detail-value">{s.lastUpdated}</span>
                     </div>
                   </div>
                   <button 
-                    className="view-details-button green-button"
+                    className="compliance-view-details-button compliance-green-button"
                     onClick={() => handleViewDetails(s)}
                   >
                     <HiOutlineEye size={18} /> View Details
@@ -292,6 +357,7 @@ const Compliance = () => {
             })}
           </div>
         </div>
+        )}
 
         {/* Compliance Tracker Modal - Dynamic for each series */}
         {showComplianceTracker && selectedSeries && (
@@ -302,9 +368,14 @@ const Compliance = () => {
               trusteeCompany: 'SBICAP Trustee Co. Ltd.',
               stats: {
                 totalRequirements: 42,
-                receivedCompleted: selectedSeries.status === 'submitted' ? 38 : selectedSeries.status === 'pending' ? 25 : 12,
-                pendingActions: selectedSeries.status === 'submitted' ? 4 : selectedSeries.status === 'pending' ? 15 : 25,
-                notApplicable: selectedSeries.status === 'submitted' ? 0 : selectedSeries.status === 'pending' ? 2 : 5
+                // New series should start with 0 completed documents
+                receivedCompleted: selectedSeries.originalSeries?.status === 'DRAFT' ? 0 : 
+                                 selectedSeries.status === 'submitted' ? 38 : 
+                                 selectedSeries.status === 'pending' ? 12 : 0,
+                pendingActions: selectedSeries.originalSeries?.status === 'DRAFT' ? 42 : 
+                              selectedSeries.status === 'submitted' ? 4 : 
+                              selectedSeries.status === 'pending' ? 30 : 42,
+                notApplicable: 0 // Always 0 for new series
               }
             }}
           />

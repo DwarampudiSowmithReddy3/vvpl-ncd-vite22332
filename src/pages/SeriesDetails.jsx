@@ -789,6 +789,27 @@ const SeriesDetails = () => {
           </div>
         </div>
 
+        {/* Rejection Reason Section - Only show for rejected series */}
+        {seriesData.status === 'REJECTED' && seriesData.rejectionReason && (
+          <div className="rejection-section">
+            <div className="rejection-card">
+              <h2 className="rejection-title">Rejection Details</h2>
+              <div className="rejection-content">
+                <div className="rejection-info">
+                  <span className="rejection-label">Rejected On:</span>
+                  <span className="rejection-date">
+                    {seriesData.rejectedAt ? new Date(seriesData.rejectedAt).toLocaleDateString('en-GB') : 'N/A'}
+                  </span>
+                </div>
+                <div className="rejection-reason-box">
+                  <h3 className="reason-title">Reason for Rejection:</h3>
+                  <p className="reason-text">{seriesData.rejectionReason}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Investor Documents */}
         <div className="documents-section">
           <h2 className="section-title">Investor Documents</h2>

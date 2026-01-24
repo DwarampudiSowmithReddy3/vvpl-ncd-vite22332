@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -22,7 +22,7 @@ import 'jspdf-autotable';
 const InvestorDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const { investors = [], getInvestorComplaints, addAuditLog, updateInvestor, setInvestors, series, setSeries, getInvestorDocuments } = useData();
+  const { investors = [], getInvestorComplaints, addAuditLog, updateInvestor, setInvestors, series, setSeries, getInvestorDocuments, trackEarlyRedemptionEvent, trackChurnEvent } = useData();
   const { user } = useAuth();
   
   // Edit modal state
@@ -31,6 +31,25 @@ const InvestorDetails = () => {
   const [confirmAction, setConfirmAction] = useState(null); // 'delete' or 'deactivate'
   const [showDocumentsModal, setShowDocumentsModal] = useState(false);
   const [selectedSeriesDocuments, setSelectedSeriesDocuments] = useState([]);
+  const [showPartialExitInfo, setShowPartialExitInfo] = useState(false); // For collapsible info tooltip
+  const tooltipRef = useRef(null); // Ref for click-outside detection
+
+  // Close tooltip when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target)) {
+        setShowPartialExitInfo(false);
+      }
+    };
+
+    if (showPartialExitInfo) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPartialExitInfo]);
 
   // Hardcoded default data
   const defaultInvestor = {
@@ -89,16 +108,44 @@ const InvestorDetails = () => {
     console.log('Investor ID type:', foundInvestor ? typeof foundInvestor.id : 'N/A');
     
     if (foundInvestor) {
-      // Generate holdings from investments array
+      // Generate holdings from investments array with real series status
       const holdings = [];
       if (foundInvestor.investments && Array.isArray(foundInvestor.investments)) {
         foundInvestor.investments.forEach(investment => {
+          // Find the actual series data to get real status
+          const seriesData = series.find(s => s.name === investment.seriesName);
+          let seriesStatus = 'Active'; // Default fallback
+          
+          if (seriesData) {
+            // Map series status to holding status
+            switch (seriesData.status) {
+              case 'active':
+                seriesStatus = 'Active';
+                break;
+              case 'matured':
+                seriesStatus = 'Matured';
+                break;
+              case 'upcoming':
+                seriesStatus = 'Upcoming';
+                break;
+              case 'accepting':
+                seriesStatus = 'Accepting';
+                break;
+              case 'closed':
+                seriesStatus = 'Closed';
+                break;
+              default:
+                seriesStatus = 'Active';
+            }
+          }
+          
           holdings.push({
             series: investment.seriesName,
             purchaseDate: investment.date,
             investment: investment.amount,
-            nextPayout: 'TBD', // To be determined based on series payout schedule
-            status: 'Active'
+            nextPayout: seriesStatus === 'Matured' ? 'Completed' : 'TBD',
+            status: seriesStatus,
+            isMatured: seriesStatus === 'Matured' // Add flag for easy checking
           });
         });
       }
@@ -679,6 +726,168 @@ The original file data was not stored in this demo version.`;
     }
   };
 
+  // Handle partial series exit - Exit from specific series only
+  const handlePartialSeriesExit = (seriesToExit) => {
+    console.log('=== PARTIAL SERIES EXIT FUNCTION CALLED ===');
+    console.log('Series to exit:', seriesToExit);
+    console.log('Current investor:', investor);
+
+    try {
+      // Get current investors and series from localStorage directly
+      const currentInvestors = JSON.parse(localStorage.getItem('investors') || '[]');
+      const currentSeries = JSON.parse(localStorage.getItem('series') || '[]');
+      
+      const investorIndex = currentInvestors.findIndex(inv => inv.investorId === investor.investorId);
+      if (investorIndex === -1) {
+        alert('❌ Investor not found');
+        return;
+      }
+
+      const investorToUpdate = currentInvestors[investorIndex];
+      
+      // Check if investor is actually in this series
+      if (!investorToUpdate.series || !investorToUpdate.series.includes(seriesToExit)) {
+        alert(`❌ Investor is not invested in ${seriesToExit}`);
+        return;
+      }
+
+      // Find the series details for lock-in period check
+      const seriesDetails = currentSeries.find(s => s.name === seriesToExit);
+      if (!seriesDetails) {
+        alert(`❌ Series ${seriesToExit} not found`);
+        return;
+      }
+
+      // Find the specific investment for this series
+      const seriesInvestment = investorToUpdate.investments?.find(inv => inv.seriesName === seriesToExit);
+      if (!seriesInvestment) {
+        alert(`❌ No investment found for ${seriesToExit}`);
+        return;
+      }
+
+      // Lock-in period check
+      const investmentDate = new Date(seriesInvestment.timestamp);
+      const lockInDate = new Date(seriesDetails.lockInPeriod);
+      const currentDate = new Date();
+      
+      let refundAmount = seriesInvestment.amount;
+      let penaltyAmount = 0;
+      let exitStatus = 'eligible';
+
+      if (currentDate < lockInDate) {
+        // Early exit - apply penalty
+        penaltyAmount = Math.round(refundAmount * 0.02); // 2% penalty
+        refundAmount = refundAmount - penaltyAmount;
+        exitStatus = 'early_exit_penalty';
+        
+        const confirmEarlyExit = window.confirm(
+          `⚠️ EARLY EXIT WARNING\n\n` +
+          `Series: ${seriesToExit}\n` +
+          `Investment Amount: ₹${seriesInvestment.amount.toLocaleString('en-IN')}\n` +
+          `Lock-in Period Ends: ${lockInDate.toLocaleDateString('en-GB')}\n\n` +
+          `PENALTY: ₹${penaltyAmount.toLocaleString('en-IN')} (2%)\n` +
+          `NET REFUND: ₹${refundAmount.toLocaleString('en-IN')}\n\n` +
+          `Do you want to proceed with early exit?`
+        );
+        
+        if (!confirmEarlyExit) {
+          return;
+        }
+      } else {
+        // Normal exit - no penalty
+        const confirmNormalExit = window.confirm(
+          `✅ SERIES EXIT CONFIRMATION\n\n` +
+          `Series: ${seriesToExit}\n` +
+          `Investment Amount: ₹${seriesInvestment.amount.toLocaleString('en-IN')}\n` +
+          `Refund Amount: ₹${refundAmount.toLocaleString('en-IN')}\n\n` +
+          `Do you want to exit from this series?`
+        );
+        
+        if (!confirmNormalExit) {
+          return;
+        }
+      }
+
+      // Update investor data - remove the series
+      const updatedSeries = investorToUpdate.series.filter(s => s !== seriesToExit);
+      const updatedInvestments = investorToUpdate.investments?.filter(inv => inv.seriesName !== seriesToExit) || [];
+      const updatedTotalInvestment = updatedInvestments.reduce((sum, inv) => sum + inv.amount, 0);
+
+      const updatedInvestor = {
+        ...investorToUpdate,
+        series: updatedSeries,
+        investments: updatedInvestments,
+        investment: updatedTotalInvestment
+      };
+
+      // Update series data - remove investor's funds and reduce investor count
+      const updatedSeriesData = currentSeries.map(s => {
+        if (s.name === seriesToExit) {
+          const newInvestorCount = Math.max(0, s.investors - 1);
+          const newFundsRaised = Math.max(0, s.fundsRaised - seriesInvestment.amount);
+          
+          return {
+            ...s,
+            investors: newInvestorCount,
+            fundsRaised: newFundsRaised
+          };
+        }
+        return s;
+      });
+
+      // Update the investor in the array
+      currentInvestors[investorIndex] = updatedInvestor;
+
+      // Save to localStorage
+      localStorage.setItem('investors', JSON.stringify(currentInvestors));
+      localStorage.setItem('series', JSON.stringify(updatedSeriesData));
+
+      // Update context
+      setInvestors(currentInvestors);
+      setSeries(updatedSeriesData);
+
+      // Add audit log
+      addAuditLog({
+        action: `PARTIAL SERIES EXIT - ${seriesToExit}`,
+        adminName: user ? user.name : 'Admin',
+        adminRole: user ? user.displayRole : 'Admin',
+        details: `Investor "${investor.name}" (ID: ${investor.investorId}) exited from ${seriesToExit} - Refund: ₹${refundAmount.toLocaleString('en-IN')}${penaltyAmount > 0 ? `, Penalty: ₹${penaltyAmount.toLocaleString('en-IN')}` : ''}`,
+        entityType: 'Investor',
+        entityId: investor.investorId,
+        changes: {
+          seriesExit: seriesToExit,
+          refundAmount: refundAmount,
+          penaltyAmount: penaltyAmount,
+          exitStatus: exitStatus,
+          remainingSeries: updatedSeries
+        }
+      });
+
+      // Track early redemption event for satisfaction metrics
+      trackEarlyRedemptionEvent(investor, seriesToExit, seriesInvestment.amount, penaltyAmount);
+
+      // Show success message
+      alert(
+        `✅ SERIES EXIT SUCCESSFUL\n\n` +
+        `Exited from: ${seriesToExit}\n` +
+        `Refund Amount: ₹${refundAmount.toLocaleString('en-IN')}\n` +
+        `${penaltyAmount > 0 ? `Penalty: ₹${penaltyAmount.toLocaleString('en-IN')}\n` : ''}` +
+        `Remaining Series: ${updatedSeries.length > 0 ? updatedSeries.join(', ') : 'None'}\n\n` +
+        `The investor account remains active with other investments.`
+      );
+
+      // Dispatch custom event to refresh Dashboard metrics
+      window.dispatchEvent(new CustomEvent('dashboardRefresh'));
+
+      // Refresh the page to show updated data
+      window.location.reload();
+
+    } catch (error) {
+      console.error('❌ Error in partial series exit:', error);
+      alert('❌ Error processing series exit. Please try again.');
+    }
+  };
+
   // Handle delete investor - PERMANENT DELETION WITH LOCK-IN PERIOD CHECK
   const handleDeleteInvestor = () => {
     console.log('=== PERMANENT DELETE FUNCTION CALLED ===');
@@ -727,17 +936,18 @@ The original file data was not stored in this demo version.`;
         investorToDelete.investments.forEach(investment => {
           // Find the series details to get lock-in period
           const seriesDetails = currentSeries.find(s => s.name === investment.seriesName);
-          const lockInMonths = seriesDetails ? (seriesDetails.lockInPeriod || 12) : 12; // Default 12 months
           
-          // Calculate investment age in months
-          const investmentDate = new Date(investment.timestamp || investment.date);
-          const today = new Date();
-          const monthsDiff = Math.floor((today - investmentDate) / (1000 * 60 * 60 * 24 * 30));
-          
-          const isLockInComplete = monthsDiff >= lockInMonths;
-          const remainingLockIn = Math.max(0, lockInMonths - monthsDiff);
-          
-          if (isLockInComplete) {
+          if (seriesDetails && seriesDetails.lockInPeriod) {
+            // Calculate days from lock-in date
+            const today = new Date();
+            const lockInDate = new Date(seriesDetails.lockInPeriod.split('/').reverse().join('-'));
+            const diffTime = lockInDate - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const isLockInComplete = diffDays <= 0;
+            const remainingLockIn = Math.max(0, diffDays);
+            
+            if (isLockInComplete) {
             // Full refund - lock-in period completed
             eligibleRefunds.push({
               series: investment.seriesName,
@@ -745,8 +955,8 @@ The original file data was not stored in this demo version.`;
               date: investment.date,
               status: 'eligible',
               lockInStatus: 'completed',
-              monthsCompleted: monthsDiff,
-              lockInRequired: lockInMonths
+              daysCompleted: Math.abs(diffDays),
+              lockInDate: seriesDetails.lockInPeriod
             });
             totalRefundAmount += investment.amount;
           } else {
@@ -763,13 +973,23 @@ The original file data was not stored in this demo version.`;
               date: investment.date,
               status: 'early_exit',
               lockInStatus: 'incomplete',
-              monthsCompleted: monthsDiff,
-              monthsRemaining: remainingLockIn,
-              lockInRequired: lockInMonths
+              daysRemaining: remainingLockIn,
+              lockInDate: seriesDetails.lockInPeriod
             });
             totalRefundAmount += refundAfterPenalty;
             totalPenaltyAmount += penaltyAmount;
           }
+        } else {
+          // No lock-in period defined, treat as eligible
+          eligibleRefunds.push({
+            series: investment.seriesName,
+            amount: investment.amount,
+            date: investment.date,
+            status: 'eligible',
+            lockInStatus: 'no_lockin'
+          });
+          totalRefundAmount += investment.amount;
+        }
         });
       }
 
@@ -902,6 +1122,9 @@ Proceed with account deletion?`;
         }
       });
 
+      // Track churn event for satisfaction metrics
+      trackChurnEvent(investor);
+
       // Show final success message with lock-in details
       const successMessage = `✅ INVESTOR ACCOUNT PERMANENTLY DELETED!
 
@@ -919,6 +1142,9 @@ ${totalPenaltyAmount > 0 ? `💸 TOTAL PENALTIES: ₹${totalPenaltyAmount.toLoca
 The investor's funds have been processed according to lock-in period rules.`;
 
       alert(successMessage);
+      
+      // Dispatch custom event to refresh Dashboard metrics
+      window.dispatchEvent(new CustomEvent('dashboardRefresh'));
       
       // Navigate back immediately
       navigate('/investors');
@@ -1003,8 +1229,11 @@ The investor's funds have been processed according to lock-in period rules.`;
       setConfirmAction(null);
       alert(`Investor ${isCurrentlyActive ? 'deactivated' : 'activated'} successfully!`);
       
-      // Refresh the page to show changes
-      window.location.reload();
+      // Dispatch custom event to refresh Dashboard metrics
+      window.dispatchEvent(new CustomEvent('dashboardRefresh'));
+      
+      // Data will be automatically refreshed through context updates
+      // No need to reload the page
       
     } catch (error) {
       console.error('Error toggling activation:', error);
@@ -1223,7 +1452,29 @@ The investor's funds have been processed according to lock-in period rules.`;
 
           {/* Active Holdings Table */}
           <div className="holdings-section">
-            <h2 className="section-title">Active Holdings</h2>
+            <div className="holdings-header">
+              <h2 className="section-title">Active Holdings</h2>
+              {investor.series && investor.series.length > 1 && (
+                <div className="info-tooltip-container" ref={tooltipRef}>
+                  <button 
+                    className="info-toggle-button"
+                    onClick={() => setShowPartialExitInfo(!showPartialExitInfo)}
+                    title="Information about partial series exit"
+                  >
+                    ℹ️
+                  </button>
+                  {showPartialExitInfo && (
+                    <div className="info-tooltip-popup">
+                      <div className="tooltip-arrow"></div>
+                      <p className="tooltip-text">
+                        You can exit from individual series using the "Exit Series" button. 
+                        This allows you to withdraw from specific investments while keeping others active.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="table-card">
               {investor.holdings && investor.holdings.length > 0 ? (
                 <table className="holdings-table">
@@ -1235,6 +1486,7 @@ The investor's funds have been processed according to lock-in period rules.`;
                       <th>Next Payout</th>
                       <th>Status</th>
                       <th>Documents</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1274,7 +1526,7 @@ The investor's funds have been processed according to lock-in period rules.`;
                         <td className="investment-cell">{formatCurrency(holding.investment)}</td>
                         <td>{holding.nextPayout}</td>
                         <td>
-                          <span className="status-pill active">{holding.status}</span>
+                          <span className={`status-pill ${holding.status.toLowerCase()}`}>{holding.status}</span>
                         </td>
                         <td>
                           <button 
@@ -1283,6 +1535,32 @@ The investor's funds have been processed according to lock-in period rules.`;
                           >
                             Check Documents
                           </button>
+                        </td>
+                        <td>
+                          {(() => {
+                            // Count only active (non-matured) holdings for exit logic
+                            const activeHoldings = investor.holdings.filter(h => !h.isMatured);
+                            const isMatured = holding.isMatured;
+                            
+                            if (isMatured) {
+                              return (
+                                <span className="matured-series" title="Series has matured - no exit option available">
+                                  Matured
+                                </span>
+                              );
+                            } else {
+                              // Always show Exit Series button for active holdings
+                              return (
+                                <button 
+                                  className="exit-series-button"
+                                  onClick={() => handlePartialSeriesExit(holding.series)}
+                                  title={`Exit from ${holding.series}`}
+                                >
+                                  Exit Series
+                                </button>
+                              );
+                            }
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1372,52 +1650,33 @@ The investor's funds have been processed according to lock-in period rules.`;
                   <MdReportProblem className="section-icon" />
                   All Complaints ({investorComplaints.length})
                 </h2>
-                <div className="complaints-table-container">
-                  <table className="complaints-table">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>Issue</th>
-                        <th>Remarks</th>
-                        <th>Timestamp</th>
-                        <th>Status</th>
-                        <th>Resolution</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {investorComplaints.map((complaint, index) => (
-                        <tr key={complaint.id} className={complaint.status === 'resolved' ? 'resolved-row' : 'pending-row'}>
-                          <td>{index + 1}</td>
-                          <td>{complaint.issue}</td>
-                          <td>
-                            <div className="remarks-cell">{complaint.remarks}</div>
-                          </td>
-                          <td>{complaint.timestamp}</td>
-                          <td>
-                            <span className={`status-badge ${complaint.status}`}>
-                              {complaint.status === 'resolved' ? 'Resolved' : 'Pending'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="resolution-cell">
-                              {complaint.status === 'resolved' && complaint.resolutionComment ? (
-                                <div className="resolution-display">
-                                  <div className="resolution-comment">{complaint.resolutionComment}</div>
-                                  {complaint.resolvedAt && (
-                                    <div className="resolved-timestamp">Resolved: {complaint.resolvedAt}</div>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="no-resolution">
-                                  {complaint.status === 'pending' ? 'Pending resolution' : '-'}
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <div className="complaints-list">
+                  {investorComplaints.map((complaint, index) => (
+                    <div key={complaint.id} className={`complaint-item ${complaint.status === 'resolved' ? 'resolved' : 'pending'}`}>
+                      <div className="complaint-header">
+                        <div className="complaint-number">#{index + 1}</div>
+                        <div className="complaint-main-info">
+                          <div className="complaint-subject">{complaint.subject}</div>
+                          <div className="complaint-timestamp">{complaint.timestamp}</div>
+                        </div>
+                        <span className={`status-badge ${complaint.status}`}>
+                          {complaint.status === 'resolved' ? 'Resolved' : complaint.status === 'in-progress' ? 'In Progress' : 'Pending'}
+                        </span>
+                      </div>
+                      <div className="complaint-body">
+                        <div className="complaint-description">{complaint.description}</div>
+                        {complaint.resolutionComment && (
+                          <div className="complaint-resolution">
+                            <div className="resolution-label">Resolution:</div>
+                            <div className="resolution-text">{complaint.resolutionComment}</div>
+                            {complaint.resolvedAt && (
+                              <div className="resolved-date">Resolved: {complaint.resolvedAt}</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

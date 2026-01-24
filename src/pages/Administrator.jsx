@@ -635,8 +635,7 @@ const Administrator = () => {
       <div className="administrator-container">
         <div className="administrator-header">
           <div className="header-content">
-            <h1>Administrator</h1>
-            <p>Manage users and system permissions</p>
+            <h1 className="page-title">Administrator</h1>
           </div>
           {activeTab === 'users' && hasPermission('administrator', 'create') && (
             <button 

@@ -287,7 +287,7 @@
 /* Controls Section with Enhanced Background Layout */
 .payout-controls {
   display: flex;
-  justify-content: flex-end; /* Align everything to the right side */
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
   gap: 20px;
@@ -348,6 +348,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
   position: relative;
   z-index: 2;
 }
@@ -796,9 +797,9 @@
   margin: 0;
 }
 
-/* Hide scrollbar but keep functionality - DISABLED HORIZONTAL SCROLLING */
+/* Hide scrollbar but keep functionality */
 .payouts-table-container {
-  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-x: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
@@ -1791,15 +1792,13 @@
   border-radius: 4px;
 }
 
-/* Table responsive adjustments - FIXED HORIZONTAL SCROLLING */
+/* Table responsive adjustments for new columns */
 .payouts-table {
-  width: 100%;
-  min-width: auto; /* Remove fixed min-width that was causing horizontal scroll */
-  table-layout: fixed; /* Use fixed layout for better control */
+  min-width: 1200px; /* Reduced from 1400px to accommodate all columns including bank details */
 }
 
 .payouts-table-container {
-  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-x: auto;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: white;
@@ -1807,145 +1806,59 @@
   position: relative;
 }
 
-/* Column width distribution for better fit */
-.payouts-table th:nth-child(1), /* Investor Name */
-.payouts-table td:nth-child(1) {
-  width: 16%;
-}
-
-.payouts-table th:nth-child(2), /* Series Name */
-.payouts-table td:nth-child(2) {
-  width: 11%;
-}
-
-.payouts-table th:nth-child(3), /* Interest Month */
-.payouts-table td:nth-child(3) {
-  width: 11%;
-}
-
-.payouts-table th:nth-child(4), /* Interest Date */
-.payouts-table td:nth-child(4) {
-  width: 11%;
-}
-
-.payouts-table th:nth-child(5), /* Amount */
-.payouts-table td:nth-child(5) {
-  width: 11%;
-}
-
-.payouts-table th:nth-child(6), /* Status */
-.payouts-table td:nth-child(6) {
-  width: 9%;
-  text-align: center;
-}
-
-.payouts-table th:nth-child(7), /* Bank Name */
+/* Status column specific styling */
+.payouts-table th:nth-child(7),
 .payouts-table td:nth-child(7) {
-  width: 15%;
-}
-
-.payouts-table th:nth-child(8), /* IFSC Code */
-.payouts-table td:nth-child(8) {
-  width: 9%;
-}
-
-.payouts-table th:nth-child(9), /* Actions */
-.payouts-table td:nth-child(9) {
-  width: 12%;
+  min-width: 100px;
+  max-width: 120px;
   text-align: center;
 }
 
-/* Investor Info Styling */
-.investor-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* Scrollbar styling */
+.payouts-table-container::-webkit-scrollbar {
+  height: 8px;
 }
 
-.investor-name {
-  font-weight: 600;
-  color: #1e293b;
-  font-size: 14px;
-  line-height: 1.2;
+.payouts-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
 }
 
-.investor-id {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 400;
+.payouts-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
-/* Bank Info Styling */
-.bank-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+.payouts-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-.bank-name {
-  font-weight: 500;
-  color: #1e293b;
-  font-size: 14px;
-  line-height: 1.2;
-}
-
-.account-number {
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 400;
-  font-family: monospace; /* Better for account numbers */
-}
-
-/* View Button Styling */
-.view-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 12px;
-  background: #3b82f6;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  min-width: 60px;
-  justify-content: center;
-}
-
-.view-button:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
-}
-
-.view-button:active {
-  transform: translateY(0);
+/* Make bank details columns more compact */
+.payouts-table th:nth-child(8),
+.payouts-table th:nth-child(9),
+.payouts-table th:nth-child(10),
+.payouts-table td:nth-child(8),
+.payouts-table td:nth-child(9),
+.payouts-table td:nth-child(10) {
+  min-width: 120px;
+  max-width: 150px;
 }
 
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
   .payouts-table-container {
-    overflow-x: hidden; /* Keep horizontal scrolling disabled on mobile too */
+    overflow-x: auto;
+  }
+  
+  .payouts-table-container::after {
+    font-size: 10px;
+    bottom: 5px;
+    right: 5px;
   }
   
   .payouts-table th,
   .payouts-table td {
     padding: 8px 6px;
-    font-size: 12px;
-  }
-  
-  .investor-name {
-    font-size: 12px;
-  }
-  
-  .investor-id {
-    font-size: 10px;
-  }
-  
-  .bank-name {
     font-size: 12px;
   }
   

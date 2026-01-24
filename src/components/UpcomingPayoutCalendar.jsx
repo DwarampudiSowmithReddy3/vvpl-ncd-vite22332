@@ -34,18 +34,15 @@ const UpcomingPayoutCalendar = ({ date, payouts = [], series = [], type = 'payou
   // Function to calculate lock-in period status for a series (same for all investors in that series)
   const getLockInStatusForSeries = (seriesData) => {
     const today = new Date();
-    const issue = new Date(seriesData.issueDate.split('/').reverse().join('-'));
-    const lockInEnd = new Date(issue);
-    lockInEnd.setMonth(lockInEnd.getMonth() + seriesData.lockInPeriod);
+    const lockInDate = new Date(seriesData.lockInPeriod.split('/').reverse().join('-'));
     
-    const diffTime = today - lockInEnd;
+    const diffTime = lockInDate - today;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays > 0) {
-      return `Lock-in period ended ${diffDays} days ago`;
+      return `${diffDays} days left for lock-in`;
     } else {
-      const remainingDays = Math.ceil((lockInEnd - today) / (1000 * 60 * 60 * 24));
-      return `${remainingDays} days left for lock-in`;
+      return `Lock-in period ended ${Math.abs(diffDays)} days ago`;
     }
   };
 

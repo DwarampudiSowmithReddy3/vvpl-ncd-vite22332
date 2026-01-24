@@ -23,7 +23,7 @@ const NCDSeries = () => {
     seriesCode: '',
     interestRate: '',
     couponRate: '',
-    interestFrequency: 'Monthly Interest',
+    interestFrequency: 'Non-cumulative & Monthly',
     issueDate: '',
     maturityDate: '',
     tenure: '',
@@ -151,7 +151,7 @@ const NCDSeries = () => {
       seriesCode: '',
       interestRate: '',
       couponRate: '',
-      interestFrequency: 'Monthly Interest',
+      interestFrequency: 'Non-cumulative & Monthly',
       issueDate: '',
       maturityDate: '',
       tenure: '',
@@ -231,6 +231,7 @@ const NCDSeries = () => {
 
   // Separate series into categories based on actual status
   const draftSeries = series.filter(s => getSeriesStatus(s) === 'DRAFT');
+  const rejectedSeries = series.filter(s => s.status === 'REJECTED');
   const upcomingSeries = series.filter(s => getSeriesStatus(s) === 'upcoming');
   const acceptingSeries = series.filter(s => getSeriesStatus(s) === 'accepting');
   const activeSeries = series.filter(s => getSeriesStatus(s) === 'active');
@@ -327,6 +328,14 @@ const NCDSeries = () => {
                         <span className="detail-label">Min Investment:</span>
                         <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
                       </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lock-in Period:</span>
+                        <span className="detail-value">{s.lockInPeriod || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Max Investors:</span>
+                        <span className="detail-value">{s.investorsSize ? s.investorsSize.toLocaleString('en-IN') : 'N/A'}</span>
+                      </div>
                     </div>
                     <div className="card-actions">
                       <button 
@@ -345,6 +354,89 @@ const NCDSeries = () => {
                           <HiOutlineTrash size={18} />
                         </button>
                       )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Rejected Series Section */}
+        {rejectedSeries.length > 0 && (
+          <>
+            <div className="section-header">
+              <h2 className="section-title">Rejected Series</h2>
+              <p className="section-subtitle">Series that were rejected during approval</p>
+            </div>
+            <div className="series-grid">
+              {rejectedSeries.map((s) => {
+                const statusInfo = { color: 'red', label: 'Rejected' };
+                const progress = (s.fundsRaised / s.targetAmount) * 100;
+                return (
+                  <div key={s.id} className="series-card rejected-card">
+                    <div className="card-banner rejected-banner">
+                      <div className="banner-content">
+                        <div className="series-title-section">
+                          <h3 className="series-name">{s.name}</h3>
+                          <p className="series-code">{s.seriesCode}</p>
+                        </div>
+                        <div className="banner-status">
+                          <span className={`status-pill ${statusInfo.color}`}>
+                            {statusInfo.label.toUpperCase()}
+                          </span>
+                          <span className="frequency-pill">{s.interestFrequency}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rate-row">
+                      <div className="interest-rate">
+                        {s.interestRate}%
+                      </div>
+                      <div className="investors-count">{s.investors} investors</div>
+                    </div>
+                    <div className="funds-progress">
+                      <div className="progress-bar">
+                        <div 
+                          className={`progress-fill ${statusInfo.color}`}
+                          style={{ width: `${progress}%` }}
+                        ></div>
+                      </div>
+                      <div className="progress-info">
+                        <div className="progress-text">
+                          {formatCurrency(s.fundsRaised)} / {formatCurrency(s.targetAmount)}
+                        </div>
+                        <div className="trustee-name">
+                          {s.debentureTrustee}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="series-details">
+                      <div className="detail-item">
+                        <span className="detail-label">Issue Date:</span>
+                        <span className="detail-value">{s.issueDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Maturity Date:</span>
+                        <span className="detail-value">{s.maturityDate}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Face Value:</span>
+                        <span className="detail-value">₹{s.faceValue ? s.faceValue.toLocaleString('en-IN') : 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Rejected On:</span>
+                        <span className="detail-value">{s.rejectedAt ? new Date(s.rejectedAt).toLocaleDateString('en-GB') : 'N/A'}</span>
+                      </div>
+                    </div>
+                    <div className="card-actions">
+                      <button 
+                        className="view-details-button rejected-button"
+                        onClick={() => handleViewDetails(s)}
+                      >
+                        <HiOutlineEye size={16} />
+                        <span>View Rejection Details</span>
+                      </button>
                     </div>
                   </div>
                 );
@@ -418,6 +510,14 @@ const NCDSeries = () => {
                       <div className="detail-item">
                         <span className="detail-label">Min Investment:</span>
                         <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lock-in Period:</span>
+                        <span className="detail-value">{s.lockInPeriod || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Max Investors:</span>
+                        <span className="detail-value">{s.investorsSize ? s.investorsSize.toLocaleString('en-IN') : 'N/A'}</span>
                       </div>
                     </div>
                     <div className="card-actions">
@@ -511,6 +611,14 @@ const NCDSeries = () => {
                         <span className="detail-label">Min Investment:</span>
                         <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
                       </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lock-in Period:</span>
+                        <span className="detail-value">{s.lockInPeriod || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Max Investors:</span>
+                        <span className="detail-value">{s.investorsSize ? s.investorsSize.toLocaleString('en-IN') : 'N/A'}</span>
+                      </div>
                     </div>
                     <div className="card-actions">
                       <button 
@@ -592,6 +700,14 @@ const NCDSeries = () => {
                       <div className="detail-item">
                         <span className="detail-label">Min Investment:</span>
                         <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lock-in Period:</span>
+                        <span className="detail-value">{s.lockInPeriod || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Max Investors:</span>
+                        <span className="detail-value">{s.investorsSize ? s.investorsSize.toLocaleString('en-IN') : 'N/A'}</span>
                       </div>
                     </div>
                     <div className="card-actions">
@@ -676,6 +792,14 @@ const NCDSeries = () => {
                         <span className="detail-label">Min Investment:</span>
                         <span className="detail-value">₹{s.minInvestment.toLocaleString('en-IN')}</span>
                       </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Lock-in Period:</span>
+                        <span className="detail-value">{s.lockInPeriod || 'N/A'}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="detail-label">Max Investors:</span>
+                        <span className="detail-value">{s.investorsSize ? s.investorsSize.toLocaleString('en-IN') : 'N/A'}</span>
+                      </div>
                     </div>
                     <div className="card-actions">
                       <button 
@@ -751,8 +875,6 @@ const NCDSeries = () => {
                         required
                       >
                         <option value="DRAFT">DRAFT</option>
-                        <option value="ACTIVE">ACTIVE</option>
-                        <option value="CLOSED">CLOSED</option>
                       </select>
                     </div>
                   </div>
@@ -802,10 +924,18 @@ const NCDSeries = () => {
                       <label>Tenure (months)*</label>
                       <input
                         type="number"
+                        min="1"
+                        max="600"
                         value={formData.tenure}
                         onChange={(e) => setFormData({ ...formData, tenure: e.target.value })}
+                        onKeyDown={(e) => {
+                          // Prevent arrow keys from changing the value
+                          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                          }
+                        }}
                         required
-                        placeholder="Enter tenure"
+                        placeholder="Enter tenure in months"
                       />
                     </div>
                   </div>
@@ -888,10 +1018,19 @@ const NCDSeries = () => {
                       <label>Face Value (₹)*</label>
                       <input
                         type="number"
+                        step="1"
+                        min="100"
+                        max="100000"
                         value={formData.faceValue}
                         onChange={(e) => setFormData({ ...formData, faceValue: e.target.value })}
+                        onKeyDown={(e) => {
+                          // Prevent arrow keys from changing the value
+                          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                          }
+                        }}
                         required
-                        placeholder="Enter face value"
+                        placeholder="Enter face value (e.g., 1000)"
                       />
                     </div>
                     <div className="form-group">
@@ -916,22 +1055,37 @@ const NCDSeries = () => {
                       <input
                         type="number"
                         step="0.1"
-                        min="0"
+                        min="0.1"
+                        max="10000"
                         value={formData.targetAmount}
                         onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
+                        onKeyDown={(e) => {
+                          // Prevent arrow keys from changing the value
+                          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                          }
+                        }}
                         required
-                        placeholder="Enter target amount"
+                        placeholder="Enter target amount in Crores (e.g., 5.5)"
                       />
                     </div>
                     <div className="form-group">
                       <label>Total Issue Size*</label>
                       <input
                         type="number"
-                        min="0"
+                        step="1"
+                        min="1"
+                        max="100000"
                         value={formData.totalIssueSize}
                         onChange={(e) => setFormData({ ...formData, totalIssueSize: e.target.value })}
+                        onKeyDown={(e) => {
+                          // Prevent arrow keys from changing the value
+                          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                            e.preventDefault();
+                          }
+                        }}
                         required
-                        placeholder="Enter total issue size"
+                        placeholder="Enter total issue size (in units)"
                       />
                     </div>
                   </div>
@@ -960,31 +1114,6 @@ const NCDSeries = () => {
                       />
                     </div>
                     <div className="form-group">
-                      <label>Coupon Rate (%)*</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        max="100"
-                        value={formData.couponRate}
-                        onChange={(e) => setFormData({ ...formData, couponRate: e.target.value })}
-                        required
-                        placeholder="Enter coupon rate"
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Interest Payment Frequency*</label>
-                      <select
-                        value={formData.interestFrequency}
-                        onChange={(e) => setFormData({ ...formData, interestFrequency: e.target.value })}
-                        required
-                      >
-                        <option value="Monthly Interest">Monthly Interest</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
                       <label>Credit Rating*</label>
                       <select 
                         value={formData.creditRating}
@@ -1002,6 +1131,21 @@ const NCDSeries = () => {
                         <option value="BBB+">BBB+</option>
                         <option value="BBB">BBB</option>
                       </select>
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Non-cumulative & Monthly*</label>
+                      <select
+                        value={formData.interestFrequency}
+                        onChange={(e) => setFormData({ ...formData, interestFrequency: e.target.value })}
+                        required
+                      >
+                        <option value="Non-cumulative & Monthly">Non-cumulative & Monthly</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      {/* Empty space for alignment */}
                     </div>
                   </div>
                 </div>
@@ -1127,7 +1271,7 @@ const NCDSeries = () => {
                     className="cancel-button"
                     onClick={() => setShowCreateForm(false)}
                   >
-                    ✕ Cancel
+                    Cancel
                   </button>
                   <button type="submit" className="submit-button">
                     Save Series

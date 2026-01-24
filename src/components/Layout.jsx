@@ -72,7 +72,6 @@ const Layout = ({ children, isInvestor = false }) => {
     clearJustLoggedIn(); // Clear the just logged in flag
   };
 
-  // Account menu handlers
   const toggleAccountMenu = () => {
     setShowAccountMenu(!showAccountMenu);
   };
@@ -122,14 +121,13 @@ const Layout = ({ children, isInvestor = false }) => {
             </button>
             
             {/* Account Menu */}
-            <div className="account-menu-container" style={{backgroundColor:"transparent"}}>
+            <div className="account-menu-container">
               <button 
                 className="account-button"
                 onClick={toggleAccountMenu}
                 title="Account"
-                style={{backgroundColor:"transparent"}}
               >
-                <div className="account-avatar" style={{backgroundColor:"transparent"}}>
+                <div className="account-avatar">
                   {getInitials(user?.name)}
                 </div>
                 <span>Account</span>
@@ -283,7 +281,7 @@ const Layout = ({ children, isInvestor = false }) => {
                     <div className="account-dropdown-actions">
                       <button className="account-action-button logout-button" onClick={handleLogout}>
                         <MdExitToApp className="action-icon" />
-                        Sign Out
+                        Logout
                       </button>
                     </div>
                   </div>

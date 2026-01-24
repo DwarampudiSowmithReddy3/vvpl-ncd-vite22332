@@ -7,12 +7,14 @@ import './Approval.css';
 import { HiOutlineEye, HiOutlineCheck, HiOutlineX, HiOutlineTrash, HiOutlineLockClosed, HiOutlineDocumentText } from "react-icons/hi";
 
 const Approval = () => {
-  const { series, approveSeries, deleteSeries, updateSeries, addAuditLog } = useData();
+  const { series, approveSeries, rejectSeries, deleteSeries, updateSeries, addAuditLog } = useData();
   const { canEdit, canDelete } = usePermissions();
   const { user } = useAuth();
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [seriesToDelete, setSeriesToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
@@ -90,27 +92,38 @@ const Approval = () => {
   };
 
   const handleReject = () => {
-    if (selectedSeries) {
-      const success = deleteSeries(selectedSeries.id);
+    setShowRejectModal(true);
+  };
+
+  const handleRejectConfirm = () => {
+    if (selectedSeries && rejectionReason.trim()) {
+      const success = rejectSeries(selectedSeries.id, rejectionReason.trim());
       if (success) {
-        // Add audit log for series rejection/deletion
+        // Add audit log for series rejection
         addAuditLog({
           action: 'Rejected Series',
           adminName: user ? user.name : 'Admin',
           adminRole: user ? user.displayRole : 'Admin',
-          details: `Rejected and deleted NCD series "${selectedSeries.name}" (DRAFT status)`,
+          details: `Rejected NCD series "${selectedSeries.name}" - Reason: ${rejectionReason.trim()}`,
           entityType: 'Series',
           entityId: selectedSeries.name,
           changes: {
-            status: { old: 'DRAFT', new: 'DELETED' },
-            reason: 'Rejected during approval process'
+            status: { old: 'DRAFT', new: 'REJECTED' },
+            reason: rejectionReason.trim()
           }
         });
         
         setShowDetailsModal(false);
+        setShowRejectModal(false);
         setSelectedSeries(null);
+        setRejectionReason('');
       }
     }
+  };
+
+  const handleRejectCancel = () => {
+    setShowRejectModal(false);
+    setRejectionReason('');
   };
 
   const handleDeleteClick = (seriesItem) => {
@@ -739,6 +752,46 @@ const Approval = () => {
                 >
                   <HiOutlineTrash size={16} />
                   Delete Series
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Rejection Modal */}
+        {showRejectModal && (
+          <div className="modal-overlay">
+            <div className="modal-content reject-modal">
+              <div className="modal-header">
+                <h2>Reject Series</h2>
+                <button className="close-button" onClick={handleRejectCancel}>×</button>
+              </div>
+              <div className="modal-body">
+                <p>Please provide a reason for rejecting this series:</p>
+                <p className="series-name-highlight">"{selectedSeries?.name}"</p>
+                <textarea
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Enter rejection reason (required)..."
+                  rows={4}
+                  className="rejection-reason-input"
+                  required
+                />
+              </div>
+              <div className="modal-actions">
+                <button 
+                  className="cancel-button"
+                  onClick={handleRejectCancel}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="reject-confirm-button"
+                  onClick={handleRejectConfirm}
+                  disabled={!rejectionReason.trim()}
+                >
+                  <HiOutlineX size={16} />
+                  Reject Series
                 </button>
               </div>
             </div>

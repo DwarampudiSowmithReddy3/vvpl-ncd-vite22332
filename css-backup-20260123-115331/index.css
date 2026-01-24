@@ -1,38 +1,16 @@
 /* Enhanced Global Responsive Foundation */
-
-/* Root variables for consistent responsive scaling */
-:root {
-  --base-font-size: 16px;
-  --scale-factor: 1;
-  --container-max-width: min(87.5rem, 95vw);
-  --container-padding: clamp(0.5rem, 2vw, 2rem);
-  --border-radius-sm: clamp(0.25rem, 0.5vw, 0.375rem);
-  --border-radius-md: clamp(0.375rem, 0.75vw, 0.5rem);
-  --border-radius-lg: clamp(0.5rem, 1vw, 0.75rem);
-  --border-radius-xl: clamp(0.75rem, 1.5vw, 1rem);
-  --shadow-sm: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
-  --transition-fast: 0.15s ease;
-  --transition-normal: 0.3s ease;
-  --transition-slow: 0.5s ease;
-}
-
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* Root font size for rem calculations - scales with browser zoom and viewport */
+/* Root font size for rem calculations - scales with browser zoom */
 html {
-  font-size: var(--base-font-size);
-  scroll-behavior: smooth;
-  -webkit-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
+  font-size: 16px; /* Base font size */
 }
 
-/* Responsive font scaling based on viewport width */
+/* Responsive font scaling */
 @media (max-width: 1920px) { html { font-size: 16px; } }
 @media (max-width: 1600px) { html { font-size: 15px; } }
 @media (max-width: 1400px) { html { font-size: 14px; } }
@@ -50,10 +28,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   font-size: 1rem;
   line-height: 1.5;
-  background-color: #f8fafc;
-  overflow-x: hidden;
-  width: 100%;
-  min-height: 100vh;
 }
 
 code {
@@ -70,42 +44,31 @@ input[type="submit"],
 input[type="reset"] {
   background-color: transparent !important;
   color: inherit !important;
-  border: 0.0625rem solid #d1d5db !important;
-  transition: var(--transition-normal) !important;
-  min-height: clamp(2.25rem, 5vw, 2.75rem) !important;
-  padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem) !important;
-  border-radius: var(--border-radius-md) !important;
-  font-size: clamp(0.75rem, 2vw, 0.875rem) !important;
-  cursor: pointer !important;
-  white-space: nowrap !important;
+  border: 1px solid #d1d5db !important;
+  transition: all 0.3s ease !important;
+  min-height: 2.75rem !important;
+  padding: 0.5rem 1rem !important;
+  font-size: 0.875rem !important;
+  border-radius: 0.5rem !important;
 }
 
-/* EXCLUDE ACCOUNT BUTTON FROM GLOBAL STYLES */
-button:not(.account-button),
-.btn:not(.account-button),
-.button:not(.account-button),
-input[type="button"]:not(.account-button),
-input[type="submit"]:not(.account-button),
-input[type="reset"]:not(.account-button) {
+.account-button{
+  border: none !important;
   background-color: transparent !important;
-  color: inherit !important;
-  border: 0.0625rem solid #d1d5db !important;
-  transition: var(--transition-normal) !important;
-  min-height: clamp(2.25rem, 5vw, 2.75rem) !important;
-  padding: clamp(0.375rem, 1vw, 0.5rem) clamp(0.75rem, 2vw, 1rem) !important;
-  border-radius: var(--border-radius-md) !important;
-  font-size: clamp(0.75rem, 2vw, 0.875rem) !important;
-  cursor: pointer !important;
-  white-space: nowrap !important;
 }
 
-/* Global Button Hover Styles - EXCLUDE ACCOUNT BUTTON */
-button:not(.account-button):hover,
-.btn:not(.account-button):hover,
-.button:not(.account-button):hover,
-input[type="button"]:not(.account-button):hover,
-input[type="submit"]:not(.account-button):hover,
-input[type="reset"]:not(.account-button):hover {
+.account-button:hover{
+  border: none !important;
+  background-color: transparent !important;
+}
+
+/* Global Button Hover Styles */
+button:hover,
+.btn:hover,
+.button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover {
   background-color: #fbbf24 !important;
   color: #1f2937 !important;
   transform: translateY(-1px);
@@ -113,19 +76,19 @@ input[type="reset"]:not(.account-button):hover {
   transition: all 0.3s ease !important;
 }
 
-/* Global Button Active/Clicked Styles - EXCLUDE ACCOUNT BUTTON */
-button:not(.account-button):active,
-.btn:not(.account-button):active,
-.button:not(.account-button):active,
-input[type="button"]:not(.account-button):active,
-input[type="submit"]:not(.account-button):active,
-input[type="reset"]:not(.account-button):active,
-button:not(.account-button).clicked,
-.btn:not(.account-button).clicked,
-.button:not(.account-button).clicked,
-button:not(.account-button).active,
-.btn:not(.account-button).active,
-.button:not(.account-button).active {
+/* Global Button Active/Clicked Styles */
+button:active,
+.btn:active,
+.button:active,
+input[type="button"]:active,
+input[type="submit"]:active,
+input[type="reset"]:active,
+button.clicked,
+.btn.clicked,
+.button.clicked,
+button.active,
+.btn.active,
+.button.active {
   background-color: #fbbf24 !important;
   color: #1f2937 !important;
   transform: translateY(0);
@@ -276,4 +239,3 @@ button:hover *,
     padding: 0.25rem 0.5rem !important;
   }
 }
-

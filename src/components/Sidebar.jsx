@@ -12,6 +12,8 @@ import {
   HiOutlineLogout,
   HiOutlineMail
 } from "react-icons/hi";
+import { HiOutlineClipboardDocumentCheck } from "react-icons/hi2";
+import { RiQuestionnaireLine } from "react-icons/ri";
 import { IoChevronBackCircle } from "react-icons/io5";
 import { MdPayment, MdSecurity, MdAdminPanelSettings } from "react-icons/md";
 
@@ -29,8 +31,8 @@ const Sidebar = ({ isInvestor = false, isOpen = true, onClose, mobileHeaderButto
     { path: '/communication', label: 'Communication', icon: <HiOutlineMail />, module: 'communication' },
     { path: '/compliance', label: 'Compliance', icon: <MdSecurity />, module: 'compliance' },
     { path: '/administrator', label: 'Administrator', icon: <MdAdminPanelSettings />, module: 'administrator' },
-    { path: '/approval', label: 'Approval', icon: <HiOutlineDocumentText />, module: 'approval' },
-    { path: '/grievance-management', label: 'Grievance Management', icon: <HiOutlineDocumentText />, module: 'grievanceManagement' }
+    { path: '/approval', label: 'Approval', icon: <HiOutlineClipboardDocumentCheck />, module: 'approval' },
+    { path: '/grievance-management', label: 'Grievance Management', icon: <RiQuestionnaireLine />, module: 'grievanceManagement' }
   ];
 
   const investorNavItems = [

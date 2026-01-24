@@ -4,30 +4,37 @@ import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
-import './Investors.css';
-import './investors-responsive-fixes.css';
+import './InvestorsNew.css';
 import { MdOutlineFileDownload, MdTrendingUp, MdCurrencyRupee } from "react-icons/md";
-import { FiSearch } from "react-icons/fi";
-import { FiFilter } from "react-icons/fi";
-import { FaEye } from "react-icons/fa";
+import { FiSearch, FiFilter } from "react-icons/fi";
+import { FaEye, FaUsers, FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
 import { TiUserAdd } from "react-icons/ti";
-import { HiOutlineDocumentText, HiOutlineMail, HiOutlinePhone, HiOutlineCalendar, HiOutlineChartBar, HiOutlineArrowRight } from "react-icons/hi";
+import { HiOutlineDocumentText, HiOutlineMail, HiOutlinePhone, HiOutlineCalendar, HiOutlineChartBar } from "react-icons/hi";
 import { FiUpload } from "react-icons/fi";
-
-
 
 const Investors = () => {
   const navigate = useNavigate();
-  const { showCreateButton, showEditButton, canEdit } = usePermissions();
+  const { showCreateButton } = usePermissions();
   const { user } = useAuth();
-  const { investors, series, getTotalInvestors, getKYCCompleted, getKYCRejected, getPendingKYC, addInvestor, updateInvestor, updateSeries, addAuditLog, addInvestmentTransaction, isWithinSubscriptionWindow, getSeriesStatus } = useData();
+  const { 
+    investors, 
+    series, 
+    getTotalInvestors, 
+    getKYCCompleted, 
+    getKYCRejected, 
+    getPendingKYC, 
+    addInvestor, 
+    updateInvestor, 
+    updateSeries, 
+    addAuditLog, 
+    addInvestmentTransaction, 
+    getSeriesStatus,
+    forceSeriesRefresh,
+    seriesRefreshTrigger
+  } = useData();
+
+  // State management
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [showKYCDropdown, setShowKYCDropdown] = useState(false);
-  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
-  const [selectedKYCFilter, setSelectedKYCFilter] = useState('all');
-  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState('all');
   const [showAddInvestorModal, setShowAddInvestorModal] = useState(false);
   const [showAddInvestmentModal, setShowAddInvestmentModal] = useState(false);
   const [showInvestorDetails, setShowInvestorDetails] = useState(false);
@@ -38,8 +45,16 @@ const Investors = () => {
   const [investorSearchTerm, setInvestorSearchTerm] = useState('');
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [investmentDocument, setInvestmentDocument] = useState(null);
+
+  // Filter states
+  const [selectedKYCFilter, setSelectedKYCFilter] = useState('all');
+  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState('all');
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [showKYCDropdown, setShowKYCDropdown] = useState(false);
+  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
+
+  // Form data for Add Investor
   const [formData, setFormData] = useState({
-    // Applicant's Personal Information
     fullName: '',
     email: '',
     residentialAddress: '',
@@ -47,29 +62,19 @@ const Investors = () => {
     pan: 'ABCDE1234F',
     aadhaar: '1234 5678 9012',
     dob: '',
-    
-    // Bank Details
     bankName: '',
     accountNumber: '1234567890123456',
     ifscCode: 'SBIN0001234',
-    
-    // KYC Information
     occupation: '',
     sourceOfFunds: '',
-    
-    // Nomination (Optional)
     nomineeName: '',
     nomineeRelationship: '',
     nomineeMobile: '+91 ',
     nomineeEmail: '',
     nomineeAddress: '',
-    
-    // System fields
     phone: '+91 ',
     kycStatus: 'Pending',
     active: true,
-    
-    // Document uploads
     panDocument: null,
     aadhaarDocument: null,
     cancelledCheque: null,
@@ -77,11 +82,21 @@ const Investors = () => {
     digitalSignature: null
   });
 
+  // Statistics
   const totalInvestors = getTotalInvestors();
   const kycCompleted = getKYCCompleted();
   const kycPending = getPendingKYC();
   const kycRejected = getKYCRejected();
 
+  // Get unique series from investors for filter
+  const getUniqueSeriesFromInvestors = () => {
+    const allSeries = investors.flatMap(inv => inv.series || []);
+    return [...new Set(allSeries)].filter(s => s && typeof s === 'string' && s.startsWith('Series'));
+  };
+
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // Filtered investors
   const filteredInvestors = useMemo(() => {
     return investors.filter(investor => {
       const matchesSearch = 
@@ -89,47 +104,96 @@ const Investors = () => {
         investor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         investor.investorId.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // KYC Status filter
-      const matchesKYCFilter = selectedKYCFilter === 'all' || investor.kycStatus === selectedKYCFilter;
+      const matchesKYC = selectedKYCFilter === 'all' || investor.kycStatus === selectedKYCFilter;
       
-      // Series filter
-      const matchesSeriesFilter = selectedSeriesFilter === 'all' || 
+      const matchesSeries = selectedSeriesFilter === 'all' || 
         (investor.series && investor.series.includes(selectedSeriesFilter));
       
-      return matchesSearch && matchesKYCFilter && matchesSeriesFilter;
+      return matchesSearch && matchesKYC && matchesSeries;
     });
-  }, [investors, searchTerm, selectedKYCFilter, selectedSeriesFilter]);
+  }, [investors, searchTerm, selectedKYCFilter, selectedSeriesFilter, refreshTrigger, seriesRefreshTrigger]);
 
+  // Filter handlers
+  const handleFilterToggle = () => {
+    console.log('Filter toggle clicked, current state:', showFilterDropdown);
+    setShowFilterDropdown(!showFilterDropdown);
+    setShowKYCDropdown(false);
+    setShowSeriesDropdown(false);
+  };
+
+  const handleKYCFilterToggle = () => {
+    console.log('KYC filter toggle clicked, current state:', showKYCDropdown);
+    setShowKYCDropdown(!showKYCDropdown);
+    setShowSeriesDropdown(false);
+  };
+
+  const handleSeriesFilterToggle = () => {
+    console.log('Series filter toggle clicked, current state:', showSeriesDropdown);
+    setShowSeriesDropdown(!showSeriesDropdown);
+    setShowKYCDropdown(false);
+  };
+
+  const handleKYCFilterSelect = (filter) => {
+    setSelectedKYCFilter(filter);
+    setShowKYCDropdown(false);
+    setShowFilterDropdown(false);
+  };
+
+  const handleSeriesFilterSelect = (filter) => {
+    setSelectedSeriesFilter(filter);
+    setShowSeriesDropdown(false);
+    setShowFilterDropdown(false);
+  };
+
+  const clearFilters = () => {
+    setSelectedKYCFilter('all');
+    setSelectedSeriesFilter('all');
+    setShowFilterDropdown(false);
+  };
+
+  // Helper functions
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Completed':
-        return 'completed';
-      case 'Pending':
-        return 'pending';
-      case 'Rejected':
-        return 'rejected';
-      default:
-        return '';
+      case 'Completed': return 'completed';
+      case 'Pending': return 'pending';
+      case 'Rejected': return 'rejected';
+      default: return '';
     }
   };
 
   const getStatusText = (status) => {
-    console.log('KYC Status for display:', status); // Debug log
-    switch (status) {
-      case 'Completed':
-        return 'Completed';
-      case 'Pending':
-        return 'Pending';
-      case 'Rejected':
-        return 'Rejected';
-      default:
-        console.log('Unknown KYC status:', status); // Debug log for unknown status
-        return status;
-    }
+    return status;
+  };
+
+  const handleSeriesClick = (seriesName) => {
+    // Navigate to series details page
+    console.log('Series clicked:', seriesName);
+    
+    // Create a dynamic mapping function for series names to IDs
+    const getSeriesId = (seriesName) => {
+      // First try to find the series in the actual series data
+      const foundSeries = series.find(s => s.name === seriesName);
+      if (foundSeries) {
+        return foundSeries.id.toString();
+      }
+      
+      // Fallback to static mapping for initial series
+      const seriesMap = {
+        'Series A': '1',
+        'Series B': '2',
+        'Series C': '3',
+        'Series D': '4',
+        'Series E': '5',
+        'Series AB': '6'
+      };
+      return seriesMap[seriesName] || '1'; // Default to '1' if not found
+    };
+    
+    const seriesId = getSeriesId(seriesName);
+    navigate(`/ncd-series/${seriesId}`);
   };
 
   const handleExport = () => {
-    // Simple CSV export
     const headers = ['Name', 'Investor ID', 'Email', 'Phone', 'Series', 'Investment', 'KYC Status', 'Date Joined'];
     const rows = filteredInvestors.map(inv => [
       inv.name,
@@ -151,7 +215,6 @@ const Investors = () => {
     a.download = fileName;
     a.click();
     
-    // Add audit log for document download
     addAuditLog({
       action: 'Downloaded Report',
       adminName: user ? user.name : 'Admin',
@@ -166,73 +229,6 @@ const Investors = () => {
         recordCount: filteredInvestors.length
       }
     });
-  };
-
-  // Filter handlers
-  const handleFilterToggle = () => {
-    setShowFilterDropdown(!showFilterDropdown);
-    setShowKYCDropdown(false);
-    setShowSeriesDropdown(false);
-  };
-
-  const handleKYCFilterToggle = () => {
-    setShowKYCDropdown(!showKYCDropdown);
-    setShowSeriesDropdown(false);
-  };
-
-  const handleSeriesFilterToggle = () => {
-    setShowSeriesDropdown(!showSeriesDropdown);
-    setShowKYCDropdown(false);
-  };
-
-  const handleKYCFilterSelect = (status) => {
-    setSelectedKYCFilter(status);
-    setShowKYCDropdown(false);
-    setShowFilterDropdown(false);
-  };
-
-  const handleSeriesFilterSelect = (seriesName) => {
-    setSelectedSeriesFilter(seriesName);
-    setShowSeriesDropdown(false);
-    setShowFilterDropdown(false);
-  };
-
-  const clearFilters = () => {
-    setSelectedKYCFilter('all');
-    setSelectedSeriesFilter('all');
-    setShowFilterDropdown(false);
-    setShowKYCDropdown(false);
-    setShowSeriesDropdown(false);
-  };
-
-  // Get unique series names from investors
-  const getUniqueSeriesFromInvestors = () => {
-    const allSeries = investors.flatMap(investor => investor.series || []);
-    return [...new Set(allSeries)];
-  };
-
-  // Map series names to IDs for navigation
-  const getSeriesId = (seriesName) => {
-    // First try to find the series in the actual series data
-    const foundSeries = series.find(s => s.name === seriesName);
-    if (foundSeries) {
-      return foundSeries.id.toString();
-    }
-    
-    // Fallback to static mapping for initial series
-    const seriesMap = {
-      'Series A': '1',
-      'Series B': '2',
-      'Series C': '3',
-      'Series D': '4',
-      'Series E': '5'
-    };
-    return seriesMap[seriesName] || '1'; // Default to '1' if not found
-  };
-
-  const handleSeriesClick = (seriesName) => {
-    const seriesId = getSeriesId(seriesName);
-    navigate(`/ncd-series/${seriesId}`);
   };
 
   const handleDragOver = (e) => {
@@ -480,83 +476,52 @@ const Investors = () => {
     setShowInvestmentForm(true);
   };
 
-  const handleInvestmentSubmit = () => {
+  const handleInvestmentSubmit = async () => {
     if (!investmentAmount || !investmentDocument) {
       alert('Please fill all required fields and upload document.');
       return;
     }
 
-    // 🚨 FINAL SECURITY CHECK before processing investment
-    console.log('🔒 FINAL SECURITY CHECK before investment submission');
-    console.log('Selected investor:', selectedInvestor);
-    console.log('Investor status:', selectedInvestor.status);
-    console.log('Investor active:', selectedInvestor.active);
-
-    // ABSOLUTE FINAL BLOCK for deleted investors
-    if (selectedInvestor.status === 'deleted') {
-      alert('🚫 INVESTMENT SUBMISSION BLOCKED: Cannot process investment for DELETED account.');
-      console.log('🚫 FINAL BLOCK: Investment submission blocked for deleted investor');
-      return;
-    }
-
-    // ABSOLUTE FINAL BLOCK for deactivated investors
-    if (selectedInvestor.status === 'deactivated' || selectedInvestor.active === false) {
-      alert('🚫 INVESTMENT SUBMISSION BLOCKED: Cannot process investment for DEACTIVATED account.');
-      console.log('🚫 FINAL BLOCK: Investment submission blocked for deactivated investor');
+    // Basic validation
+    if (selectedInvestor.status === 'deleted' || selectedInvestor.status === 'deactivated') {
+      alert('Cannot process investment for this account.');
       return;
     }
     
-    // Ensure series is an array
-    const currentSeries = Array.isArray(selectedInvestor.series) ? selectedInvestor.series : [];
-    const currentInvestments = Array.isArray(selectedInvestor.investments) ? selectedInvestor.investments : [];
+    console.log('🚀 Starting investment submission for:', selectedInvestor.name, 'in', selectedSeries.name);
     
-    // Check if this is a new investment in this series
-    const isNewSeriesForInvestor = !currentSeries.includes(selectedSeries.name);
-    
-    // Create new investment record with admin who made the change
+    // Create investment record
     const newInvestment = {
       seriesName: selectedSeries.name,
       amount: parseInt(investmentAmount),
       date: new Date().toLocaleDateString('en-GB'),
-      timestamp: new Date().toISOString(),
-      addedBy: user ? user.name : 'Admin',
-      addedByRole: user ? user.displayRole : 'Admin'
+      timestamp: new Date().toISOString()
     };
     
-    // Update investor's investment and series data
+    console.log('💰 New investment record:', newInvestment);
+    
+    // Update investor data
+    const currentSeries = selectedInvestor.series || [];
+    const currentInvestments = selectedInvestor.investments || [];
+    
     const updatedInvestor = {
       ...selectedInvestor,
-      investment: selectedInvestor.investment + parseInt(investmentAmount),
-      series: currentSeries.includes(selectedSeries.name) 
-        ? currentSeries 
-        : [...currentSeries, selectedSeries.name],
+      investment: (selectedInvestor.investment || 0) + parseInt(investmentAmount),
+      series: currentSeries.includes(selectedSeries.name) ? currentSeries : [...currentSeries, selectedSeries.name],
       investments: [...currentInvestments, newInvestment]
     };
     
+    console.log('📋 Updated investor data:', updatedInvestor);
+    
+    // Update investor
     updateInvestor(selectedInvestor.id, updatedInvestor);
     
-    // Update series data (increase funds raised and investor count)
-    const updatedSeries = {
-      ...selectedSeries,
-      fundsRaised: selectedSeries.fundsRaised + parseInt(investmentAmount),
-      investors: isNewSeriesForInvestor ? selectedSeries.investors + 1 : selectedSeries.investors
-    };
+    // Close modal and reset form
+    handleCloseInvestmentModal();
+    setInvestmentAmount('');
+    setInvestmentDocument(null);
     
-    updateSeries(selectedSeries.id, updatedSeries);
-    
-    // Add transaction to investor's transaction history
-    addInvestmentTransaction(
-      selectedInvestor.investorId,
-      selectedSeries.name,
-      parseInt(investmentAmount),
-      new Date().toLocaleDateString('en-GB')
-    );
-    
-    console.log('✅ INVESTMENT PROCESSED: Security checks passed');
-    alert(`Investment of ₹${parseInt(investmentAmount).toLocaleString('en-IN')} added successfully for ${selectedInvestor.name} in ${selectedSeries.name}`);
-    
-    // Reload page to refresh all data
-    window.location.reload();
+    console.log('✅ Investment processing complete - all UI should now reflect the updates');
   };
 
   // Reset functions for modal closing
@@ -597,152 +562,208 @@ const Investors = () => {
 
   console.log('Available series for investment:', availableSeries.length);
 
+  // Enhanced table row scrolling functionality
+  const handleRowKeyDown = (e, rowIndex) => {
+    const row = e.currentTarget;
+    const scrollAmount = 100; // pixels to scroll
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        row.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        row.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        break;
+      case 'Home':
+        e.preventDefault();
+        row.scrollTo({ left: 0, behavior: 'smooth' });
+        break;
+      case 'End':
+        e.preventDefault();
+        row.scrollTo({ left: row.scrollWidth, behavior: 'smooth' });
+        break;
+    }
+  };
+
+  // Handle scroll indicators
+  const handleRowScroll = (e) => {
+    const row = e.currentTarget;
+    if (row.scrollLeft > 0) {
+      row.classList.add('scrolled');
+    } else {
+      row.classList.remove('scrolled');
+    }
+  };
+
   return (
     <Layout>
-      <div className="investors-page">
-        <div className="investors-header">
-          <div>
-            <h1 className="page-title">Investors</h1>
-            <p className="page-subtitle">Manage investor profiles and KYC status.</p>
-          </div>
-          <div className="header-buttons">
-            {showCreateButton('investors') && (
-              <>
-                <button className="add-investment-button" onClick={() => setShowAddInvestmentModal(true)}>
-                  <MdTrendingUp size={20} /> Add Investment
-                </button>
-                <button className="add-investor-button" onClick={() => setShowAddInvestorModal(true)}>
-                  <TiUserAdd size={20} /> Add Investor
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="investors-summary-cards">
-          <div className="summary-card">
-            <p className="card-label">Total Investors</p>
-            <h2 className="card-value">{totalInvestors}</h2>
-          </div>
-          <div className="summary-card green">
-            <p className="card-label">KYC Completed</p>
-            <h2 className="card-value">{kycCompleted}</h2>
-          </div>
-          <div className="summary-card orange">
-            <p className="card-label">KYC Pending</p>
-            <h2 className="card-value">{getPendingKYC()}</h2>
-          </div>
-          <div className="summary-card red">
-            <p className="card-label">KYC Rejected</p>
-            <h2 className="card-value">{kycRejected}</h2>
-          </div>
-        </div>
-
-        <div className="investors-table-section">
-          <div className="table-header">
-            <h3 className="section-title">All Investors</h3>
-            <div className="table-actions">
-              <div className="search-filter-row">
-                <div className="search-container">
-                  <FiSearch size={16} />
-                  <input
-                    type="text"
-                    placeholder="Search investors..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
-                  />
-                </div>
-                <div className="filter-container">
-                  <button className="filter-button" onClick={handleFilterToggle}>
-                    <FiFilter size={16} />
-                    {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
-                      <span className="filter-indicator"></span>
-                    )}
+      <div className="investors-new-page">
+        {/* Header */}
+        <div className="investors-new-header">
+          <div className="header-content">
+            <div className="header-left">
+              <h1 className="page-title">Investors</h1>
+              <p className="page-subtitle">Manage investor profiles and KYC status.</p>
+            </div>
+            <div className="header-actions">
+              {showCreateButton('investors') && (
+                <>
+                  <button className="add-investment-btn" onClick={() => setShowAddInvestmentModal(true)}>
+                    <MdTrendingUp size={20} /> Add Investment
                   </button>
+                  <button className="add-investor-btn" onClick={() => setShowAddInvestorModal(true)}>
+                    <TiUserAdd size={20} /> Add Investor
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="stats-cards">
+          <div className="stat-card stat-card-blue">
+            <div className="stat-content">
+              <p className="stat-label">Total Investors</p>
+              <h2 className="stat-value">{totalInvestors}</h2>
+            </div>
+            <div className="stat-icon">
+              <FaUsers size={24} />
+            </div>
+          </div>
+          <div className="stat-card stat-card-green">
+            <div className="stat-content">
+              <p className="stat-label">KYC Completed</p>
+              <h2 className="stat-value">{kycCompleted}</h2>
+            </div>
+            <div className="stat-icon">
+              <FaCheckCircle size={24} />
+            </div>
+          </div>
+          <div className="stat-card stat-card-yellow">
+            <div className="stat-content">
+              <p className="stat-label">KYC Pending</p>
+              <h2 className="stat-value">{kycPending}</h2>
+            </div>
+            <div className="stat-icon">
+              <FaClock size={24} />
+            </div>
+          </div>
+          <div className="stat-card stat-card-red">
+            <div className="stat-content">
+              <p className="stat-label">KYC Rejected</p>
+              <h2 className="stat-value">{kycRejected}</h2>
+            </div>
+            <div className="stat-icon">
+              <FaTimesCircle size={24} />
+            </div>
+          </div>
+        </div>
+
+        {/* Header Card */}
+        <div className="header-card">
+          <div className="table-header">
+            <div className="table-title">
+              <h2>All Investors</h2>
+            </div>
+            <div className="table-actions">
+              {/* Search Box */}
+              <div className="search-box">
+                <FiSearch className="search-icon" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search investors..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
+
+              {/* New Neat Filter Button */}
+              <div className="neat-filter-container">
+                <button 
+                  className={`neat-filter-btn ${(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') ? 'active' : ''}`}
+                  onClick={handleFilterToggle}
+                >
+                  <FiFilter size={16} />
+                  {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
+                    <span className="neat-filter-dot"></span>
+                  )}
+                </button>
                 
                 {showFilterDropdown && (
-                  <div className="filter-dropdown">
-                    <div className="filter-section">
-                      <div className="filter-option" onClick={handleKYCFilterToggle}>
-                        <span>KYC Status</span>
-                        <span className="dropdown-arrow">▶</span>
-                      </div>
-                      {showKYCDropdown && (
-                        <div className="sub-dropdown kyc-dropdown">
-                          <div 
-                            className={`sub-option ${selectedKYCFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => handleKYCFilterSelect('all')}
-                          >
-                            All Status
-                          </div>
-                          <div 
-                            className={`sub-option ${selectedKYCFilter === 'Pending' ? 'active' : ''}`}
-                            onClick={() => handleKYCFilterSelect('Pending')}
-                          >
-                            Pending
-                          </div>
-                          <div 
-                            className={`sub-option ${selectedKYCFilter === 'Completed' ? 'active' : ''}`}
-                            onClick={() => handleKYCFilterSelect('Completed')}
-                          >
-                            Completed
-                          </div>
-                          <div 
-                            className={`sub-option ${selectedKYCFilter === 'Rejected' ? 'active' : ''}`}
-                            onClick={() => handleKYCFilterSelect('Rejected')}
-                          >
-                            Rejected
-                          </div>
-                        </div>
-                      )}
+                  <div className="neat-filter-dropdown">
+                    <div className="neat-filter-header">
+                      <span>Filter Options</span>
+                      <button 
+                        className="neat-close-btn"
+                        onClick={() => setShowFilterDropdown(false)}
+                      >
+                        ×
+                      </button>
                     </div>
                     
-                    <div className="filter-section">
-                      <div className="filter-option" onClick={handleSeriesFilterToggle}>
-                        <span>Series</span>
-                        <span className="dropdown-arrow">▶</span>
+                    <div className="neat-filter-content">
+                      <div className="neat-filter-group">
+                        <label>KYC Status</label>
+                        <select 
+                          value={selectedKYCFilter} 
+                          onChange={(e) => setSelectedKYCFilter(e.target.value)}
+                          className="neat-filter-select"
+                        >
+                          <option value="all">All Status</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Rejected">Rejected</option>
+                        </select>
                       </div>
-                      {showSeriesDropdown && (
-                        <div className="sub-dropdown series-dropdown">
-                          <div 
-                            className={`sub-option ${selectedSeriesFilter === 'all' ? 'active' : ''}`}
-                            onClick={() => handleSeriesFilterSelect('all')}
-                          >
-                            All Series
-                          </div>
+                      
+                      <div className="neat-filter-group">
+                        <label>Series</label>
+                        <select 
+                          value={selectedSeriesFilter} 
+                          onChange={(e) => setSelectedSeriesFilter(e.target.value)}
+                          className="neat-filter-select"
+                        >
+                          <option value="all">All Series</option>
                           {getUniqueSeriesFromInvestors().map((seriesName) => (
-                            <div 
-                              key={seriesName}
-                              className={`sub-option ${selectedSeriesFilter === seriesName ? 'active' : ''}`}
-                              onClick={() => handleSeriesFilterSelect(seriesName)}
-                            >
+                            <option key={seriesName} value={seriesName}>
                               {seriesName}
-                            </div>
+                            </option>
                           ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
-                      <div className="filter-actions">
-                        <button className="clear-filters-btn" onClick={clearFilters}>
+                        </select>
+                      </div>
+                      
+                      {(selectedKYCFilter !== 'all' || selectedSeriesFilter !== 'all') && (
+                        <button 
+                          className="neat-clear-btn"
+                          onClick={clearFilters}
+                        >
                           Clear All Filters
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
-                <button onClick={handleExport} className="export-button">
-                  <MdOutlineFileDownload size={18} /> Export
-                </button>
-              </div>
+
+              {/* Export Button */}
+              <button onClick={handleExport} className="export-btn">
+                <MdOutlineFileDownload size={18} /> Export
+              </button>
             </div>
           </div>
+        </div>
 
-          <div className="table-container">
-            <table className="investors-table">
+        {/* Table Section */}
+        <div className="table-section">
+
+          {/* Big Card Background for Table Only */}
+          <div className="big-table-card">
+            <div className="perfect-table-container">
+              <table className="perfect-table">
               <thead>
                 <tr>
                   <th>Investor</th>
@@ -755,200 +776,102 @@ const Investors = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredInvestors.map((investor) => (
-                  <tr key={investor.id} className="investor-row">
-  <td colSpan={7} className="scroll-row-cell">
-    <div className="scroll-row-wrapper">
-      <div className="scroll-row-content">
-
-        {/* Investor */}
-        <div className="cell investor">
-          <div className="investor-name">{investor.name}</div>
-          <div className="investor-id" style={{marginTop:"4px"}}>{investor.investorId}</div>
-        </div>
-
-        {/* Contact */}
-        <div className="cell contact">
-          <div>{investor.email}</div>
-          <div className="phone">{investor.phone}</div>
-        </div>
-
-        {/* Series */}
-        <div className="cell series">
-          <div className="series-tags">
-            {investor.series && investor.series.length > 0 ? (
-              investor.series
-                .filter(s => s && typeof s === 'string' && s.startsWith('Series'))
-                .map((s, idx) => (
-                  <span 
-                    key={idx} 
-                    className="series-tag clickable-series-tag"
-                    onClick={() => handleSeriesClick(s)}
-                    title={`View ${s} details`}
+                {filteredInvestors.map((investor, index) => (
+                  <tr 
+                    key={investor.id}
+                    tabIndex={0}
+                    onKeyDown={(e) => handleRowKeyDown(e, index)}
+                    onScroll={handleRowScroll}
+                    title="Use arrow keys to scroll horizontally, Home/End for start/end"
                   >
-                    {s}
-                  </span>
-                ))
-            ) : null}
-            {(!investor.series || investor.series.length === 0 || investor.series.filter(s => s && typeof s === 'string' && s.startsWith('Series')).length === 0) && (
-              <span style={{ color: '#94a3b8', fontSize: '13px' }}>No series yet</span>
-            )}
-          </div>
-        </div>
-
-        {/* Investment */}
-        <div className="cell investment">
-          ₹{investor.investment.toLocaleString('en-IN')}
-        </div>
-
-        {/* KYC */}
-        <div className="cell kyc">
-          {investor.status === 'deleted' ? (
-            <div className="deleted-investor-info">
-              <span className="status-badge deleted">
-                DELETED
-              </span>
-              {investor.refundAmount && (
-                <div className="refund-amount-small">
-                  Net: ₹{investor.refundAmount.toLocaleString('en-IN')}
-                </div>
-              )}
-              {investor.penaltyAmount > 0 && (
-                <div className="penalty-amount-small">
-                  Penalty: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
-                </div>
-              )}
-              {investor.lockInViolations && investor.lockInViolations.length > 0 && (
-                <div className="lockin-warning-small">
-                  ⚠️ {investor.lockInViolations.length} early exit
-                </div>
-              )}
-            </div>
-          ) : (
-            <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
-              {getStatusText(investor.kycStatus)}
-            </span>
-          )}
-        </div>
-
-        {/* Date */}
-        <div className="cell date">
-          {investor.dateJoined}
-        </div>
-
-        {/* Action */}
-        <div className="cell action">
-          <button
-            className="view-button"
-            onClick={() => navigate(`/investors/${investor.id}`)}
-          >
-            <FaEye size={16} /> View
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </td>
-</tr>
-
+                    <td>
+                      <div className="perfect-investor-cell">
+                        <div className="perfect-investor-name">{investor.name}</div>
+                        <div className="perfect-investor-id">{investor.investorId}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="perfect-contact-cell">
+                        <div className="perfect-email">{investor.email}</div>
+                        <div className="perfect-phone">{investor.phone}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="perfect-series-cell">
+                        {(() => {
+                          console.log(`🔍 DEBUG: Investor ${investor.name}:`, {
+                            hasSeries: !!investor.series,
+                            seriesLength: investor.series?.length || 0,
+                            seriesData: investor.series,
+                            seriesType: typeof investor.series
+                          });
+                          
+                          // Simple, robust rendering
+                          if (!investor.series || !Array.isArray(investor.series) || investor.series.length === 0) {
+                            return <span className="perfect-no-series" style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Series</span>;
+                          }
+                          
+                          return investor.series.map((seriesName, idx) => {
+                            console.log(`🔍 Rendering series ${idx}:`, seriesName);
+                            return (
+                              <div 
+                                key={idx} 
+                                className="series-tag-simple"
+                                style={{ 
+                                  backgroundColor: '#3b82f6', 
+                                  color: 'white', 
+                                  padding: '4px 8px', 
+                                  borderRadius: '4px', 
+                                  marginBottom: '4px',
+                                  display: 'block',
+                                  fontSize: '12px',
+                                  fontWeight: '500',
+                                  cursor: 'pointer'
+                                }}
+                                onClick={() => handleSeriesClick(seriesName)}
+                                title={`View ${seriesName} details`}
+                              >
+                                {seriesName || 'Unknown Series'}
+                              </div>
+                            );
+                          });
+                        })()}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="perfect-investment-cell">
+                        ₹{investor.investment.toLocaleString('en-IN')}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="perfect-status-cell">
+                        {investor.status === 'deleted' ? (
+                          <span className="perfect-status-badge deleted">DELETED</span>
+                        ) : (
+                          <span className={`perfect-status-badge ${investor.kycStatus.toLowerCase()}`}>
+                            {investor.kycStatus}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="perfect-date-cell">{investor.dateJoined}</div>
+                    </td>
+                    <td>
+                      <div className="perfect-actions-cell">
+                        <button
+                          className="perfect-view-btn"
+                          onClick={() => navigate(`/investors/${investor.id}`)}
+                        >
+                          <FaEye size={14} /> View
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-
-          {/* Mobile-friendly card layout */}
-          <div className="mobile-investors-list">
-            {filteredInvestors.map((investor) => (
-              <div key={investor.id} className="mobile-investor-card">
-                <div className="mobile-card-header">
-                  <div className="mobile-investor-info">
-                    <h4>{investor.name}</h4>
-                    <span className="investor-id">{investor.investorId}</span>
-                  </div>
-                  {investor.status === 'deleted' ? (
-                    <div className="deleted-investor-info">
-                      <span className="status-badge deleted">
-                        DELETED
-                      </span>
-                      {investor.refundAmount && (
-                        <div className="refund-amount-small">
-                          Net: ₹{investor.refundAmount.toLocaleString('en-IN')}
-                        </div>
-                      )}
-                      {investor.penaltyAmount > 0 && (
-                        <div className="penalty-amount-small">
-                          Penalty: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
-                        </div>
-                      )}
-                      {investor.lockInViolations && investor.lockInViolations.length > 0 && (
-                        <div className="lockin-warning-small">
-                          ⚠️ {investor.lockInViolations.length} early exit
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <span className={`status-badge ${getStatusColor(investor.kycStatus)}`}>
-                      {getStatusText(investor.kycStatus)}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="mobile-card-details">
-                  <div className="mobile-detail-item">
-                    <span className="mobile-detail-label">Contact</span>
-                    <div className="mobile-detail-value">
-                      <div>{investor.email}</div>
-                      <div style={{fontSize: '11px', color: '#64748b'}}>{investor.phone}</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mobile-detail-item">
-                    <span className="mobile-detail-label">Investment</span>
-                    <span className="mobile-detail-value mobile-investment">
-                      ₹{investor.investment.toLocaleString('en-IN')}
-                    </span>
-                  </div>
-                  
-                  <div className="mobile-detail-item">
-                    <span className="mobile-detail-label">Series</span>
-                    <div className="mobile-series-tags">
-                      {investor.series && investor.series.length > 0 ? (
-                        investor.series
-                          .filter(s => s && typeof s === 'string' && s.startsWith('Series'))
-                          .map((s, idx) => (
-                            <span 
-                              key={idx} 
-                              className="series-tag clickable-series-tag"
-                              onClick={() => handleSeriesClick(s)}
-                              title={`View ${s} details`}
-                            >
-                              {s}
-                            </span>
-                          ))
-                      ) : null}
-                      {(!investor.series || investor.series.length === 0 || investor.series.filter(s => s && typeof s === 'string' && s.startsWith('Series')).length === 0) && (
-                        <span style={{ color: '#94a3b8', fontSize: '11px' }}>No series yet</span>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="mobile-detail-item">
-                    <span className="mobile-detail-label">Joined</span>
-                    <span className="mobile-detail-value">{investor.dateJoined}</span>
-                  </div>
-                </div>
-                
-                <div className="mobile-card-footer">
-                  <span className="mobile-date">Last updated: {investor.dateJoined}</span>
-                  <button
-                    className="mobile-view-button"
-                    onClick={() => navigate(`/investors/${investor.id}`)}
-                  >
-                    <FaEye size={12} /> View
-                  </button>
-                </div>
-              </div>
-            ))}
+            </div>
           </div>
         </div>
 

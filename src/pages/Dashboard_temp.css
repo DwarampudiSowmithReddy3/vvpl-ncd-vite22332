@@ -31,10 +31,9 @@
 
 .dashboard-title {
   font-size: 32px; /* Fixed font size - EXACTLY as it appears at 90% */
-  font-weight: 700;
+  font-weight: bold;
   color: #1e293b;
-  margin-bottom: 0;
-  line-height: 1.1;
+  margin-bottom: 8px; /* 0.5rem equivalent */
   /* Zoom protection */
   white-space: nowrap;
 }
@@ -42,8 +41,6 @@
 .dashboard-subtitle {
   font-size: 16px; /* Fixed font size - EXACTLY as it appears at 90% */
   color: #64748b;
-  margin: -8px 0 0 0; /* Fixed margin */
-  line-height: 1.2;
 }
 
 .dashboard-cards {

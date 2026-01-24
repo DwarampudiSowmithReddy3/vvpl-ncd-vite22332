@@ -887,8 +887,7 @@ const InterestPayout = () => {
       <div className="interest-payout-container">
         <div className="interest-payout-header">
           <div className="header-content">
-            <h1>Interest Payout Management</h1>
-            <p>Track and manage interest payments across all NCD series</p>
+            <h1 className="page-title">Interest Payout Management</h1>
           </div>
           <div className="header-buttons">
             <button className="import-payout-button" onClick={() => setShowImportModal(true)}>
@@ -960,9 +959,7 @@ const InterestPayout = () => {
                 <option value="Series C">Series C</option>
               </select>
             </div>
-          </div>
 
-          <div className="action-buttons">
             <div className="filter-dropdown-container" ref={dropdownRef}>
               <button 
                 className={`filter-button ${(selectedStatusFilter !== 'all' || selectedSeriesFilter !== 'all') ? 'active' : ''}`}
@@ -1055,6 +1052,7 @@ const InterestPayout = () => {
                 </div>
               )}
             </div>
+            
             <button className="export-button" onClick={handleExport}>
               <MdOutlineFileDownload size={16} />
               Export Data
@@ -1067,7 +1065,6 @@ const InterestPayout = () => {
           <table className="payouts-table">
             <thead>
               <tr>
-                <th>Investor ID</th>
                 <th>Investor Name</th>
                 <th>Series Name</th>
                 <th>Interest Month</th>
@@ -1075,7 +1072,6 @@ const InterestPayout = () => {
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Bank Name</th>
-                <th>Account Number</th>
                 <th>IFSC Code</th>
                 <th>Actions</th>
               </tr>
@@ -1084,11 +1080,9 @@ const InterestPayout = () => {
               {filteredPayouts.map((payout) => (
                 <tr key={payout.id}>
                   <td>
-                    <span className="investor-id">{payout.investorId}</span>
-                  </td>
-                  <td>
                     <div className="investor-info">
-                      <span className="investor-name">{payout.investorName}</span>
+                      <div className="investor-name">{payout.investorName}</div>
+                      <div className="investor-id">{payout.investorId}</div>
                     </div>
                   </td>
                   <td>
@@ -1110,10 +1104,10 @@ const InterestPayout = () => {
                     </span>
                   </td>
                   <td>
-                    <span className="bank-name">{payout.bankName}</span>
-                  </td>
-                  <td>
-                    <span className="account-number">{payout.bankAccountNumber}</span>
+                    <div className="bank-info">
+                      <div className="bank-name">{payout.bankName}</div>
+                      <div className="account-number">{payout.bankAccountNumber}</div>
+                    </div>
                   </td>
                   <td>
                     <span className="ifsc-code">{payout.ifscCode}</span>
