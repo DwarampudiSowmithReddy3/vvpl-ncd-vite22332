@@ -1,8 +1,7 @@
 .ncd-series-page {
-  max-width: 87.5rem; /* 1400px */
-  margin: 0 auto;
   padding: 0 1rem;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .series-header {
@@ -241,7 +240,7 @@
 }
 
 .ncd-series-page .status-pill.blue {
-  background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+  background: linear-gradient(135deg, #bbf7d0 0%, #86efac 100%);
   color: #1d4ed8;
   border-color: #93c5fd;
 }

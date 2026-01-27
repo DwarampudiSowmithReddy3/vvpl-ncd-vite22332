@@ -295,7 +295,7 @@ const Layout = ({ children, isInvestor = false }) => {
           {children}
         </main>
         <footer className="layout-footer">
-          <p className="footer-text">© 2026 LOANFRONT | All Rights Reserved.</p>
+          <p className="footer-text">© 2026 VAIBHAV VYAPAAR | All Rights Reserved.</p>
         </footer>
       </div>
 

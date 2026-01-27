@@ -5,7 +5,8 @@ import { useData } from '../context/DataContext';
 import Layout from '../components/Layout';
 import './Communication.css';
 import { HiOutlineMail, HiOutlineDeviceMobile, HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
-import { MdSend, MdHistory, MdAdd, MdClose, MdSearch, MdFilterList, MdCheck, MdRemove, MdDragIndicator } from 'react-icons/md';
+import { MdSend, MdHistory, MdClose, MdSearch, MdFilterList, MdCheck, MdRemove, MdDragIndicator } from 'react-icons/md';
+import { FaPlus } from 'react-icons/fa';
 import { FiSearch, FiFilter, FiX, FiUsers, FiMail, FiPhone, FiMaximize2, FiMinimize2 } from 'react-icons/fi';
 import * as XLSX from 'xlsx';
 import { sendSMS, sendEmail } from '../utils/communicationService';
@@ -708,7 +709,7 @@ const Communication = () => {
                               }}
                               title="Expand to select investors"
                             >
-                              <MdAdd size={28} style={{color: 'white', fontWeight: 'bold'}} />
+                              <FaPlus size={24} style={{color: 'white', fontWeight: 'bold'}} />
                             </button>
                           </div>
 

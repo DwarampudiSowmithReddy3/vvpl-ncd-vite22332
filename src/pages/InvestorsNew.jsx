@@ -11,6 +11,7 @@ import { FaEye } from "react-icons/fa";
 import { TiUserAdd } from "react-icons/ti";
 import { HiOutlineDocumentText, HiOutlineMail, HiOutlinePhone, HiOutlineCalendar, HiOutlineChartBar } from "react-icons/hi";
 import { FiUpload } from "react-icons/fi";
+import { IoLockClosedOutline } from "react-icons/io5";
 
 const InvestorsNew = () => {
   const navigate = useNavigate();
@@ -1077,7 +1078,8 @@ pportunities Available</h3>
 
   const availableSeries = series.filter(s => {
     const status = getSeriesStatus(s);
-    return status === 'accepting';
+    // Show all series including matured ones for visibility
+    return status === 'accepting' || status === 'active' || status === 'matured' || status === 'upcoming';
   });
 
   return (

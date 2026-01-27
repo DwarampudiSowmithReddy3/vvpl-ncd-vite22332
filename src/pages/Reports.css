@@ -1,9 +1,9 @@
-/* Enhanced Responsive Reports Page */
+/* Enhanced Responsive Reports Page - FIXED FOR 100% ZOOM WITH PROPER CENTERING */
 .reports-page {
-  max-width: 87.5rem; /* 1400px converted to rem */
-  margin: 0 auto;
   width: 100%;
   padding: 0 1rem;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .reports-header {

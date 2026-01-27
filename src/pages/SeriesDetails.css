@@ -1,9 +1,8 @@
 .series-details-page {
   width: 100%;
-  max-width: 87.5rem; /* 1400px */
-  margin: 0 auto;
-  padding: 1.5rem;
+  padding: 1rem;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 /* Header Section */
@@ -159,23 +158,22 @@
 
 /* Unique background colors for each metric card */
 .metric-card:nth-child(1) {
-  background: linear-gradient(145deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%);
+  background: linear-gradient(135deg,rgba(224, 242, 254, 0.9) 0%,rgba(186, 230, 253, 0.8) 50%,rgba(147, 197, 253, 0.9) 100%);
   border-color: rgba(56, 189, 248, 0.3);
 }
 
 .metric-card:nth-child(2) {
-  background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 50%, #f0fdf4 100%);
+  background: linear-gradient(145deg, rgba(209, 250, 229, 0.95) 0%,rgba(167, 243, 208, 0.9) 50%,rgba(110, 231, 183, 0.95) 100%);
   border-color: rgba(34, 197, 94, 0.3);
 }
 
 .metric-card:nth-child(3) {
-  background: linear-gradient(145deg, #fffbeb 0%, #fef3c7 50%, #fffbeb 100%);
+  background: linear-gradient(135deg,rgba(255, 206, 123, 0.4),rgba(239, 168, 87, 0.4));
   border-color: rgba(245, 158, 11, 0.3);
 }
 
 .metric-card:nth-child(4) {
-  background: linear-gradient(145deg, #fdf2f8 0%, #fce7f3 50%, #fdf2f8 100%);
-  border-color: rgba(236, 72, 153, 0.3);
+  background: linear-gradient(135deg, rgba(245, 11, 34, 0.4), rgba(251, 32, 32, 0.4));border-color: rgba(236, 72, 153, 0.3);
 }
 
 .metric-card:nth-child(2n) {
@@ -313,12 +311,12 @@
 }
 
 .metric-icon.green {
-  background: #dcfce7;
-  color: #16a34a;
+  background: #3b82f6;
+  background: linear-gradient(145deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.08));
 }
 
 .metric-icon.grey {
-  background: #f1f5f9;
+  background: #9df3d7;
   color: #64748b;
 }
 
@@ -328,7 +326,7 @@
 }
 
 .metric-icon.blue {
-  background: #dbeafe;
+  background: #f98686;
   color: #1e40af;
 }
 
@@ -377,63 +375,45 @@
   text-shadow: 0 0.125rem 0.25rem rgba(59, 130, 246, 0.2);
 }
 
-/* Details Grid */
-.details-grid {
+/* Details and Payout Container - Side by Side Layout - FIXED FOR 100% ZOOM */
+.series-details-page .details-payout-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-  /* Cards will match height by default (align-items: stretch) */
+  gap: 1rem; /* Reduced gap */
+  margin-bottom: 1.5rem;
+  overflow-x: hidden;
 }
 
-.details-card {
+.series-details-page .series-details-card,
+.series-details-page .payout-schedule-card {
   background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
   border-radius: 0.75rem;
-  padding: 1.5rem;
+  padding: 1.25rem; /* Reduced padding */
   box-shadow: 
     0 0.25rem 1rem rgba(0, 0, 0, 0.08),
     0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
     inset 0 0.0625rem 0 rgba(255, 255, 255, 0.8);
   border: 0.0625rem solid rgba(226, 232, 240, 0.8);
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
   position: relative;
-  overflow: hidden; /* Keep for shimmer effect */
+  overflow: hidden;
   backdrop-filter: blur(10px);
   animation: float 6s ease-in-out infinite;
-  display: flex;
-  flex-direction: column;
+  
+  /* CRITICAL: Fixed height with no scrolling */
+  height: 22rem; /* Reduced height */
+  min-height: 22rem;
+  max-height: 22rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Specific styling for Payout Schedule card (second card) */
-.details-card:nth-child(2) {
-  /* Payout Schedule card - content should scroll inside */
+.series-details-page .payout-schedule-card {
+  animation-delay: -2s; /* Staggered animation */
 }
 
-/* Specific styling for Series Details card (first card) */
-.details-card:nth-child(1) {
-  height: 400px; /* Fixed height for Series Details card */
-  min-height: 400px;
-  max-height: 400px;
-}
-
-.details-card:nth-child(1) .details-list {
-  /* Series Details - no scrolling, content should expand naturally within fixed height */
-  overflow: visible;
-  max-height: none;
-  flex: 1; /* Take available space within fixed height */
-  justify-content: space-between; /* Distribute detail rows evenly */
-}
-
-.details-card:nth-child(2n) {
-  animation-delay: -2s;
-}
-
-.details-card:nth-child(3n) {
-  animation-delay: -4s;
-}
-
-.details-card::before {
+.series-details-page .series-details-card::before,
+.series-details-page .payout-schedule-card::before {
   content: '';
   position: absolute;
   top: 0;
@@ -447,7 +427,8 @@
   transition: opacity 0.4s ease;
 }
 
-.details-card::after {
+.series-details-page .series-details-card::after,
+.series-details-page .payout-schedule-card::after {
   content: '';
   position: absolute;
   top: 0;
@@ -463,11 +444,13 @@
   pointer-events: none;
 }
 
-.details-card:hover::after {
+.series-details-page .series-details-card:hover::after,
+.series-details-page .payout-schedule-card:hover::after {
   left: 100%;
 }
 
-.details-card:hover {
+.series-details-page .series-details-card:hover,
+.series-details-page .payout-schedule-card:hover {
   transform: translateY(-0.5rem) scale(1.02);
   box-shadow: 
     0 1.5rem 3rem rgba(0, 0, 0, 0.15),
@@ -476,7 +459,8 @@
   border-color: rgba(59, 130, 246, 0.3);
 }
 
-.card-title {
+.series-details-page .series-details-card .card-title,
+.series-details-page .payout-schedule-card .card-title {
   font-size: 1.125rem;
   font-weight: 600;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
@@ -491,7 +475,8 @@
   z-index: 2;
 }
 
-.details-card:hover .card-title {
+.series-details-page .series-details-card:hover .card-title,
+.series-details-page .payout-schedule-card:hover .card-title {
   background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -500,285 +485,190 @@
   text-shadow: 0 0.125rem 0.25rem rgba(59, 130, 246, 0.2);
 }
 
-.details-list {
+.series-details-page .details-list,
+.series-details-page .payout-list {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 1rem;
   position: relative;
   z-index: 2;
-  /* No height or overflow constraints - let content expand naturally */
-}
-
-.details-card:hover .details-list {
-  transform: translateY(-0.125rem);
-}
-
-.detail-row {
-  display: flex;
-  align-items: center;
-  min-height: 3rem;
-  padding: 0.5rem 0;
-  border-bottom: 0.0625rem solid #f1f5f9; /* 1px */
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  /* CRITICAL: No scrolling - content fits within fixed height */
   overflow: hidden;
 }
 
-.detail-row::before {
-  content: '';
-  position: absolute;
-  left: -100%;
-  bottom: 0;
-  width: 100%;
-  height: 0.0625rem;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(59, 130, 246, 0.5), 
-    transparent);
-  transition: left 0.6s ease;
+.series-details-page .detail-row,
+.series-details-page .payout-row {
+  display: flex;
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.75rem 0;
+  border-bottom: 0.0625rem solid rgba(226, 232, 240, 0.5);
+  transition: all 0.3s ease;
 }
 
-.details-card:hover .detail-row::before {
-  left: 100%;
-}
-
-.details-card:hover .detail-row {
-  transform: translateX(0.25rem);
-  border-bottom-color: rgba(59, 130, 246, 0.2);
-}
-
-.detail-row:last-child {
+.series-details-page .detail-row:last-child,
+.series-details-page .payout-row:last-child {
   border-bottom: none;
 }
 
-.detail-item {
-  display: flex;
-  align-items: start;
-  width: 100%;
+.series-details-page .detail-row:hover,
+.series-details-page .payout-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
-.detail-content {
+.series-details-page .detail-item,
+.series-details-page .payout-item {
+  flex: 1;
+}
+
+.series-details-page .detail-content,
+.series-details-page .payout-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
-  min-height: 2rem;
+  gap: 1rem;
 }
 
-.detail-label-with-icon {
+.series-details-page .payout-content {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.series-details-page .detail-label-with-icon {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 8.75rem;
+  min-width: 8rem;
 }
 
-.detail-icon {
-  color: #64748b;
+.series-details-page .payout-date-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.series-details-page .payout-label-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.series-details-page .detail-icon,
+.series-details-page .payout-icon {
+  color: #3b82f6;
   font-size: 1rem;
   flex-shrink: 0;
 }
 
-.detail-label {
+.series-details-page .detail-label,
+.series-details-page .payout-label {
   font-size: 0.875rem;
   color: #64748b;
   font-weight: 500;
-  min-width: 7.5rem;
-  text-align: left;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 7rem;
 }
 
-.details-card:hover .detail-label {
-  color: #3b82f6;
-  transform: translateX(0.125rem);
+.series-details-page .payout-date {
+  font-size: 0.875rem;
+  color: #1e293b;
+  font-weight: 600;
 }
 
-.detail-value {
-  font-size: 1rem;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+.series-details-page .detail-value,
+.series-details-page .payout-value {
+  font-size: 0.875rem;
+  color: #1e293b;
   font-weight: 600;
   text-align: right;
-  flex: 1;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  letter-spacing: -0.025em;
+  flex-shrink: 0;
 }
 
-.details-card:hover .detail-value {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  transform: scale(1.02) translateX(-0.125rem);
-  text-shadow: 0 0.125rem 0.25rem rgba(59, 130, 246, 0.2);
-}
-
-.frequency-badge {
-  display: inline-block;
-  padding: 0.375rem 0.75rem;
-  background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
-  border-radius: 0.375rem;
-  font-size: 0.875rem;
+.series-details-page .frequency-badge {
+  background: #dbeafe;
   color: #1e40af;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  text-align: center;
-  min-width: fit-content;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 0.0625rem solid rgba(147, 197, 253, 0.6);
-  backdrop-filter: blur(8px);
-  position: relative;
-  overflow: hidden;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
 }
 
-.frequency-badge::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.3), 
-    transparent);
-  transition: left 0.5s ease;
-}
-
-.details-card:hover .frequency-badge {
-  background: linear-gradient(135deg, #93c5fd 0%, #60a5fa 100%);
-  border-color: rgba(96, 165, 250, 0.8);
-  transform: scale(1.05) translateY(-0.125rem);
-  box-shadow: 
-    0 0.5rem 1rem rgba(59, 130, 246, 0.3),
-    0 0.25rem 0.5rem rgba(59, 130, 246, 0.2);
-}
-
-.details-card:hover .frequency-badge::before {
-  left: 100%;
-}
-
-/* Payout Schedule */
-.payouts-list {
+.series-details-page .payout-status-badge {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem; /* 12px */
-  max-height: 37.5rem; /* 600px */
-  overflow-y: auto;
-  /* Custom scrollbar styling */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
-}
-
-.payouts-list::-webkit-scrollbar {
-  width: 0.375rem;
-}
-
-.payouts-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.payouts-list::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 0.1875rem;
-}
-
-.payouts-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-
-.no-payouts {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 3.75rem 1.25rem; /* 60px 20px */
-  text-align: center;
-  color: #94a3b8;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
 }
 
-.no-payouts p {
-  margin: 0.5rem 0; /* 8px */
-  font-size: 0.875rem; /* 14px */
-  color: #64748b;
+.series-details-page .payout-status-badge.completed {
+  background: #dcfce7;
+  color: #16a34a;
 }
 
-.no-payouts p:first-of-type {
-  font-size: 1rem; /* 16px */
-  font-weight: 500;
-  color: #475569;
+.series-details-page .payout-status-badge.scheduled {
+  background: #fef3c7;
+  color: #d97706;
 }
 
-.no-payouts .draft-message {
-  font-size: 0.8125rem; /* 13px */
-  color: #94a3b8;
-  max-width: 18.75rem; /* 300px */
-  margin-top: 0.5rem; /* 8px */
+.series-details-page .payout-status-badge.pending {
+  background: #fed7aa;
+  color: #ea580c;
 }
 
-.payout-card {
-  background: #f8fafc;
-  border: 0.0625rem solid #e2e8f0; /* 1px */
-  border-radius: 0.5rem; /* 8px */
-  padding: 1rem; /* 16px */
+.series-details-page .status-icon {
+  font-size: 0.875rem;
 }
 
-.payout-header {
+.series-details-page .payout-details {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem; /* 12px */
 }
 
-.payout-title {
+.series-details-page .payout-amount,
+.series-details-page .payout-investors {
   display: flex;
-  align-items: center;
-  gap: 0.5rem; /* 8px */
-  font-size: 0.875rem; /* 14px */
-  font-weight: 600;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.series-details-page .payout-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.series-details-page .payout-value {
+  font-size: 0.875rem;
   color: #1e293b;
-}
-
-.payout-icon {
-  color: #64748b;
-  font-size: 1rem; /* 16px */
-}
-
-.payout-status {
-  display: inline-block;
-  padding: 0.25rem 0.625rem; /* 4px 10px */
-  border-radius: 0.375rem; /* 6px */
-  font-size: 0.75rem; /* 12px */
   font-weight: 600;
+  text-align: left;
 }
 
-.payout-status.scheduled {
-  background: #f1f5f9;
-  color: #475569;
-}
-
-.payout-status.completed {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.payout-date {
-  font-size: 0.875rem; /* 14px */
+.series-details-page .no-payouts {
+  text-align: center;
+  padding: 2rem 1rem;
   color: #64748b;
-  margin-bottom: 0.25rem; /* 4px */
 }
 
-.payout-details {
-  font-size: 0.8125rem; /* 13px */
-  color: #64748b;
-  margin-bottom: 0.5rem; /* 8px */
+.series-details-page .no-payouts p {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
 }
 
-.payout-amount {
-  font-size: 1rem; /* 16px */
-  font-weight: 600;
-  color: #1e293b;
+.series-details-page .no-payouts .draft-message {
+  font-size: 0.875rem;
+  color: #f59e0b;
+  font-style: italic;
 }
 
 /* Transactions Section */
@@ -952,10 +842,45 @@
 @media (max-width: 64rem) { /* 1024px */
   .details-grid {
     grid-template-columns: 1fr;
+    /* MAINTAIN FIXED HEIGHT APPROACH ON TABLET */
+    height: auto; /* Allow natural height when stacked */
+  }
+  
+  .details-card {
+    /* MAINTAIN FIXED HEIGHT FOR EACH CARD WHEN STACKED */
+    height: 25rem;
+    min-height: 25rem;
+    max-height: 25rem;
   }
 
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Details and Payout Container - Stack on Tablet - SCOPED */
+  .series-details-page .details-payout-container {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  /* Series Details Card - Tablet - SCOPED */
+  .series-details-page .series-details-card,
+  .series-details-page .payout-schedule-card {
+    height: 21.875rem;
+    min-height: 21.875rem;
+    max-height: 21.875rem;
+    padding: 1.25rem;
+  }
+
+  .series-details-page .details-list,
+  .series-details-page .payout-list {
+    gap: 0.75rem;
+  }
+
+  .series-details-page .detail-row,
+  .series-details-page .payout-row {
+    min-height: 2.5rem;
+    padding: 0.5rem 0;
   }
 }
 
@@ -1013,13 +938,40 @@
 
   .details-card {
     padding: 1rem;
+    /* REDUCE FIXED HEIGHT FOR TABLET */
+    height: 21.875rem;
+    min-height: 21.875rem;
+    max-height: 21.875rem;
   }
-  
-  /* Adjust fixed height for tablet */
-  .details-card:nth-child(1) {
-    height: 350px;
-    min-height: 350px;
-    max-height: 350px;
+
+  /* Series Details Card - Mobile - SCOPED */
+  .series-details-page .series-details-card,
+  .series-details-page .payout-schedule-card {
+    padding: 1rem;
+    height: 20rem;
+    min-height: 20rem;
+    max-height: 20rem;
+  }
+
+  .series-details-page .details-list,
+  .series-details-page .payout-list {
+    gap: 0.5rem;
+  }
+
+  .series-details-page .detail-row,
+  .series-details-page .payout-row {
+    min-height: 2rem;
+    padding: 0.5rem 0;
+  }
+
+  .series-details-page .payout-content {
+    gap: 0.5rem;
+  }
+
+  .series-details-page .payout-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
   }
 
   .card-title {
@@ -1086,13 +1038,76 @@
 
   .details-card {
     padding: 0.75rem;
+    /* REDUCE FIXED HEIGHT FOR MOBILE */
+    height: 20rem;
+    min-height: 20rem;
+    max-height: 20rem;
   }
-  
-  /* Adjust fixed height for mobile */
-  .details-card:nth-child(1) {
-    height: 320px;
-    min-height: 320px;
-    max-height: 320px;
+
+  /* Series Details Card - Small Mobile - SCOPED */
+  .series-details-page .series-details-card,
+  .series-details-page .payout-schedule-card {
+    padding: 0.75rem;
+    height: 17.5rem;
+    min-height: 17.5rem;
+    max-height: 17.5rem;
+  }
+
+  .series-details-page .details-list,
+  .series-details-page .payout-list {
+    gap: 0.5rem;
+  }
+
+  .series-details-page .detail-row,
+  .series-details-page .payout-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    min-height: auto;
+    padding: 0.5rem 0;
+  }
+
+  .series-details-page .detail-content,
+  .series-details-page .payout-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  .series-details-page .payout-date-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  .series-details-page .payout-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+    width: 100%;
+  }
+
+  .series-details-page .detail-label-with-icon,
+  .series-details-page .payout-label-with-icon {
+    min-width: auto;
+  }
+
+  .series-details-page .detail-label,
+  .series-details-page .payout-label {
+    min-width: auto;
+    font-size: 0.75rem;
+  }
+
+  .series-details-page .detail-value,
+  .series-details-page .payout-value {
+    font-size: 0.8125rem;
+    text-align: left;
+  }
+
+  .series-details-page .payout-date {
+    font-size: 0.8125rem;
   }
 
   .card-title {
@@ -1580,11 +1595,12 @@
 @media (max-width: 48rem) { /* 768px */
   .documents-table-card {
     padding: 1rem; /* 16px */
-    overflow-x: auto;
+    /* REMOVED overflow-x: auto to prevent unnecessary scrolling */
   }
   
   .documents-table {
-    min-width: 37.5rem; /* 600px */
+    /* REMOVED min-width to prevent horizontal scrolling */
+    width: 100%;
   }
   
   .documents-table th,

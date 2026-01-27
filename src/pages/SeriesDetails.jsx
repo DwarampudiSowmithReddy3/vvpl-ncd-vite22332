@@ -686,10 +686,9 @@ const SeriesDetails = () => {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="details-grid">
-          {/* Left Column - Series Details */}
-          <div className="details-card">
+        {/* Series Details and Payout Schedule - Side by Side, Fixed Height, No Scrolling */}
+        <div className="details-payout-container">
+          <div className="series-details-card">
             <h2 className="card-title">Series Details</h2>
             <div className="details-list">
               <div className="detail-row">
@@ -749,39 +748,46 @@ const SeriesDetails = () => {
             </div>
           </div>
 
-          {/* Right Column - Payout Schedule */}
-          <div className="details-card">
+          <div className="payout-schedule-card">
             <h2 className="card-title">Payout Schedule</h2>
-            <div className="payouts-list">
+            <div className="payout-list">
               {seriesData.payouts && seriesData.payouts.length > 0 ? (
-                seriesData.payouts.map((payout) => (
-                  <div key={payout.id} className="payout-card">
-                    <div className="payout-header">
-                      <div className="payout-title">
-                        <HiOutlineCalendar className="payout-icon" />
-                        <span>Payout {payout.id}</span>
+                seriesData.payouts.map((payout, index) => (
+                  <div key={index} className="payout-row">
+                    <div className="payout-item">
+                      <div className="payout-content">
+                        <div className="payout-date-section">
+                          <div className="payout-label-with-icon">
+                            <HiOutlineCalendar className="payout-icon" />
+                            <span className="payout-date">{payout.date}</span>
+                          </div>
+                          <span className={`payout-status-badge ${payout.status}`}>
+                            {payout.status === 'completed' && <HiCheckCircle className="status-icon" />}
+                            {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
+                          </span>
+                        </div>
+                        <div className="payout-details">
+                          <div className="payout-amount">
+                            <span className="payout-label">Amount</span>
+                            <span className="payout-value">{formatCurrency(payout.amount)}</span>
+                          </div>
+                          <div className="payout-investors">
+                            <span className="payout-label">Investors</span>
+                            <span className="payout-value">{payout.investors}</span>
+                          </div>
+                        </div>
                       </div>
-                      <span className={`payout-status ${payout.status}`}>
-                        {payout.status}
-                      </span>
                     </div>
-                    <div className="payout-date">{payout.date}</div>
-                    <div className="payout-details">{payout.investors} investors</div>
-                    <div className="payout-amount">{formatCurrencyFull(payout.amount)}</div>
                   </div>
                 ))
               ) : (
                 <div className="no-payouts">
-                  <HiOutlineCalendar size={48} style={{ opacity: 0.3 }} />
                   <p>No payout schedule available</p>
                   {seriesData.status === 'Yet to be approved' && (
-                    <p className="draft-message">Series is pending board approval. Payout schedule will be generated after release.</p>
+                    <p className="draft-message">Payout schedule will be generated after series approval.</p>
                   )}
                   {seriesData.status === 'Releasing soon' && (
-                    <p className="draft-message">Series is approved but not yet released. Payout schedule will be generated after release date.</p>
-                  )}
-                  {seriesData.status === 'Active' && seriesData.fundsRaised === 0 && (
-                    <p className="draft-message">No investments yet. Payout schedule will be generated once investments are made.</p>
+                    <p className="draft-message">Payout schedule will be available after series release.</p>
                   )}
                 </div>
               )}

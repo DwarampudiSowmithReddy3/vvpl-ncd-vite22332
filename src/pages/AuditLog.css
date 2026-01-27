@@ -1,7 +1,7 @@
 .audit-log-page {
-  padding: 1.5rem; /* 24px */
-  max-width: 87.5rem; /* 1400px */
-  margin: 0 auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .audit-header {

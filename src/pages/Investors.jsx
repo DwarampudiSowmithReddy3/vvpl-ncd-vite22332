@@ -11,6 +11,7 @@ import { FaEye, FaUsers, FaCheckCircle, FaClock, FaTimesCircle } from "react-ico
 import { TiUserAdd } from "react-icons/ti";
 import { HiOutlineDocumentText, HiOutlineMail, HiOutlinePhone, HiOutlineCalendar, HiOutlineChartBar } from "react-icons/hi";
 import { FiUpload } from "react-icons/fi";
+import { IoLockClosedOutline } from "react-icons/io5";
 
 const Investors = () => {
   const navigate = useNavigate();
@@ -43,6 +44,7 @@ const Investors = () => {
   const [selectedInvestor, setSelectedInvestor] = useState(null);
   const [selectedSeries, setSelectedSeries] = useState(null);
   const [investorSearchTerm, setInvestorSearchTerm] = useState('');
+  const [seriesSearchTerm, setSeriesSearchTerm] = useState(''); // Add series search term
   const [investmentAmount, setInvestmentAmount] = useState('');
   const [investmentDocument, setInvestmentDocument] = useState(null);
 
@@ -538,6 +540,7 @@ const Investors = () => {
   const handleCloseSeriesSelection = () => {
     setShowSeriesSelection(false);
     setSelectedSeries(null);
+    setSeriesSearchTerm(''); // Reset search term when closing modal
   };
 
   const handleCloseInvestmentForm = () => {
@@ -553,14 +556,41 @@ const Investors = () => {
     return `₹${(amount / 100000).toFixed(2)} L`;
   };
 
-  // Filter series for investment (only accepting investments within subscription window)
+  // Filter series for investment - Show all series with status indicators and search
   const availableSeries = series.filter(s => {
     const status = getSeriesStatus(s);
     console.log(`Series ${s.name}: status = ${status}, subscriptionStart = ${s.subscriptionStartDate}, subscriptionEnd = ${s.subscriptionEndDate}`);
-    return status === 'accepting';
+    
+    // Filter by search term (name or ID)
+    const matchesSearch = !seriesSearchTerm || 
+      s.name.toLowerCase().includes(seriesSearchTerm.toLowerCase()) ||
+      (s.id && s.id.toString().toLowerCase().includes(seriesSearchTerm.toLowerCase()));
+    
+    // Show all series including matured, closed, and upcoming for visibility
+    const validStatus = status === 'accepting' || status === 'active' || status === 'matured' || status === 'upcoming' || status === 'DRAFT';
+    
+    return validStatus && matchesSearch;
   });
 
   console.log('Available series for investment:', availableSeries.length);
+
+  // Function to get blocking message for non-accepting series
+  const getSeriesBlockingMessage = (series) => {
+    const status = getSeriesStatus(series);
+    
+    switch(status) {
+      case 'active':
+        return `INVESTMENT BLOCKED: Series "${series.name}" subscription window has ended. No new investments are accepted.`;
+      case 'matured':
+        return `INVESTMENT BLOCKED: Series "${series.name}" has matured and no longer accepts investments.`;
+      case 'upcoming':
+        return `INVESTMENT BLOCKED: Series "${series.name}" is not yet open for investments. Please check back later.`;
+      case 'DRAFT':
+        return `INVESTMENT BLOCKED: Series "${series.name}" is still in draft status and not available for investment.`;
+      default:
+        return `INVESTMENT BLOCKED: Series "${series.name}" is not currently accepting investments.`;
+    }
+  };
 
   // Enhanced table row scrolling functionality
   const handleRowKeyDown = (e, rowIndex) => {
@@ -797,7 +827,14 @@ const Investors = () => {
                       </div>
                     </td>
                     <td>
-                      <div className="perfect-series-cell">
+                      <div 
+                        className="perfect-series-cell"
+                        ref={(el) => {
+                          if (el && investor.series && investor.series.length > 3) {
+                            el.classList.add('has-scroll');
+                          }
+                        }}
+                      >
                         {(() => {
                           console.log(`🔍 DEBUG: Investor ${investor.name}:`, {
                             hasSeries: !!investor.series,
@@ -808,7 +845,7 @@ const Investors = () => {
                           
                           // Simple, robust rendering
                           if (!investor.series || !Array.isArray(investor.series) || investor.series.length === 0) {
-                            return <span className="perfect-no-series" style={{ color: '#94a3b8', fontStyle: 'italic' }}>No Series</span>;
+                            return <span className="perfect-no-series">No Series</span>;
                           }
                           
                           return investor.series.map((seriesName, idx) => {
@@ -816,18 +853,7 @@ const Investors = () => {
                             return (
                               <div 
                                 key={idx} 
-                                className="series-tag-simple"
-                                style={{ 
-                                  backgroundColor: '#3b82f6', 
-                                  color: 'white', 
-                                  padding: '4px 8px', 
-                                  borderRadius: '4px', 
-                                  marginBottom: '4px',
-                                  display: 'block',
-                                  fontSize: '12px',
-                                  fontWeight: '500',
-                                  cursor: 'pointer'
-                                }}
+                                className="perfect-series-tag clickable-series-tag"
                                 onClick={() => handleSeriesClick(seriesName)}
                                 title={`View ${seriesName} details`}
                               >
@@ -1525,11 +1551,33 @@ const Investors = () => {
                 <button className="close-button" onClick={handleCloseSeriesSelection}>×</button>
               </div>
               <div className="modal-body">
+                {/* Series Search Bar */}
+                <div className="series-search-section">
+                  <div className="search-input-wrapper">
+                    <FiSearch size={16} className="search-icon" />
+                    <input
+                      type="text"
+                      value={seriesSearchTerm}
+                      onChange={(e) => setSeriesSearchTerm(e.target.value)}
+                      placeholder="Search series by name or ID..."
+                      className="series-search-input"
+                    />
+                    {seriesSearchTerm && (
+                      <button 
+                        className="clear-search-btn"
+                        onClick={() => setSeriesSearchTerm('')}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
                 {availableSeries.length > 0 ? (
                   <div className="series-selection-container">
                     <div className="series-selection-header">
-                      <h3>Available Investment Opportunities</h3>
-                      <p>Select a series to invest in. Only series currently accepting investments are shown.</p>
+                      <h3>Investment Opportunities</h3>
+                      <p>Select a series to invest in. Series status is shown beside each series name.</p>
                     </div>
                     
                     <div className="series-cards-grid">
@@ -1540,9 +1588,47 @@ const Investors = () => {
                             <div className="series-card-header">
                               <div className="series-title-section">
                                 <h4 className="series-title">{series.name}</h4>
-                                <span className="series-status-badge accepting">
-                                  ✓ Accepting Investments
-                                </span>
+                                {(() => {
+                                  const status = getSeriesStatus(series);
+                                  switch(status) {
+                                    case 'accepting':
+                                      return (
+                                        <span className="series-status-badge accepting">
+                                          ✓ Accepting Investments
+                                        </span>
+                                      );
+                                    case 'active':
+                                      return (
+                                        <span className="series-status-badge closed">
+                                          <IoLockClosedOutline size={14} /> Closed
+                                        </span>
+                                      );
+                                    case 'matured':
+                                      return (
+                                        <span className="series-status-badge matured">
+                                          ⏰ Matured
+                                        </span>
+                                      );
+                                    case 'upcoming':
+                                      return (
+                                        <span className="series-status-badge upcoming">
+                                          ⏳ Upcoming
+                                        </span>
+                                      );
+                                    case 'DRAFT':
+                                      return (
+                                        <span className="series-status-badge draft">
+                                          📝 Draft
+                                        </span>
+                                      );
+                                    default:
+                                      return (
+                                        <span className="series-status-badge unknown">
+                                          ❓ Unknown
+                                        </span>
+                                      );
+                                  }
+                                })()}
                               </div>
                               <div className="series-interest-rate">
                                 <span className="rate-value">{series.interestRate}%</span>
@@ -1590,12 +1676,28 @@ const Investors = () => {
                             </div>
                             
                             <div className="series-card-footer">
-                              <button className="invest-now-button">
-                                <span>Invest Now</span>
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M5 12h14M12 5l7 7-7 7"/>
-                                </svg>
-                              </button>
+                              {(() => {
+                                const status = getSeriesStatus(series);
+                                if (status === 'accepting') {
+                                  return (
+                                    <button className="invest-now-button">
+                                      <span>Invest Now</span>
+                                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <path d="M5 12h14M12 5l7 7-7 7"/>
+                                      </svg>
+                                    </button>
+                                  );
+                                } else {
+                                  return (
+                                    <div className="investment-blocked-message">
+                                      <div className="blocked-icon">🚫</div>
+                                      <div className="blocked-text">
+                                        {getSeriesBlockingMessage(series)}
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                              })()}
                             </div>
                           </div>
                         );
@@ -1603,35 +1705,21 @@ const Investors = () => {
                     </div>
                   </div>
                 ) : (
-                  <div className="no-series-message">
-                    <div className="no-series-icon">
-                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-                      </svg>
-                    </div>
-                    <h3>No Investment Opportunities Available</h3>
-                    <p>Currently, there are no series accepting new investments. Please check back later or contact support for more information.</p>
-                    
-                    {series.length > 0 && (
-                      <div className="series-status-overview">
-                        <h4>Current Series Status</h4>
-                        <div className="status-list">
-                          {series.map(s => (
-                            <div key={s.id} className="status-item">
-                              <span className="status-series-name">{s.name}</span>
-                              <span className={`status-badge ${getSeriesStatus(s)}`}>
-                                {getSeriesStatus(s) === 'upcoming' && '⏳ Upcoming'}
-                                {getSeriesStatus(s) === 'accepting' && '✅ Accepting'}
-                                {getSeriesStatus(s) === 'active' && '🔒 Closed'}
-                                {getSeriesStatus(s) === 'DRAFT' && '📝 Draft'}
-                              </span>
-                              <span className="status-dates">
-                                {s.subscriptionStartDate} - {s.subscriptionEndDate}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
+                  <div className="no-series-found">
+                    <div className="no-results-icon">🔍</div>
+                    <h4>No Series Found</h4>
+                    {seriesSearchTerm ? (
+                      <div>
+                        <p>No series found matching "{seriesSearchTerm}"</p>
+                        <button 
+                          className="clear-search-button"
+                          onClick={() => setSeriesSearchTerm('')}
+                        >
+                          Clear Search
+                        </button>
                       </div>
+                    ) : (
+                      <p>No series are currently available.</p>
                     )}
                   </div>
                 )}
