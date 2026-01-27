@@ -1,8 +1,19 @@
 .series-details-page {
   width: 100%;
-  padding: 1rem;
+  padding: clamp(0.75rem, 2vw, 1rem);
   box-sizing: border-box;
   overflow-x: hidden;
+  /* SURGICAL: Add container query support */
+  container-type: inline-size;
+  max-width: 100%;
+}
+
+/* SURGICAL: Fluid content wrapper */
+.series-details-content-wrapper {
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 clamp(0rem, 1vw, 1rem);
 }
 
 /* Header Section */
@@ -21,20 +32,23 @@
   gap: 1rem;
 }
 
+/* ISOLATED FIX: Back button size - ONLY affects back button */
 .back-button {
   background: none;
   border: none;
   cursor: pointer;
   color: #64748b;
-  padding: 0.5rem;
-  border-radius: 0.5rem;
+  padding: 0.625rem !important; /* Increased padding for better icon visibility */
+  border-radius: 0.5rem !important; /* Proper border radius */
   transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 0.25rem;
-  min-width: 2.5rem;
-  min-height: 2.5rem;
+  margin-top: 0.25rem !important; /* Proper margin */
+  min-width: 2.75rem !important; /* Increased size for better icon visibility */
+  min-height: 2.75rem !important; /* Increased size for better icon visibility */
+  width: 2.75rem !important; /* Fixed width that shows icon clearly */
+  height: 2.75rem !important; /* Fixed height that shows icon clearly */
 }
 
 .back-button:hover {
@@ -375,11 +389,11 @@
   text-shadow: 0 0.125rem 0.25rem rgba(59, 130, 246, 0.2);
 }
 
-/* Details and Payout Container - Side by Side Layout - FIXED FOR 100% ZOOM */
+/* Details and Payout Container - Side by Side Layout - FIXED FOR PROPER SPACING */
 .series-details-page .details-payout-container {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem; /* Reduced gap */
+  gap: 1.5rem; /* Increased gap for better spacing */
   margin-bottom: 1.5rem;
   overflow-x: hidden;
 }
@@ -388,7 +402,7 @@
 .series-details-page .payout-schedule-card {
   background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
   border-radius: 0.75rem;
-  padding: 1.25rem; /* Reduced padding */
+  padding: 1.5rem; /* Increased padding for better spacing */
   box-shadow: 
     0 0.25rem 1rem rgba(0, 0, 0, 0.08),
     0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
@@ -400,10 +414,10 @@
   backdrop-filter: blur(10px);
   animation: float 6s ease-in-out infinite;
   
-  /* CRITICAL: Fixed height with no scrolling */
-  height: 22rem; /* Reduced height */
-  min-height: 22rem;
-  max-height: 22rem;
+  /* CRITICAL: Increased height for better content display */
+  height: 28rem; /* Increased from 22rem for better spacing */
+  min-height: 28rem;
+  max-height: 28rem;
   width: 100%;
   box-sizing: border-box;
 }
@@ -489,7 +503,7 @@
 .series-details-page .payout-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem; /* Increased from 1rem for better spacing */
   position: relative;
   z-index: 2;
   /* CRITICAL: No scrolling - content fits within fixed height */
@@ -500,8 +514,8 @@
 .series-details-page .payout-row {
   display: flex;
   align-items: center;
-  min-height: 3rem;
-  padding: 0.75rem 0;
+  min-height: 3.5rem; /* Increased from 3rem for better spacing */
+  padding: 1rem 0; /* Increased from 0.75rem for better spacing */
   border-bottom: 0.0625rem solid rgba(226, 232, 240, 0.5);
   transition: all 0.3s ease;
 }
@@ -761,6 +775,58 @@
   /* Removed overflow-x: auto to prevent scrolling */
 }
 
+/* ISOLATED FIX: Recent Transactions Table Horizontal Scrolling - ONLY affects Recent Transactions */
+.recent-transactions-table-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  /* Custom scrollbar styling for mobile */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.recent-transactions-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.recent-transactions-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.recent-transactions-table-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.recent-transactions-table-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Set minimum width for Recent Transactions table to ensure proper column display */
+.recent-transactions-table-container .transactions-table {
+  min-width: 800px; /* Minimum width for proper column display */
+}
+
+/* Responsive adjustments for Recent Transactions table */
+@media (max-width: 64rem) { /* 1024px */
+  .recent-transactions-table-container .transactions-table {
+    min-width: 750px;
+  }
+}
+
+@media (max-width: 48rem) { /* 768px */
+  .recent-transactions-table-container .transactions-table {
+    min-width: 700px;
+  }
+}
+
+@media (max-width: 30rem) { /* 480px */
+  .recent-transactions-table-container .transactions-table {
+    min-width: 650px;
+  }
+}
+
 .transactions-table {
   width: 100%;
   border-collapse: collapse;
@@ -866,21 +932,21 @@
   /* Series Details Card - Tablet - SCOPED */
   .series-details-page .series-details-card,
   .series-details-page .payout-schedule-card {
-    height: 21.875rem;
-    min-height: 21.875rem;
-    max-height: 21.875rem;
-    padding: 1.25rem;
+    height: 26rem; /* Increased from 21.875rem for better spacing */
+    min-height: 26rem;
+    max-height: 26rem;
+    padding: 1.5rem; /* Increased padding */
   }
 
   .series-details-page .details-list,
   .series-details-page .payout-list {
-    gap: 0.75rem;
+    gap: 1rem; /* Increased gap */
   }
 
   .series-details-page .detail-row,
   .series-details-page .payout-row {
-    min-height: 2.5rem;
-    padding: 0.5rem 0;
+    min-height: 3rem; /* Increased height */
+    padding: 0.75rem 0; /* Increased padding */
   }
 }
 
@@ -938,30 +1004,30 @@
 
   .details-card {
     padding: 1rem;
-    /* REDUCE FIXED HEIGHT FOR TABLET */
-    height: 21.875rem;
-    min-height: 21.875rem;
-    max-height: 21.875rem;
+    /* INCREASED FIXED HEIGHT FOR BETTER SPACING */
+    height: 26rem; /* Increased from 21.875rem */
+    min-height: 26rem;
+    max-height: 26rem;
   }
 
   /* Series Details Card - Mobile - SCOPED */
   .series-details-page .series-details-card,
   .series-details-page .payout-schedule-card {
-    padding: 1rem;
-    height: 20rem;
-    min-height: 20rem;
-    max-height: 20rem;
+    padding: 1.25rem; /* Increased padding */
+    height: 24rem; /* Increased from 20rem for better spacing */
+    min-height: 24rem;
+    max-height: 24rem;
   }
 
   .series-details-page .details-list,
   .series-details-page .payout-list {
-    gap: 0.5rem;
+    gap: 0.75rem; /* Increased gap */
   }
 
   .series-details-page .detail-row,
   .series-details-page .payout-row {
-    min-height: 2rem;
-    padding: 0.5rem 0;
+    min-height: 2.5rem; /* Increased height */
+    padding: 0.75rem 0; /* Increased padding */
   }
 
   .series-details-page .payout-content {
@@ -1038,24 +1104,24 @@
 
   .details-card {
     padding: 0.75rem;
-    /* REDUCE FIXED HEIGHT FOR MOBILE */
-    height: 20rem;
-    min-height: 20rem;
-    max-height: 20rem;
+    /* INCREASED FIXED HEIGHT FOR BETTER SPACING */
+    height: 24rem; /* Increased from 20rem */
+    min-height: 24rem;
+    max-height: 24rem;
   }
 
   /* Series Details Card - Small Mobile - SCOPED */
   .series-details-page .series-details-card,
   .series-details-page .payout-schedule-card {
-    padding: 0.75rem;
-    height: 17.5rem;
-    min-height: 17.5rem;
-    max-height: 17.5rem;
+    padding: 1rem; /* Increased padding */
+    height: 22rem; /* Increased from 17.5rem for better spacing */
+    min-height: 22rem;
+    max-height: 22rem;
   }
 
   .series-details-page .details-list,
   .series-details-page .payout-list {
-    gap: 0.5rem;
+    gap: 0.75rem; /* Increased gap */
   }
 
   .series-details-page .detail-row,

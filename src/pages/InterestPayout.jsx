@@ -19,18 +19,12 @@ const InterestPayout = () => {
   const { series, investors, addAuditLog, addInterestPayoutTransaction } = useData();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterSeries, setFilterSeries] = useState('all');
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-  const [showSeriesDropdown, setShowSeriesDropdown] = useState(false);
-  const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
-  const [selectedSeriesFilter, setSelectedSeriesFilter] = useState('all');
   const [showExportModal, setShowExportModal] = useState(false);
   const [selectedExportSeries, setSelectedExportSeries] = useState('all');
   const [exportTab, setExportTab] = useState('current'); // 'current' or 'upcoming'
   const [showImportModal, setShowImportModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importStatus, setImportStatus] = useState('');
-  const dropdownRef = useRef(null);
   
   // Store payout status updates (key: investorId-seriesName-month, value: status)
   const [payoutStatusUpdates, setPayoutStatusUpdates] = useState(() => {
@@ -45,22 +39,6 @@ const InterestPayout = () => {
   useEffect(() => {
     localStorage.setItem('payoutStatusUpdates', JSON.stringify(payoutStatusUpdates));
   }, [payoutStatusUpdates]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowFilterDropdown(false);
-        setShowStatusDropdown(false);
-        setShowSeriesDropdown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   // Generate payout data based on actual series and investors from DataContext
   const payoutData = useMemo(() => {
@@ -302,16 +280,12 @@ const InterestPayout = () => {
         payout.investorId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         payout.seriesName.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Status filter
-      const matchesStatusFilter = selectedStatusFilter === 'all' || payout.status === selectedStatusFilter;
+      // Series filter
+      const matchesSeriesFilter = filterSeries === 'all' || payout.seriesName === filterSeries;
       
-      // Series filter (using both old filterSeries and new selectedSeriesFilter)
-      const matchesSeriesFilter = (filterSeries === 'all' || payout.seriesName === filterSeries) &&
-                                 (selectedSeriesFilter === 'all' || payout.seriesName === selectedSeriesFilter);
-      
-      return matchesSearch && matchesStatusFilter && matchesSeriesFilter;
+      return matchesSearch && matchesSeriesFilter;
     });
-  }, [payoutData, searchTerm, filterSeries, selectedStatusFilter, selectedSeriesFilter]);
+  }, [payoutData, searchTerm, filterSeries]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -377,50 +351,6 @@ const InterestPayout = () => {
         recordCount: filteredPayouts.length
       }
     });
-  };
-
-  // Filter handlers
-  const handleFilterToggle = () => {
-    setShowFilterDropdown(!showFilterDropdown);
-    setShowStatusDropdown(false);
-    setShowSeriesDropdown(false);
-  };
-
-  const handleStatusFilterToggle = () => {
-    setShowStatusDropdown(!showStatusDropdown);
-    setShowSeriesDropdown(false);
-  };
-
-  const handleSeriesFilterToggle = () => {
-    setShowSeriesDropdown(!showSeriesDropdown);
-    setShowStatusDropdown(false);
-  };
-
-  const handleStatusFilterSelect = (status) => {
-    setSelectedStatusFilter(status);
-    setShowStatusDropdown(false);
-    setShowFilterDropdown(false);
-  };
-
-  const handleSeriesFilterSelect = (seriesName) => {
-    setSelectedSeriesFilter(seriesName);
-    setShowSeriesDropdown(false);
-    setShowFilterDropdown(false);
-  };
-
-  const clearAdvancedFilters = () => {
-    setSelectedStatusFilter('all');
-    setSelectedSeriesFilter('all');
-    setShowFilterDropdown(false);
-    setShowStatusDropdown(false);
-    setShowSeriesDropdown(false);
-  };
-
-  // Get unique series names from actual series data
-  const getUniqueSeriesFromPayouts = () => {
-    // Get all approved series (active and upcoming)
-    const approvedSeries = series.filter(s => s.status === 'active' || s.status === 'upcoming');
-    return approvedSeries.map(s => s.name);
   };
 
   // Get export data based on selected series and tab
@@ -958,99 +888,6 @@ const InterestPayout = () => {
                 <option value="Series B">Series B</option>
                 <option value="Series C">Series C</option>
               </select>
-            </div>
-
-            <div className="filter-dropdown-container" ref={dropdownRef}>
-              <button 
-                className={`filter-button ${(selectedStatusFilter !== 'all' || selectedSeriesFilter !== 'all') ? 'active' : ''}`}
-                onClick={handleFilterToggle}
-              >
-                <FiFilter size={16} />
-                Advanced Filter
-                {(selectedStatusFilter !== 'all' || selectedSeriesFilter !== 'all') && (
-                  <span className="filter-indicator">•</span>
-                )}
-              </button>
-              
-              {showFilterDropdown && (
-                <div className="filter-dropdown">
-                  <div className="filter-dropdown-header">
-                    <span>Filter Options</span>
-                    {(selectedStatusFilter !== 'all' || selectedSeriesFilter !== 'all') && (
-                      <button className="clear-filters-btn" onClick={clearAdvancedFilters}>
-                        Clear All
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="filter-option">
-                    <button 
-                      className="filter-option-btn"
-                      onClick={handleStatusFilterToggle}
-                    >
-                      <span>Status</span>
-                      <span className="filter-arrow">▼</span>
-                    </button>
-                    {showStatusDropdown && (
-                      <div className="filter-sub-dropdown">
-                        <button 
-                          className={`filter-sub-option ${selectedStatusFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => handleStatusFilterSelect('all')}
-                        >
-                          All Status
-                        </button>
-                        <button 
-                          className={`filter-sub-option ${selectedStatusFilter === 'Paid' ? 'active' : ''}`}
-                          onClick={() => handleStatusFilterSelect('Paid')}
-                        >
-                          Paid
-                        </button>
-                        <button 
-                          className={`filter-sub-option ${selectedStatusFilter === 'Pending' ? 'active' : ''}`}
-                          onClick={() => handleStatusFilterSelect('Pending')}
-                        >
-                          Pending
-                        </button>
-                        <button 
-                          className={`filter-sub-option ${selectedStatusFilter === 'Scheduled' ? 'active' : ''}`}
-                          onClick={() => handleStatusFilterSelect('Scheduled')}
-                        >
-                          Scheduled
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="filter-option">
-                    <button 
-                      className="filter-option-btn"
-                      onClick={handleSeriesFilterToggle}
-                    >
-                      <span>Series</span>
-                      <span className="filter-arrow">▼</span>
-                    </button>
-                    {showSeriesDropdown && (
-                      <div className="filter-sub-dropdown">
-                        <button 
-                          className={`filter-sub-option ${selectedSeriesFilter === 'all' ? 'active' : ''}`}
-                          onClick={() => handleSeriesFilterSelect('all')}
-                        >
-                          All Series
-                        </button>
-                        {getUniqueSeriesFromPayouts().map(seriesName => (
-                          <button 
-                            key={seriesName}
-                            className={`filter-sub-option ${selectedSeriesFilter === seriesName ? 'active' : ''}`}
-                            onClick={() => handleSeriesFilterSelect(seriesName)}
-                          >
-                            {seriesName}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
             
             <button className="export-button" onClick={handleExport}>

@@ -1,16 +1,35 @@
-/* Enhanced Responsive Layout */
+/* ZOOM-INDEPENDENT RESPONSIVE LAYOUT - WORKS AT ALL ZOOM LEVELS (90%, 100%, 110%, etc.) */
 .layout {
   display: flex;
   min-height: 100vh;
   background: #f8fafc;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+  /* CRITICAL: Use container queries for zoom independence */
+  container-type: inline-size;
 }
 
 .layout-content {
-  margin-left: 240px;
+  margin-left: clamp(200px, 15vw, 240px); /* Fluid sidebar width */
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  /* ZOOM-INDEPENDENT: Calculate width based on fluid sidebar */
+  width: calc(100vw - clamp(200px, 15vw, 240px));
+  max-width: calc(100vw - clamp(200px, 15vw, 240px));
+  box-sizing: border-box;
+}
+
+/* ZOOM-INDEPENDENT: Container queries instead of viewport-based breakpoints */
+@container (max-width: 800px) {
+  .layout-content {
+    margin-left: 0;
+    width: 100vw;
+    max-width: 100vw;
+  }
 }
 
 .layout-header {
@@ -282,22 +301,15 @@
   font-weight: 400;
 }
 
-/* Enhanced Responsive Breakpoints */
-@media (max-width: 1400px) {
-  .layout-content {
-    margin-left: 220px;
-  }
-}
+/* ZOOM-INDEPENDENT RESPONSIVE BREAKPOINTS - WORKS AT ALL ZOOM LEVELS */
+/* These use container queries and flexible units instead of fixed viewport breakpoints */
 
-@media (max-width: 1200px) {
-  .layout-content {
-    margin-left: 200px;
-  }
-}
-
-@media (max-width: 992px) {
+/* FALLBACK: Only for browsers without container query support */
+@media (max-width: 48rem) {
   .layout-content {
     margin-left: 0;
+    width: 100vw;
+    max-width: 100vw;
   }
 }
 
@@ -1293,5 +1305,60 @@
   
   .account-detail-value {
     font-size: 12px;
+  }
+}
+/* SURGICAL PRECISION: 100% RESPONSIVE WITHOUT DESIGN CHANGES */
+
+/* CSS Container Queries for fluid responsiveness */
+@container (max-width: 1366px) {
+  .layout-content {
+    width: calc(100vw - 220px);
+    max-width: calc(100vw - 220px);
+    margin-left: 220px;
+  }
+}
+
+@container (max-width: 1200px) {
+  .layout-content {
+    width: calc(100vw - 200px);
+    max-width: calc(100vw - 200px);
+    margin-left: 200px;
+  }
+}
+
+/* Fluid scaling for all screen sizes */
+@media (max-width: 1600px) {
+  .layout-content {
+    margin-left: clamp(200px, 15vw, 240px);
+    width: calc(100vw - clamp(200px, 15vw, 240px));
+    max-width: calc(100vw - clamp(200px, 15vw, 240px));
+  }
+}
+
+@media (max-width: 1366px) {
+  .layout-content {
+    margin-left: 220px;
+    width: calc(100vw - 220px);
+    max-width: calc(100vw - 220px);
+  }
+  
+  .layout-main {
+    padding: clamp(1rem, 2vw, 2rem);
+  }
+}
+
+@media (max-width: 1200px) {
+  .layout-content {
+    margin-left: 200px;
+    width: calc(100vw - 200px);
+    max-width: calc(100vw - 200px);
+  }
+}
+
+@media (max-width: 992px) {
+  .layout-content {
+    margin-left: 0;
+    width: 100vw;
+    max-width: 100vw;
   }
 }

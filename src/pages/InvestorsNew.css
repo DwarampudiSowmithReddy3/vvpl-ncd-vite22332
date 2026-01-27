@@ -1,18 +1,28 @@
-/* Investors New Page - FIXED FLOATING OVERFLOW */
+/* ISOLATED FIX: Investors Page Layout Improvements - ONLY affects Investors page */
 .investors-new-page {
-  padding: 1rem;
+  padding: clamp(1rem, 2.5vw, 1.5rem); /* Increased padding for better spacing */
   background: #f8fafc;
   min-height: 100vh;
   width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
-  /* ENSURE NO VERTICAL OVERFLOW CLIPPING */
   overflow-y: visible;
+  max-width: 100%;
+  /* SURGICAL: Add container query support */
+  container-type: inline-size;
 }
 
-/* Header */
+/* ISOLATED FIX: Better content wrapper spacing */
+.investors-content-wrapper {
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 clamp(0.5rem, 2vw, 1.5rem); /* Increased padding */
+}
+
+/* ISOLATED FIX: Improved header spacing */
 .investors-new-header {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem; /* Increased from 2rem */
 }
 
 .header-content {
@@ -20,48 +30,41 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  padding: 1rem 0; /* Added padding for better spacing */
 }
 
 .page-title {
-  font-size: 2rem;
+  font-size: 2.25rem; /* Increased from 2rem */
   font-weight: 700;
   color: #1e293b;
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.75rem 0; /* Increased margin */
+  line-height: 1.2; /* Better line height */
 }
 
 .page-subtitle {
-  font-size: 1rem;
+  font-size: 1.125rem; /* Increased from 1rem */
   color: #64748b;
   margin: 0;
+  line-height: 1.4; /* Better line height */
 }
 
-/* Stats Cards - FIXED FLOATING OVERFLOW */
+/* ISOLATED FIX: Improved stats cards layout and spacing */
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: clamp(1rem, 2.5vw, 1.5rem); /* Increased gap for better spacing */
+  margin-bottom: 2.5rem; /* Increased from 1.5rem */
   overflow-x: hidden;
-  /* ADD PADDING TO ACCOMMODATE FLOATING ANIMATION */
-  padding-top: 0.5rem; /* Extra space for floating animation */
-  padding-bottom: 0.25rem; /* Balance the spacing */
+  padding-top: 0.75rem; /* Increased padding */
+  padding-bottom: 0.5rem; /* Increased padding */
+  /* SURGICAL: Add container query support */
+  container-type: inline-size;
 }
 
-/* Stats Cards with Dashboard Effects - RESTORED FLOATING ANIMATION */
+/* ISOLATED FIX: Enhanced stats cards with better proportions */
 .stat-card {
   border-radius: 1rem;
-  padding: 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem); /* Increased padding for better proportions */
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   position: relative;
@@ -72,12 +75,12 @@
     inset 0 0.0625rem 0 rgba(255, 255, 255, 0.8);
   border: 0.0625rem solid rgba(226, 232, 240, 0.8);
   overflow: hidden;
-  /* RESTORED FLOATING ANIMATION WITH PROPER SPACING */
   animation: investorFloat 6s ease-in-out infinite;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: clamp(0.75rem, 2.5vw, 1.25rem); /* Increased gap */
+  min-height: 5rem; /* Added minimum height for consistency */
 }
 
 /* FLOATING ANIMATION KEYFRAMES */
@@ -256,13 +259,14 @@
   border-color: rgba(220, 38, 38, 0.6);
 }
 
+/* ISOLATED FIX: Enhanced stat icons with better sizing */
 .stat-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 0.5rem;
+  width: 56px; /* Increased from 48px */
+  height: 56px; /* Increased from 48px */
+  border-radius: 0.75rem; /* Increased border radius */
   background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
   flex-shrink: 0;
@@ -274,80 +278,30 @@
   border: 0.0625rem solid rgba(255, 255, 255, 0.3);
   box-shadow: 
     0 0.25rem 0.5rem rgba(0, 0, 0, 0.1),
-    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.4);
+    inset 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.4);
   z-index: 4;
 }
 
-.stat-icon:nth-child(2n) {
-  animation-delay: -1s;
-}
-
-.stat-icon:nth-child(3n) {
-  animation-delay: -2s;
-}
-
-.stat-icon:nth-child(4n) {
-  animation-delay: -3s;
-}
-
-.stat-icon::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, 
-    transparent, 
-    rgba(255, 255, 255, 0.3), 
-    transparent);
-  transition: left 0.5s ease;
-}
-
-.stat-icon:hover {
-  transform: scale(1.1) translateY(-0.25rem) rotate(10deg); /* 10deg rotation on hover */
-  box-shadow: 
-    0 0.75rem 1.5rem rgba(0, 0, 0, 0.2),
-    0 0.375rem 0.75rem rgba(0, 0, 0, 0.15),
-    inset 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.5);
-}
-
-.stat-icon:active {
-  transform: scale(1.15) translateY(-0.5rem) rotate(15deg); /* 15deg rotation on active */
-  box-shadow: 
-    0 1rem 2rem rgba(0, 0, 0, 0.25),
-    0 0.5rem 1rem rgba(0, 0, 0, 0.2),
-    inset 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.6);
-}
-
-.stat-icon:hover::before,
-.stat-icon:active::before {
-  left: 100%;
-}
-
-/* Floating Animation Keyframes */
-@keyframes iconFloat {
-  0%, 100% { transform: translateY(0px); }
-  25% { transform: translateY(-1px); }
-  50% { transform: translateY(-2px); }
-  75% { transform: translateY(-1px); }
-}
-
+/* ISOLATED FIX: Enhanced stat content with better typography */
 .stat-content {
   flex: 1;
   position: relative;
   z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* Added gap for better spacing */
 }
 
 .stat-label {
-  font-size: 0.875rem;
+  font-size: 0.9375rem; /* Increased from 0.875rem */
   color: #64748b;
-  margin: 0 0 0.25rem 0;
+  margin: 0;
   font-weight: 500;
+  line-height: 1.3; /* Better line height */
 }
 
 .stat-value {
-  font-size: 1.875rem;
+  font-size: 2rem; /* Increased from 1.875rem */
   font-weight: 700;
   color: #1e293b;
   margin: 0;
@@ -477,12 +431,13 @@
   margin: 0;
 }
 
-/* Table Title */
+/* ISOLATED FIX: Enhanced table title */
 .table-title h2 {
-  font-size: 1.25rem;
+  font-size: 1.375rem; /* Increased from 1.25rem */
   font-weight: 600;
   color: #1e293b;
   margin: 0;
+  line-height: 1.3; /* Better line height */
 }
 
 .table-actions {
@@ -921,15 +876,15 @@
   50% { transform: translateY(-4px); }
 }
 
-/* Header Card */
+/* ISOLATED FIX: Enhanced header card with better spacing */
 .header-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px; /* Increased from 12px */
   border: 1px solid #e5e7eb;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Enhanced shadow */
   overflow: visible;
   width: 100%;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem; /* Increased from 1.5rem */
   /* STABLE POSITIONING BUT LOWER Z-INDEX TO GO BEHIND MAIN HEADER */
   position: relative;
   z-index: 1;
@@ -939,9 +894,9 @@
   contain: layout;
 }
 
-/* Table Header */
+/* ISOLATED FIX: Enhanced table header with better spacing */
 .table-header {
-  padding: 1.25rem 1.5rem;
+  padding: 1.75rem 2rem; /* Increased padding */
   border-bottom: none;
   display: flex;
   justify-content: space-between;
@@ -953,19 +908,19 @@
   will-change: auto;
 }
 
-/* CLEAN SIMPLE TABLE WITH PROFESSIONAL GLASS EFFECTS */
+/* ISOLATED FIX: Enhanced table container with better proportions */
 .perfect-table-container {
   background: white;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  border-radius: 12px; /* Increased from 8px */
   overflow-x: auto;
   overflow-y: hidden;
   width: 100%;
   /* PROFESSIONAL GLASS EFFECTS */
   backdrop-filter: blur(10px);
   box-shadow: 
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 2px 8px rgba(0, 0, 0, 0.06),
+    0 6px 20px rgba(0, 0, 0, 0.12), /* Enhanced shadow */
+    0 3px 10px rgba(0, 0, 0, 0.08), /* Enhanced shadow */
     inset 0 1px 0 rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(226, 232, 240, 0.8);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -975,35 +930,7 @@
   scrollbar-color: rgba(59, 130, 246, 0.3) rgba(241, 245, 249, 0.5);
 }
 
-/* HORIZONTAL SCROLLBAR STYLING */
-.perfect-table-container::-webkit-scrollbar {
-  height: 6px;
-}
-
-.perfect-table-container::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
-  border-radius: 3px;
-}
-
-.perfect-table-container::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 3px;
-}
-
-.perfect-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-
-/* GLASS EFFECT HOVER ENHANCEMENT */
-.perfect-table-container:hover {
-  transform: translateY(-2px);
-  box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.15),
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  border-color: rgba(59, 130, 246, 0.3);
-}
-
+/* ISOLATED FIX: Enhanced table with better spacing */
 .perfect-table {
   width: 100%;
   border-collapse: collapse;
@@ -1012,9 +939,9 @@
 }
 
 .perfect-table th {
-  padding: 12px 16px;
+  padding: 16px 20px; /* Increased padding */
   text-align: left;
-  font-size: 12px;
+  font-size: 13px; /* Slightly increased */
   font-weight: 600;
   color: #374151;
   background: #f9fafb;
@@ -1023,42 +950,22 @@
   position: relative;
 }
 
-/* SHIMMER EFFECT FOR TABLE HEADER */
-.perfect-table thead::before {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4, #10b981);
-  background-size: 300% 100%;
-  animation: headerShimmer 4s ease-in-out infinite;
-  opacity: 0.8;
-}
-
-/* SHIMMER ANIMATION KEYFRAMES */
-@keyframes headerShimmer {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
 .perfect-table td {
-  padding: 0.5rem 0.75rem;
+  padding: 0.75rem 1.25rem; /* Increased padding */
   border-bottom: 1px solid #f3f4f6;
-  font-size: 0.875rem;
+  font-size: 0.9375rem; /* Increased from 0.875rem */
   color: #374151;
-  /* OPTIMIZED ROW HEIGHT - REDUCED */
-  height: 3.75rem;
-  max-height: 3.75rem;
+  /* OPTIMIZED ROW HEIGHT - INCREASED FOR BETTER READABILITY */
+  height: 4.5rem; /* Increased from 3.75rem */
+  max-height: 4.5rem;
   vertical-align: top;
   position: relative;
 }
 
 .perfect-table tbody tr {
-  /* OPTIMIZED ROW HEIGHT - REDUCED */
-  height: 3.75rem;
-  max-height: 3.75rem;
+  /* OPTIMIZED ROW HEIGHT - INCREASED FOR BETTER READABILITY */
+  height: 4.5rem; /* Increased from 3.75rem */
+  max-height: 4.5rem;
 }
 
 .perfect-table tbody tr:hover {
@@ -1069,119 +976,83 @@
   border-bottom: none;
 }
 
-/* SCROLLABLE CELL CONTENT STYLING WITH OPTIMIZED HEIGHTS */
+/* ISOLATED FIX: Enhanced scrollable cell content with better proportions */
 .perfect-investor-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  /* OPTIMIZED SCROLLABLE CONTAINER - REDUCED HEIGHT */
-  max-height: 2.5rem;
-  min-height: 2.1875rem;
+  gap: 0.25rem; /* Increased gap */
+  /* OPTIMIZED SCROLLABLE CONTAINER - INCREASED HEIGHT FOR BETTER READABILITY */
+  max-height: 3.5rem; /* Increased from 2.5rem */
+  min-height: 3rem; /* Increased from 2.1875rem */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.125rem;
+  padding: 0.25rem; /* Increased padding */
   
   /* SCROLLBAR STYLING */
   scrollbar-width: thin;
   scrollbar-color: rgba(59, 130, 246, 0.3) rgba(241, 245, 249, 0.5);
 }
 
-.perfect-investor-cell::-webkit-scrollbar {
-  width: 0.1875rem;
-}
-
-.perfect-investor-cell::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
-  border-radius: 0.125rem;
-}
-
-.perfect-investor-cell::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 0.125rem;
-}
-
-.perfect-investor-cell::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-
 .perfect-investor-name {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem; /* Increased from 0.8125rem */
   font-weight: 600;
   color: #111827;
-  line-height: 1.2;
+  line-height: 1.3; /* Better line height */
   word-wrap: break-word;
   white-space: normal;
 }
 
 .perfect-investor-id {
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* Increased from 0.6875rem */
   color: #6b7280;
   font-family: monospace;
   word-wrap: break-word;
   white-space: normal;
 }
 
-/* SCROLLABLE CONTACT CELL */
+/* ISOLATED FIX: Enhanced contact cell with better proportions */
 .perfect-contact-cell {
   display: flex;
   flex-direction: column;
-  gap: 0.125rem;
-  /* OPTIMIZED SCROLLABLE CONTAINER - REDUCED HEIGHT */
-  max-height: 2.5rem;
-  min-height: 2.1875rem;
+  gap: 0.25rem; /* Increased gap */
+  /* OPTIMIZED SCROLLABLE CONTAINER - INCREASED HEIGHT FOR BETTER READABILITY */
+  max-height: 3.5rem; /* Increased from 2.5rem */
+  min-height: 3rem; /* Increased from 2.1875rem */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.125rem;
+  padding: 0.25rem; /* Increased padding */
   
   /* SCROLLBAR STYLING */
   scrollbar-width: thin;
   scrollbar-color: rgba(59, 130, 246, 0.3) rgba(241, 245, 249, 0.5);
 }
 
-.perfect-contact-cell::-webkit-scrollbar {
-  width: 0.1875rem;
-}
-
-.perfect-contact-cell::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
-  border-radius: 0.125rem;
-}
-
-.perfect-contact-cell::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 0.125rem;
-}
-
-.perfect-contact-cell::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-
 .perfect-email {
-  font-size: 0.8125rem;
+  font-size: 0.9375rem; /* Increased from 0.8125rem */
   color: #111827;
-  line-height: 1.2;
+  line-height: 1.3; /* Better line height */
   word-wrap: break-word;
   white-space: normal;
 }
 
 .perfect-phone {
-  font-size: 0.6875rem;
+  font-size: 0.75rem; /* Increased from 0.6875rem */
   color: #6b7280;
   word-wrap: break-word;
   white-space: normal;
 }
 
-/* CLEAN SERIES CELL - NO BORDERS, JUST BUTTONS */
+/* ISOLATED FIX: Enhanced series cell with better proportions */
 .perfect-series-cell {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  /* CLEAN CONTAINER - NO BORDERS OR BACKGROUND */
-  max-height: 2.5rem;
-  min-height: 2.1875rem;
+  gap: 0.375rem; /* Increased gap */
+  /* CLEAN CONTAINER - INCREASED HEIGHT FOR BETTER READABILITY */
+  max-height: 3.5rem; /* Increased from 2.5rem */
+  min-height: 3rem; /* Increased from 2.1875rem */
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0.125rem;
+  padding: 0.25rem; /* Increased padding */
   position: relative;
   
   /* HORIZONTAL ALIGNMENT */
@@ -1199,82 +1070,13 @@
   scrollbar-color: rgba(59, 130, 246, 0.3) transparent;
 }
 
-/* NO HOVER EFFECTS ON CONTAINER */
-.perfect-series-cell:hover {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.perfect-series-cell::-webkit-scrollbar {
-  width: 0.1875rem;
-}
-
-.perfect-series-cell::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.perfect-series-cell::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 0.125rem;
-}
-
-.perfect-series-cell::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-  padding: 4px;
-  
-  /* CUSTOM SCROLLBAR STYLING */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(59, 130, 246, 0.3) rgba(241, 245, 249, 0.5);
-  
-  /* SMOOTH SCROLLING */
-  scroll-behavior: smooth;
-  
-  /* VISUAL ENHANCEMENTS */
-  border-radius: 6px;
-  background: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid rgba(226, 232, 240, 0.6);
-  
-  /* HOVER EFFECTS */
-  transition: all 0.3s ease;
-}
-
-.perfect-series-cell:hover {
-  background: linear-gradient(145deg, #f1f5f9 0%, #e2e8f0 100%);
-  border-color: rgba(59, 130, 246, 0.4);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-/* WEBKIT SCROLLBAR STYLING */
-.perfect-series-cell::-webkit-scrollbar {
-  width: 6px;
-}
-
-.perfect-series-cell::-webkit-scrollbar-track {
-  background: rgba(241, 245, 249, 0.5);
-  border-radius: 3px;
-}
-
-.perfect-series-cell::-webkit-scrollbar-thumb {
-  background: rgba(59, 130, 246, 0.3);
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-.perfect-series-cell::-webkit-scrollbar-thumb:hover {
-  background: rgba(59, 130, 246, 0.5);
-}
-
-/* REMOVED FADE INDICATORS FOR CLEAN LOOK */
-
-/* SIMPLE BUTTON-STYLE SERIES TAGS */
+/* ISOLATED FIX: Enhanced series tags with better sizing */
 .perfect-series-tag {
   background: #dbeafe;
   color: #1e40af;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  font-size: 0.6875rem;
+  padding: 0.375rem 0.75rem; /* Increased padding */
+  border-radius: 0.5rem; /* Increased border radius */
+  font-size: 0.75rem; /* Maintained size */
   font-weight: 500;
   border: 1px solid #bfdbfe;
   
@@ -1284,7 +1086,7 @@
   display: inline-flex;
   align-items: center;
   min-width: fit-content;
-  height: 1.375rem;
+  height: 1.75rem; /* Increased from 1.375rem */
   
   /* BUTTON EFFECTS */
   transition: all 0.2s ease;
@@ -2748,10 +2550,12 @@
   background: #047857;
 }
 
-/* Responsive Design */
+/* Responsive Design - IMPROVED TO MAINTAIN 4 CARDS LONGER LIKE GRIEVANCE PAGE */
 @media (max-width: 1024px) {
+  /* Keep 4 cards per row at 1024px - don't break to 2 yet, just like Grievance page */
   .stats-cards {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr); /* Keep 4 columns */
+    gap: clamp(0.5rem, 1.5vw, 0.75rem); /* Tighter gap */
   }
   
   .table-actions {
@@ -2764,28 +2568,97 @@
   }
 }
 
+/* ISOLATED FIX: Mobile responsive header layout - ONLY affects Investors page mobile view */
 @media (max-width: 768px) {
   .investors-new-page {
     padding: 1rem;
   }
   
+  /* ISOLATED FIX: Better mobile header layout */
+  .investors-new-header {
+    margin-bottom: 2rem; /* Reduced for mobile */
+  }
+  
+  .header-content {
+    flex-direction: column; /* Stack vertically on mobile */
+    align-items: stretch; /* Full width alignment */
+    gap: 1.5rem; /* Add gap between elements */
+    padding: 0; /* Remove padding on mobile */
+  }
+  
+  .header-left {
+    display: flex;
+    flex-direction: column;
+    width: 100%; /* Full width */
+  }
+  
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%; /* Full width */
+    justify-content: flex-end; /* Align to right */
+    margin-top: 0.5rem; /* Add space from title/subtitle */
+  }
+  
+  .page-title {
+    font-size: 1.75rem; /* Smaller on mobile */
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+  
+  .page-subtitle {
+    font-size: 1rem; /* Smaller on mobile */
+    margin-bottom: 0; /* Remove bottom margin */
+    line-height: 1.4;
+  }
+  
+  /* Break to 1 column at 768px like Grievance page (not 2 columns) */
   .stats-cards {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* 1 column at 768px to match Grievance page */
     gap: 1rem;
   }
   
+  /* ISOLATED FIX: Better mobile table header layout */
   .table-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
+    flex-direction: column; /* Stack vertically */
+    align-items: stretch; /* Full width */
+    gap: 1rem; /* Add gap */
+    padding: 1.25rem 1.5rem; /* Reduced padding for mobile */
+  }
+  
+  .table-title {
+    width: 100%; /* Full width */
+    text-align: left; /* Left align */
+  }
+  
+  .table-title h2 {
+    font-size: 1.25rem; /* Smaller on mobile */
+    margin-bottom: 0.5rem; /* Add bottom margin */
   }
   
   .table-actions {
-    justify-content: stretch;
+    justify-content: stretch; /* Full width */
+    flex-wrap: wrap; /* Allow wrapping */
+    gap: 0.75rem; /* Consistent gap */
   }
   
   .search-input {
-    width: 100%;
+    width: 100%; /* Full width search */
+    min-width: 0; /* Remove min-width constraint */
+  }
+  
+  /* ISOLATED FIX: Mobile button sizing */
+  .add-investment-btn,
+  .add-investor-btn {
+    flex: 1; /* Equal width buttons */
+    min-width: 0; /* Remove min-width constraint */
+    justify-content: center; /* Center content */
+  }
+  
+  .neat-filter-btn,
+  .export-btn {
+    flex-shrink: 0; /* Don't shrink these buttons */
   }
   
   .investors-table {
@@ -2827,13 +2700,83 @@
   }
 }
 
+/* ISOLATED FIX: Enhanced mobile layout for very small screens */
 @media (max-width: 480px) {
   .page-title {
-    font-size: 1.5rem;
+    font-size: 1.5rem; /* Further reduced for small screens */
+    margin-bottom: 0.5rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.9375rem; /* Slightly smaller */
+    margin-bottom: 0;
+  }
+  
+  /* ISOLATED FIX: Better mobile header spacing */
+  .header-content {
+    gap: 1rem; /* Reduced gap for small screens */
+  }
+  
+  .header-actions {
+    flex-direction: column; /* Stack buttons vertically on very small screens */
+    gap: 0.5rem;
+    align-items: stretch; /* Full width buttons */
+  }
+  
+  .add-investment-btn,
+  .add-investor-btn {
+    width: 100%; /* Full width buttons */
+    justify-content: center;
+  }
+  
+  /* ISOLATED FIX: Better mobile table layout */
+  .table-header {
+    padding: 1rem; /* Further reduced padding */
+    gap: 0.75rem; /* Reduced gap */
+  }
+  
+  .table-title h2 {
+    font-size: 1.125rem; /* Further reduced */
+  }
+  
+  .table-actions {
+    flex-direction: column; /* Stack all actions vertically */
+    gap: 0.5rem;
+  }
+  
+  .search-box {
+    width: 100%; /* Full width search */
+  }
+  
+  .search-input {
+    width: 100%;
+    font-size: 0.875rem; /* Slightly smaller text */
+  }
+  
+  /* ISOLATED FIX: Mobile filter and export buttons */
+  .neat-filter-container,
+  .export-btn {
+    width: 100%; /* Full width */
+  }
+  
+  .neat-filter-btn {
+    width: 100%; /* Full width filter button */
+    justify-content: center;
+  }
+  
+  .export-btn {
+    width: 100%; /* Full width export button */
+    justify-content: center;
   }
   
   .stat-value {
     font-size: 1.5rem;
+  }
+  
+  /* Keep 1 column on very small screens */
+  .stats-cards {
+    grid-template-columns: 1fr; /* 1 column at 480px */
+    gap: 1rem;
   }
   
   .table-container {
@@ -2908,4 +2851,53 @@
   border-color: #3b82f6 !important;
   transform: translateY(-0.125rem) scale(1.05);
   box-shadow: 0 0.375rem 0.75rem rgba(59, 130, 246, 0.4) !important;
+}
+
+/* SURGICAL PRECISION: 100% FLUID RESPONSIVE BREAKPOINTS */
+
+/* Fluid scaling for all screen sizes */
+@media (max-width: 1600px) {
+  .investors-new-page {
+    padding: clamp(0.75rem, 1.5vw, 1rem);
+  }
+  
+  .stats-cards {
+    gap: clamp(0.75rem, 1.8vw, 1rem);
+  }
+  
+  .stat-card {
+    padding: clamp(1rem, 2.2vw, 1.5rem);
+  }
+}
+
+@media (max-width: 1366px) {
+  .stats-cards {
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+  }
+  
+  .stat-card {
+    padding: clamp(0.875rem, 2vw, 1.25rem);
+  }
+  
+  .stat-value {
+    font-size: clamp(1.5rem, 3vw, 1.875rem);
+  }
+  
+  .stat-label {
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  }
+}
+
+@media (max-width: 1200px) {
+  /* Keep 4 cards per row even at 1200px to match Grievance page behavior */
+  .stats-cards {
+    grid-template-columns: repeat(4, 1fr); /* Maintain 4 columns */
+    gap: clamp(0.75rem, 2vw, 1rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-cards {
+    grid-template-columns: 1fr;
+  }
 }

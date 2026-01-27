@@ -641,75 +641,77 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <table className="exposure-table">
-            <thead>
-              <tr>
-                <th>RANK</th>
-                <th>INVESTOR NAME</th>
-                <th>SERIES</th>
-                <th>INVESTED</th>
-                <th className="at-maturity-header">AT MATURITY</th>
-                <th>AFTER LOCK-IN</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topInvestors.map((investor, index) => (
-                <tr key={index}>
-                  <td>
-                    <div className="rank-cell-centered">
-                      {index === 0 && <LuCrown className="rank-crown gold-crown" size={20} />}
-                      {index === 1 && <LuCrown className="rank-crown silver-crown" size={20} />}
-                      {index === 2 && <LuCrown className="rank-crown bronze-crown" size={20} />}
-                      {index > 2 && <span className="rank-number">{investor.rank}</span>}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="investor-name-cell">
-                      {investor.investorName}
-                    </div>
-                  </td>
-                  <td className="all-series-cell">
-                    <div className="all-series-container">
-                      {investor.allSeries && investor.allSeries.length > 0 ? (
-                        <div className="all-series-list">
-                          {(() => {
-                            const seriesArray = investor.allSeries;
-                            const rows = [];
-                            for (let i = 0; i < seriesArray.length; i += 2) {
-                              const pair = seriesArray.slice(i, i + 2);
-                              rows.push(
-                                <div key={i} className="all-series-row">
-                                  {pair.map((series, idx) => (
-                                    <div key={idx} className="all-series-item">
-                                      {series}
-                                    </div>
-                                  ))}
-                                </div>
-                              );
-                            }
-                            return rows;
-                          })()}
-                        </div>
-                      ) : (
-                        <span className="no-series">No series</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="invested-amount-cell">
-                      {formatCurrency(investor.invested)}
-                    </div>
-                  </td>
-                  <td className="at-maturity-cell">
-                    <span className="maturity-amount">{formatCurrency(investor.atMaturity)}</span>
-                  </td>
-                  <td className="after-lockin-cell">
-                    <span className="lockin-amount">{formatCurrency(investor.afterLockIn)}</span>
-                  </td>
+          <div className="investor-exposure-table-container">
+            <table className="exposure-table">
+              <thead>
+                <tr>
+                  <th>RANK</th>
+                  <th>INVESTOR NAME</th>
+                  <th>SERIES</th>
+                  <th>INVESTED</th>
+                  <th className="at-maturity-header">AT MATURITY</th>
+                  <th>AFTER LOCK-IN</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topInvestors.map((investor, index) => (
+                  <tr key={index}>
+                    <td>
+                      <div className="rank-cell-centered">
+                        {index === 0 && <LuCrown className="rank-crown gold-crown" size={20} />}
+                        {index === 1 && <LuCrown className="rank-crown silver-crown" size={20} />}
+                        {index === 2 && <LuCrown className="rank-crown bronze-crown" size={20} />}
+                        {index > 2 && <span className="rank-number">{investor.rank}</span>}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="investor-name-cell">
+                        {investor.investorName}
+                      </div>
+                    </td>
+                    <td className="all-series-cell">
+                      <div className="all-series-container">
+                        {investor.allSeries && investor.allSeries.length > 0 ? (
+                          <div className="all-series-list">
+                            {(() => {
+                              const seriesArray = investor.allSeries;
+                              const rows = [];
+                              for (let i = 0; i < seriesArray.length; i += 2) {
+                                const pair = seriesArray.slice(i, i + 2);
+                                rows.push(
+                                  <div key={i} className="all-series-row">
+                                    {pair.map((series, idx) => (
+                                      <div key={idx} className="all-series-item">
+                                        {series}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              }
+                              return rows;
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="no-series">No series</span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="invested-amount-cell">
+                        {formatCurrency(investor.invested)}
+                      </div>
+                    </td>
+                    <td className="at-maturity-cell">
+                      <span className="maturity-amount">{formatCurrency(investor.atMaturity)}</span>
+                    </td>
+                    <td className="after-lockin-cell">
+                      <span className="lockin-amount">{formatCurrency(investor.afterLockIn)}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Dashboard Bottom Row - Grievance Management and Investor Satisfaction */}

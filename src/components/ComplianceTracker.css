@@ -1673,7 +1673,8 @@
   }
 
   .compliance-table {
-    display: none;
+    display: block !important; /* Ensure table is always visible */
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
   }
 
   /* Mobile Table Alternative */
@@ -1745,7 +1746,17 @@
   /* Show mobile list on mobile, hide desktop table */
   @media (max-width: 768px) {
     .compliance-table {
-      display: none;
+      display: block !important; /* Force table to show on mobile */
+    }
+    
+    /* Make table scrollable on mobile */
+    .compliance-table-content {
+      overflow-x: auto;
+    }
+    
+    .table-header,
+    .table-row {
+      min-width: 600px; /* Ensure minimum width for readability */
     }
   }
 }

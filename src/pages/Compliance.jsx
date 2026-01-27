@@ -137,6 +137,11 @@ const Compliance = () => {
     setShowComplianceTracker(true);
   };
 
+  const handleCloseComplianceTracker = () => {
+    setShowComplianceTracker(false);
+    setSelectedSeries(null);
+  };
+
   // Mock compliance data for the dashboard
   const complianceData = {
     totalRequirements: 45,
@@ -189,15 +194,21 @@ const Compliance = () => {
           </div>
         </div>
 
-        {/* Show message if no series available for compliance tracking */}
+        {/* Show ComplianceTracker by default when no series available */}
         {complianceSeries.length === 0 && (
-          <div className="compliance-empty-state">
-            <div className="empty-state-content">
-              <MdInfo size={48} className="empty-state-icon" />
-              <h3>No Series Available for Compliance Tracking</h3>
-              <p>Only active, accepting, or upcoming series appear in compliance management. Create and approve series to see them here.</p>
-            </div>
-          </div>
+          <ComplianceTracker 
+            onClose={() => {}} // Empty function since we want it always visible when no series
+            seriesData={{
+              seriesName: 'General NCD Compliance',
+              trusteeCompany: 'SBICAP Trustee Co. Ltd.',
+              stats: {
+                totalRequirements: 42,
+                receivedCompleted: 0,
+                pendingActions: 42,
+                notApplicable: 0
+              }
+            }}
+          />
         )}
 
         {/* Yet to be Submitted - Red Theme */}
@@ -359,10 +370,10 @@ const Compliance = () => {
         </div>
         )}
 
-        {/* Compliance Tracker Modal - Dynamic for each series */}
+        {/* Compliance Tracker Modal - Dynamic for each series or general compliance */}
         {showComplianceTracker && selectedSeries && (
           <ComplianceTracker 
-            onClose={() => setShowComplianceTracker(false)} 
+            onClose={handleCloseComplianceTracker} 
             seriesData={{
               seriesName: selectedSeries.name,
               trusteeCompany: 'SBICAP Trustee Co. Ltd.',

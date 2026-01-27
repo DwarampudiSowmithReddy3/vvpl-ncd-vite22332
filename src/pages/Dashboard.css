@@ -1,4 +1,167 @@
-/* Portfolio Overview Section with NCD Series Effects */
+/* ZOOM-INDEPENDENT DASHBOARD - WORKS AT ALL ZOOM LEVELS (90%, 100%, 110%, etc.) */
+/* CRITICAL: This ensures layouts work regardless of browser zoom level */
+
+/* Root container with zoom independence */
+.dashboard {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0; /* Remove padding since layout-main already has padding */
+  box-sizing: border-box;
+  overflow-x: hidden;
+  /* CRITICAL: Use container queries for zoom independence */
+  container-type: inline-size;
+  /* Ensure consistent rendering at all zoom levels */
+  transform: translateZ(0); /* Force hardware acceleration */
+  will-change: transform; /* Optimize for zoom changes */
+}
+
+/* ZOOM-INDEPENDENT: Remove all restrictive breakpoints that cause layout changes */
+/* The layout should adapt based on available space, not specific pixel values */
+
+.dashboard-header {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+}
+
+/* ZOOM-INDEPENDENT DASHBOARD SECTIONS - WORKS AT ALL ZOOM LEVELS */
+.dashboard-sections {
+  display: grid !important;
+  grid-template-columns: 2fr 1.2fr !important; /* Always side-by-side on desktop */
+  gap: clamp(1rem, 2vw, 1.5rem) !important; /* Fluid gap */
+  margin-bottom: 2rem;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* CRITICAL: Use container-based sizing instead of viewport-based */
+  container-type: inline-size;
+}
+
+/* ZOOM-INDEPENDENT: Use container queries for true responsiveness */
+@container (max-width: 700px) {
+  .dashboard-sections {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* FALLBACK: Traditional media queries for browsers without container query support */
+@media (max-width: 600px) {
+  .dashboard-sections {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+}
+
+/* ZOOM-INDEPENDENT 4-CARD LAYOUT - WORKS AT ALL ZOOM LEVELS */
+.portfolio-cards-container {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important; /* Always 4 columns on desktop */
+  gap: clamp(0.5rem, 1.5vw, 1rem) !important; /* Fluid gap that scales with viewport */
+  width: 100% !important;
+  box-sizing: border-box !important;
+  /* CRITICAL: Use container-based sizing instead of viewport-based */
+  container-type: inline-size;
+}
+
+/* ZOOM-INDEPENDENT: Use container queries for true responsiveness */
+@container (max-width: 500px) {
+  .portfolio-cards-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@container (max-width: 300px) {
+  .portfolio-cards-container {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* FALLBACK: Traditional media queries for browsers without container query support */
+@media (max-width: 600px) {
+  .portfolio-cards-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .portfolio-cards-container {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+  }
+}
+
+/* Professional Portfolio Cards - ZOOM-INDEPENDENT SIZING */
+.portfolio-card {
+  border-radius: 1rem;
+  padding: clamp(0.75rem, 2vw, 1.5rem) !important; /* Fluid padding that scales */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  backdrop-filter: blur(10px);
+  box-shadow: 
+    0 0.25rem 1rem rgba(0, 0, 0, 0.08),
+    0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.8);
+  border: 0.0625rem solid rgba(226, 232, 240, 0.8);
+  overflow: hidden;
+  animation: float 6s ease-in-out infinite;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: clamp(120px, 15vh, 150px); /* Fluid height that scales with zoom */
+  /* CRITICAL: Ensure cards maintain aspect ratio at all zoom levels */
+  aspect-ratio: auto; /* Let content determine height */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Professional Card Values with zoom-independent sizing */
+.portfolio-card-value {
+  font-size: clamp(1.5rem, 3vw, 2.25rem) !important; /* Scales with viewport */
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.1;
+  margin: 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  letter-spacing: -0.025em;
+  position: relative;
+}
+
+/* Responsive font sizes for card values */
+@media (max-width: 768px) {
+  .portfolio-card-value {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .portfolio-card-value {
+    font-size: 1.5rem;
+  }
+}
+
+/* Portfolio Overview Section with proper responsive padding */
 .portfolio-overview-section {
   background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
   border-radius: 1rem;
@@ -14,6 +177,22 @@
   position: relative;
   overflow: hidden;
   animation: float 6s ease-in-out infinite;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive padding for portfolio overview */
+@media (max-width: 768px) {
+  .portfolio-overview-section {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .portfolio-overview-section {
+    padding: 0.875rem;
+  }
 }
 
 .portfolio-overview-section:nth-child(2n) {
@@ -139,29 +318,6 @@
   color: #64748b;
   margin: 0;
   line-height: 1.3;
-}
-
-.portfolio-cards-container {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-}
-
-/* Professional Portfolio Cards with Glass Effect + NCD Series Effects */
-.portfolio-card {
-  border-radius: 1rem;
-  padding: 1.5rem;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  cursor: pointer;
-  position: relative;
-  backdrop-filter: blur(10px);
-  box-shadow: 
-    0 0.25rem 1rem rgba(0, 0, 0, 0.08),
-    0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
-    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.8);
-  border: 0.0625rem solid rgba(226, 232, 240, 0.8);
-  overflow: hidden;
-  animation: float 6s ease-in-out infinite;
 }
 
 .portfolio-card:nth-child(2n) {
@@ -477,7 +633,7 @@
   color: white;
 }
 
-/* Professional Card Values with Enhanced Animation */
+/* Professional Card Values with proper responsive sizing */
 .portfolio-card-value {
   font-size: 2.25rem;
   font-weight: 800;
@@ -487,6 +643,19 @@
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   letter-spacing: -0.025em;
   position: relative;
+}
+
+/* Responsive font sizes for card values */
+@media (max-width: 768px) {
+  .portfolio-card-value {
+    font-size: 1.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .portfolio-card-value {
+    font-size: 1.5rem;
+  }
 }
 
 .portfolio-card:hover .portfolio-card-value {
@@ -505,124 +674,46 @@
   margin-top: -0.25rem;
 }
 
-/* Responsive Design for Portfolio Overview */
-@media (max-width: 1024px) {
-  .portfolio-cards-container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.875rem;
-  }
-  
-  .portfolio-card {
-    padding: 1rem;
-  }
-  
-  .portfolio-card-value {
-    font-size: 1.75rem;
+/* Clean responsive breakpoints - no conflicts */
+@media (max-width: 1200px) {
+  .dashboard-sections {
+    grid-template-columns: 1fr;
+    gap: 1rem;
   }
 }
 
 @media (max-width: 768px) {
-  .portfolio-overview-section {
+  .dashboard {
     padding: 1rem;
+  }
+  
+  .dashboard-header {
     margin-bottom: 1.5rem;
   }
   
-  .portfolio-cards-container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.75rem;
+  .dashboard-sections {
+    gap: 1rem;
+    margin-bottom: 1.5rem;
   }
   
-  .portfolio-card {
-    padding: 1rem;
-  }
-  
-  .portfolio-card-value {
-    font-size: 1.5rem;
-  }
-  
-  .portfolio-title {
-    font-size: 1.125rem;
-  }
-  
-  .portfolio-subtitle {
-    font-size: 0.8125rem;
-  }
-  
-  .portfolio-icon {
-    width: 2.25rem;
-    height: 2.25rem;
-  }
-}
-
-@media (max-width: 576px) {
   .portfolio-overview-section {
-    padding: 0.875rem;
-  }
-  
-  .portfolio-cards-container {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
-  }
-  
-  .portfolio-card {
-    padding: 0.875rem;
-  }
-  
-  .portfolio-card-value {
-    font-size: 1.375rem;
-  }
-  
-  .portfolio-card-label {
-    font-size: 0.8125rem;
-  }
-  
-  .portfolio-card-currency {
-    font-size: 0.6875rem;
+    margin-bottom: 1.5rem;
   }
 }
 
 @media (max-width: 480px) {
-  .portfolio-overview-section {
+  .dashboard {
     padding: 0.75rem;
   }
   
-  .portfolio-title-wrapper {
-    gap: 0.5rem;
+  .dashboard-header {
+    margin-bottom: 1rem;
   }
   
-  .portfolio-icon {
-    width: 2rem;
-    height: 2rem;
+  .dashboard-sections {
+    gap: 0.75rem;
+    margin-bottom: 1rem;
   }
-  
-  .portfolio-title {
-    font-size: 1rem;
-  }
-  
-  .portfolio-subtitle {
-    font-size: 0.75rem;
-  }
-  
-  .portfolio-card {
-    padding: 0.75rem;
-  }
-  
-  .portfolio-card-value {
-    font-size: 1.25rem;
-  }
-  
-  .portfolio-card-icon {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-}
-
-/* Enhanced Responsive Dashboard */
-.dashboard {
-  max-width: 87.5rem; /* 1400px converted to rem */
-  margin: 0 auto;
-  width: 100%;
-  padding: 0 1rem; /* Add horizontal padding */
 }
 
 .dashboard-header {
@@ -632,6 +723,23 @@
   align-items: flex-start;
   gap: 1.5rem;
   flex-wrap: wrap;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive header */
+@media (max-width: 768px) {
+  .dashboard-header {
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-header {
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+  }
 }
 
 .header-left {
@@ -648,15 +756,36 @@
 }
 
 .dashboard-title {
-  font-size: 2rem; /* 32px converted to rem */
+  font-size: 2rem;
   font-weight: bold;
   color: #1e293b;
   margin-bottom: 0.5rem;
 }
 
 .dashboard-subtitle {
-  font-size: 1rem; /* 16px converted to rem */
+  font-size: 1rem;
   color: #64748b;
+}
+
+/* Responsive font sizes */
+@media (max-width: 768px) {
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+  
+  .dashboard-subtitle {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-title {
+    font-size: 1.25rem;
+  }
+  
+  .dashboard-subtitle {
+    font-size: 0.8125rem;
+  }
 }
 
 .dashboard-cards {
@@ -828,184 +957,101 @@
   line-height: 1.3;
 }
 
-/* Enhanced Responsive Breakpoints */
-@media (max-width: 1400px) {
-  .dashboard {
-    max-width: 100%;
-    padding: 0 0.75rem;
-  }
-  
-  .dashboard-cards {
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  }
-  
-  .dashboard-title {
-    font-size: 1.875rem;
-  }
 }
 
-@media (max-width: 1200px) {
-  .dashboard {
-    padding: 0 0.5rem;
-  }
-  
-  .dashboard-cards {
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 0.875rem;
-  }
-  
-  .summary-card {
-    padding: 0.875rem;
-    min-height: 6.5rem;
-  }
-  
-  .card-icon {
-    width: 2.75rem;
-    height: 2.75rem;
-    font-size: 1.25rem;
-  }
-  
-  .card-value {
-    font-size: 1.375rem;
-  }
-}
-
-@media (max-width: 992px) {
-  .dashboard-cards {
-    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  }
-  
-  .dashboard-header {
-    gap: 1rem;
-  }
-  
-  .dashboard-title {
-    font-size: 1.75rem;
-  }
-  
-  .dashboard-subtitle {
-    font-size: 0.9375rem;
-  }
-}
-
+/* CLEAN RESPONSIVE DASHBOARD - WORKING VERSION */
 @media (max-width: 768px) {
   .dashboard {
-    padding: 0;
+    padding: 1rem;
   }
-  
+
   .dashboard-header {
-    flex-direction: column;
-    align-items: stretch;
+    margin-bottom: 1.5rem;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .dashboard-sections {
+    grid-template-columns: 1fr;
     gap: 1rem;
     margin-bottom: 1.5rem;
   }
-  
-  .header-right {
-    align-self: flex-start;
-  }
-  
-  .dashboard-title {
-    font-size: 1.5rem;
-  }
-  
-  .dashboard-subtitle {
-    font-size: 0.875rem;
-    margin-top: -0.25rem;
-  }
-  
-  .dashboard-cards {
-    grid-template-columns: 1fr; /* Single column on mobile */
-    gap: 0.75rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .summary-card {
+
+  .dashboard-section {
     padding: 1rem;
-    min-height: 6rem;
+    width: 100%;
+    box-sizing: border-box;
   }
-  
-  .card-icon {
-    width: 2.5rem;
-    height: 2.5rem;
+
+  .section-title {
     font-size: 1.125rem;
   }
-  
-  .card-label {
-    font-size: 0.8125rem;
-  }
-  
-  .card-value {
-    font-size: 1.25rem;
-  }
-  
-  .card-subtext {
-    font-size: 0.6875rem;
-  }
-}
 
-@media (max-width: 576px) {
-  .dashboard-cards {
-    gap: 0.5rem;
+  .series-performance {
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
-  
-  .summary-card {
-    padding: 0.875rem;
-    min-height: 5.5rem;
-  }
-  
-  .card-icon {
-    width: 2.25rem;
-    height: 2.25rem;
+
+  .performance-series {
     font-size: 1rem;
   }
-  
-  .dashboard-title {
-    font-size: 1.375rem;
+
+  .investor-details,
+  .payout-details {
+    flex-direction: column;
+    gap: 0.25rem;
   }
-  
-  .card-value {
-    font-size: 1.125rem;
+
+  .payout-date {
+    font-size: 0.75rem;
+  }
+
+  .payout-days-left {
+    font-size: 0.625rem;
+  }
+
+  .investor-name,
+  .payout-series {
+    font-size: 0.6875rem;
+  }
+
+  .kyc-badge {
+    min-width: 5.3125rem;
+    height: 1.5rem;
+    font-size: 0.625rem;
+    padding: 0.25rem 1rem;
+    border-radius: 0.75rem;
   }
 }
 
 @media (max-width: 480px) {
+  .dashboard {
+    padding: 0.75rem;
+  }
+
   .dashboard-header {
     margin-bottom: 1rem;
+    gap: 0.75rem;
   }
-  
-  .dashboard-cards {
+
+  .dashboard-sections {
+    gap: 0.75rem;
     margin-bottom: 1rem;
   }
-  
-  .summary-card {
-    padding: 0.75rem;
-    min-height: 5rem;
-  }
-  
-  .card-icon {
-    width: 2rem;
-    height: 2rem;
-    font-size: 0.875rem;
-  }
-  
+
   .dashboard-title {
     font-size: 1.25rem;
   }
-  
-  .dashboard-subtitle {
-    font-size: 0.8125rem;
-  }
-  
-  .card-label {
-    font-size: 0.75rem;
-  }
-  
-  .card-value {
+
+  .section-title {
     font-size: 1rem;
   }
-  
-  .card-subtext {
-    font-size: 0.625rem;
+
+  .performance-series {
+    font-size: 0.875rem;
   }
 }
 
@@ -1057,12 +1103,29 @@
   color: #64748b;
 }
 
-/* Dashboard sections with custom widths - Updated layout */
+/* Dashboard sections with proper responsive grid */
 .dashboard-sections {
   display: grid;
-  grid-template-columns: 2fr 1.2fr; /* Increased Payouts width from 1fr to 1.2fr */
-  gap: 1.5rem;
+  grid-template-columns: 1fr;
+  gap: clamp(1rem, 2vw, 1.5rem);
   margin-bottom: 2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Two column layout for larger screens */
+@media (min-width: 768px) {
+  .dashboard-sections {
+    grid-template-columns: 2fr 1.2fr;
+  }
+}
+
+/* Single column for mobile */
+@media (max-width: 767px) {
+  .dashboard-sections {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 .dashboard-section.maturity-section {
@@ -1073,11 +1136,11 @@
   /* Standard width for payouts section */
 }
 
-/* Professional Dashboard Sections with NCD Series Effects */
+/* Professional Dashboard Sections with proper responsive padding */
 .dashboard-section {
   background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
   border-radius: 1rem;
-  padding: 1.75rem;
+  padding: 1.5rem;
   box-shadow: 
     0 0.25rem 1rem rgba(0, 0, 0, 0.08),
     0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
@@ -1088,6 +1151,21 @@
   position: relative;
   overflow: hidden;
   animation: float 6s ease-in-out infinite;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive padding for dashboard sections */
+@media (max-width: 768px) {
+  .dashboard-section {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-section {
+    padding: 0.875rem;
+  }
 }
 
 .dashboard-section:nth-child(2n) {
@@ -1638,13 +1716,15 @@
   font-weight: 500;
 }
 
-/* Media queries */
+/* SURGICAL PRECISION: Media queries for perfect responsiveness */
 @media (max-width: 1024px) {
   .dashboard-sections {
     grid-template-columns: 1fr;
+    gap: clamp(0.875rem, 2vw, 1rem);
   }
 }
 
+/* Fluid scaling for all dashboard components */
 @media (max-width: 768px) {
   .dashboard {
     padding: 0;
@@ -1653,71 +1733,71 @@
   }
 
   .dashboard-header {
-    margin-bottom: 1.25rem;
-    padding: 0 0.75rem;
+    margin-bottom: clamp(1rem, 2.5vw, 1.25rem);
+    padding: 0 clamp(0.5rem, 1.5vw, 0.75rem);
   }
 
   .dashboard-title {
-    font-size: 1.5rem;
+    font-size: clamp(1.25rem, 3.5vw, 1.5rem);
   }
 
   .dashboard-subtitle {
-    font-size: 0.875rem;
+    font-size: clamp(0.8125rem, 2vw, 0.875rem);
   }
 
   .dashboard-cards {
     grid-template-columns: 1fr;
-    gap: 0.75rem;
-    margin-bottom: 1.25rem;
-    padding: 0 0.75rem;
-    max-width: 100%; /* Remove width limit on mobile */
+    gap: clamp(0.5rem, 1.5vw, 0.75rem);
+    margin-bottom: clamp(1rem, 2.5vw, 1.25rem);
+    padding: 0 clamp(0.5rem, 1.5vw, 0.75rem);
+    max-width: 100%;
   }
 
   .summary-card {
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
     width: 100%;
     box-sizing: border-box;
   }
 
   .card-value {
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 2.5vw, 1.125rem);
   }
 
   .card-label {
-    font-size: 0.6875rem;
+    font-size: clamp(0.625rem, 1.5vw, 0.6875rem);
   }
 
   .dashboard-sections {
     grid-template-columns: 1fr;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    padding: 0 0.75rem;
+    gap: clamp(0.75rem, 2vw, 1rem);
+    margin-bottom: clamp(1.25rem, 2.5vw, 1.5rem);
+    padding: 0 clamp(0.5rem, 1.5vw, 0.75rem);
   }
 
   .dashboard-section {
-    padding: 1rem;
+    padding: clamp(0.75rem, 2vw, 1rem);
     width: 100%;
     box-sizing: border-box;
   }
 
   .section-title {
-    font-size: 1.125rem;
+    font-size: clamp(1rem, 2.5vw, 1.125rem);
   }
 
   .series-performance {
-    padding: 1rem;
-    margin: 0 0.75rem;
-    width: calc(100% - 1.5rem);
+    padding: clamp(0.75rem, 2vw, 1rem);
+    margin: 0 clamp(0.5rem, 1.5vw, 0.75rem);
+    width: calc(100% - clamp(1rem, 3vw, 1.5rem));
     box-sizing: border-box;
   }
 
   .performance-series {
-    font-size: 1rem;
+    font-size: clamp(0.875rem, 2vw, 1rem);
   }
 
   .compliance-carousel-section {
-    padding: 0 0.75rem;
-    margin: 1.25rem 0;
+    padding: 0 clamp(0.5rem, 1.5vw, 0.75rem);
+    margin: clamp(1rem, 2.5vw, 1.25rem) 0;
   }
 
   .compliance-carousel {
@@ -1728,38 +1808,38 @@
   .investor-details,
   .payout-details {
     flex-direction: column;
-    gap: 0.25rem;
+    gap: clamp(0.125rem, 0.5vw, 0.25rem);
   }
 
   .payout-date-container {
     align-items: center;
-    gap: 0.125rem;
+    gap: clamp(0.0625rem, 0.25vw, 0.125rem);
   }
 
   .payout-date {
-    font-size: 0.75rem;
+    font-size: clamp(0.6875rem, 1.5vw, 0.75rem);
   }
 
   .payout-days-left {
-    font-size: 0.625rem;
+    font-size: clamp(0.5625rem, 1.25vw, 0.625rem);
   }
 
   .investor-name,
   .payout-series {
-    font-size: 0.6875rem;
+    font-size: clamp(0.625rem, 1.5vw, 0.6875rem);
   }
 
   .investor-details,
   .payout-details {
-    font-size: 0.75rem;
+    font-size: clamp(0.6875rem, 1.5vw, 0.75rem);
   }
 
   .kyc-badge {
-    min-width: 5.3125rem;
-    height: 1.5rem;
-    font-size: 0.625rem;
-    padding: 0.25rem 1rem;
-    border-radius: 0.75rem;
+    min-width: clamp(4.5rem, 12vw, 5.3125rem);
+    height: clamp(1.25rem, 3vw, 1.5rem);
+    font-size: clamp(0.5625rem, 1.25vw, 0.625rem);
+    padding: clamp(0.1875rem, 0.5vw, 0.25rem) clamp(0.75rem, 2vw, 1rem);
+    border-radius: clamp(0.625rem, 1.5vw, 0.75rem);
   }
 }
 
@@ -1770,46 +1850,46 @@
   }
 
   .dashboard-header {
-    padding: 0 0.5rem;
+    padding: 0 clamp(0.375rem, 1vw, 0.5rem);
   }
 
   .dashboard-cards {
     grid-template-columns: 1fr;
-    gap: 0.625rem;
-    padding: 0 0.5rem;
+    gap: clamp(0.375rem, 1vw, 0.625rem);
+    padding: 0 clamp(0.375rem, 1vw, 0.5rem);
   }
 
   .summary-card {
-    padding: 0.875rem;
+    padding: clamp(0.625rem, 1.5vw, 0.875rem);
   }
 
   .dashboard-sections {
-    padding: 0 0.5rem;
+    padding: 0 clamp(0.375rem, 1vw, 0.5rem);
   }
 
   .series-performance {
-    margin: 0 0.5rem;
-    width: calc(100% - 1rem);
+    margin: 0 clamp(0.375rem, 1vw, 0.5rem);
+    width: calc(100% - clamp(0.75rem, 2vw, 1rem));
   }
 
   .compliance-carousel-section {
-    padding: 0 0.5rem;
+    padding: 0 clamp(0.375rem, 1vw, 0.5rem);
   }
 
   .dashboard-title {
-    font-size: 1.25rem;
+    font-size: clamp(1.125rem, 3vw, 1.25rem);
   }
 
   .section-title {
-    font-size: 1rem;
+    font-size: clamp(0.875rem, 2vw, 1rem);
   }
 
   .card-value {
-    font-size: 1rem;
+    font-size: clamp(0.875rem, 2vw, 1rem);
   }
 
   .performance-series {
-    font-size: 0.875rem;
+    font-size: clamp(0.75rem, 1.75vw, 0.875rem);
   }
 }
 /* Compact Maturity & Lock-In Distribution */
@@ -2465,32 +2545,278 @@
   }
 }
 
-/* Mobile responsive adjustments for header */
+/* ISOLATED FIX: Calendar positioning in header - ONLY affects calendar, nothing else */
+.dashboard-header .header-right {
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: flex-end !important;
+}
+
+/* Mobile specific fix for calendar positioning - ISOLATED */
 @media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: row; /* Keep horizontal layout like desktop */
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    padding: 0 12px;
+  .dashboard-header .header-right {
+    width: auto !important; /* Override previous width: 100% */
+    align-self: flex-end !important; /* Position calendar to the right */
+    margin-top: 0 !important;
   }
   
-  .header-right {
-    align-self: flex-start; /* Align with title */
+  /* Ensure calendar component maintains its size and position */
+  .dashboard-header .header-right > * {
+    flex-shrink: 0 !important;
   }
 }
 
 @media (max-width: 480px) {
+  .dashboard-header .header-right {
+    width: auto !important; /* Override previous width: 100% */
+    align-self: flex-end !important; /* Keep calendar positioned right */
+  }
+}
+
+/* Mobile responsive adjustments for better mobile display */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 0.5rem !important; /* Reduced padding for mobile */
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
   .dashboard-header {
-    flex-direction: row; /* Keep horizontal layout */
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    padding: 0 8px;
+    flex-direction: column !important; /* Stack header elements vertically on mobile */
+    align-items: flex-start !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+  
+  .header-left {
+    width: 100% !important;
   }
   
   .header-right {
-    align-self: flex-start;
+    width: 100% !important;
+    align-self: flex-start !important;
+  }
+
+  .dashboard-title {
+    font-size: 1.25rem !important; /* Smaller title for mobile */
+    line-height: 1.2 !important;
+  }
+
+  .dashboard-subtitle {
+    font-size: 0.875rem !important;
+  }
+
+  /* Portfolio cards - better mobile layout */
+  .portfolio-cards-container {
+    grid-template-columns: repeat(2, 1fr) !important; /* 2 columns on mobile */
+    gap: 0.5rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .portfolio-card {
+    padding: 0.75rem !important; /* Reduced padding */
+    min-height: 100px !important; /* Smaller height for mobile */
+  }
+
+  .portfolio-card-value {
+    font-size: 1.25rem !important; /* Smaller values for mobile */
+  }
+
+  .portfolio-card-label {
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .portfolio-card-icon {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+
+  /* Dashboard sections - stack vertically on mobile */
+  .dashboard-sections {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    padding: 0 0.5rem !important;
+  }
+
+  .dashboard-section {
+    padding: 0.875rem !important; /* Reduced padding */
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .section-title {
+    font-size: 1rem !important;
+  }
+
+  /* Series performance - mobile optimized */
+  .series-performance {
+    padding: 0.875rem !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .performance-series {
+    font-size: 0.875rem !important;
+  }
+
+  .performance-investors {
+    font-size: 0.75rem !important;
+  }
+
+  /* Investor and payout items - mobile layout */
+  .investor-item,
+  .payout-item {
+    padding: 0.5rem !important;
+    margin: 0 !important;
+  }
+
+  .investor-name,
+  .payout-series {
+    font-size: 0.75rem !important;
+  }
+
+  .investor-details,
+  .payout-details {
+    flex-direction: column !important;
+    gap: 0.25rem !important;
+    font-size: 0.6875rem !important;
+  }
+
+  .kyc-badge {
+    min-width: 4rem !important;
+    height: 1.25rem !important;
+    font-size: 0.625rem !important;
+    padding: 0.125rem 0.5rem !important;
+  }
+
+  /* Investor exposure - mobile table */
+  .investor-exposure {
+    padding: 0.875rem !important;
+    margin-top: 1rem !important;
+  }
+
+  .investor-exposure-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.5rem !important;
+  }
+
+  .exposure-title {
+    font-size: 1rem !important;
+  }
+
+  .exposure-subtitle {
+    font-size: 0.75rem !important;
+  }
+
+  /* Mobile table adjustments */
+  .exposure-table {
+    font-size: 0.6875rem !important;
+  }
+
+  .exposure-table th,
+  .exposure-table td {
+    padding: 0.375rem 0.25rem !important;
+  }
+
+  .exposure-table tbody tr {
+    height: 50px !important; /* Smaller row height for mobile */
+  }
+
+  .exposure-table td {
+    height: 50px !important;
+  }
+
+  /* Update all cell containers for mobile */
+  .rank-cell-centered,
+  .investor-name-cell,
+  .invested-amount-cell,
+  .maturity-amount,
+  .lockin-amount {
+    min-height: 50px !important;
+  }
+
+  .all-series-container {
+    max-height: 50px !important;
+  }
+
+  /* Compact table mobile adjustments */
+  .compact-table-row {
+    grid-template-columns: 1fr !important;
+    gap: 0.375rem !important;
+    padding: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+
+  .compact-bucket-label {
+    font-size: 0.8125rem !important;
+  }
+
+  .compact-progress-track {
+    height: 1.25rem !important;
+  }
+
+  .compact-progress-text {
+    font-size: 0.625rem !important;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 0.25rem !important;
+  }
+
+  .dashboard-header {
+    padding: 0 0.25rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .dashboard-title {
+    font-size: 1.125rem !important;
+  }
+
+  /* Single column layout for very small screens */
+  .portfolio-cards-container {
+    grid-template-columns: 1fr !important;
+    gap: 0.375rem !important;
+    padding: 0 0.25rem !important;
+  }
+
+  .portfolio-card {
+    padding: 0.625rem !important;
+    min-height: 80px !important;
+  }
+
+  .portfolio-card-value {
+    font-size: 1.125rem !important;
+  }
+
+  .dashboard-sections {
+    padding: 0 0.25rem !important;
+    gap: 0.5rem !important;
+  }
+
+  .dashboard-section {
+    padding: 0.75rem !important;
+  }
+
+  .series-performance {
+    padding: 0.75rem !important;
+  }
+
+  .investor-exposure {
+    padding: 0.75rem !important;
+  }
+
+  .exposure-table th,
+  .exposure-table td {
+    padding: 0.25rem 0.125rem !important;
   }
 }
 /* Payout Date Container Styles - For detailed payouts */
@@ -2795,14 +3121,66 @@
 
 /* REMOVED PROBLEMATIC SCROLLING CSS TO FIX DASHBOARD */
 
-/* Investor Exposure Table - Original Working Version */
-.exposure-table {
+/* INVESTOR EXPOSURE TABLE - HORIZONTAL SCROLLING FOR MOBILE ONLY */
+/* This is isolated and won't affect any other functionality */
+
+.investor-exposure-table-container {
   width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 0.5rem;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto; /* Enable horizontal scrolling */
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(59, 130, 246, 0.3) rgba(241, 245, 249, 0.5);
+}
+
+/* Custom scrollbar for the table container */
+.investor-exposure-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.investor-exposure-table-container::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.5);
+  border-radius: 4px;
+}
+
+.investor-exposure-table-container::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+
+.investor-exposure-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.5);
+}
+
+/* Ensure table maintains minimum width for proper column display */
+.investor-exposure-table-container .exposure-table {
+  min-width: 800px; /* Minimum width to show all columns properly */
+  width: 100%;
+}
+
+/* Mobile specific adjustments for the scrollable table */
+@media (max-width: 768px) {
+  .investor-exposure-table-container {
+    margin: 0 -0.875rem; /* Extend to edges of container */
+    padding: 0 0.875rem; /* Add padding back inside */
+    width: calc(100% + 1.75rem); /* Compensate for negative margin */
+  }
+  
+  .investor-exposure-table-container .exposure-table {
+    min-width: 900px; /* Slightly wider on mobile to ensure readability */
+  }
+}
+
+@media (max-width: 480px) {
+  .investor-exposure-table-container {
+    margin: 0 -0.75rem; /* Extend to edges on small screens */
+    padding: 0 0.75rem;
+    width: calc(100% + 1.5rem);
+  }
+  
+  .investor-exposure-table-container .exposure-table {
+    min-width: 950px; /* Even wider on very small screens */
+  }
 }
 
 .exposure-table th {
@@ -2898,7 +3276,7 @@
   padding: 4px 0;
   display: flex;
   align-items: flex-start; /* Align to top to show more content */
-  justify-content: center; /* Center align the series horizontally */
+  justify-content: flex-start; /* Left align for better readability */
   overflow-y: auto; /* Enable scrolling if content overflows */
   overflow-x: hidden;
   
@@ -2936,34 +3314,33 @@
 .all-series-list {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Reduced gap for more compact display */
-  align-items: center; /* Center align series items */
-  width: 100%; /* Take full width */
+  gap: 3px; /* Small gap between series */
+  align-items: stretch; /* Stretch to full width */
+  width: 100%;
 }
 
 .all-series-row {
   display: flex;
-  gap: 6px; /* Reduced gap for more space */
-  margin-bottom: 2px; /* Reduced margin for more compact display */
-  justify-content: center; /* Center align series in each row */
-  width: 100%; /* Take full width */
+  flex-direction: column; /* Stack series vertically - one per row */
+  gap: 3px; /* Small gap between individual series */
+  width: 100%;
 }
 
 .all-series-item {
-  flex: 1;
-  min-width: 0;
-  padding: 6px 10px;
+  width: 100%; /* Full width for each series */
+  padding: 4px 8px; /* Compact padding */
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 4px;
   font-size: 0.75rem;
   color: #1e40af;
   text-align: center;
-  white-space: normal; /* Allow text wrapping */
-  overflow: visible; /* Show full text */
-  word-wrap: break-word; /* Break long words if needed */
-  line-height: 1.2; /* Compact line height */
+  white-space: nowrap; /* Keep series name on one line */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ... if text is too long */
+  line-height: 1.2;
   transition: all 0.2s ease;
+  box-sizing: border-box;
 }
 
 .all-series-item:hover {
@@ -3136,6 +3513,7 @@
   .all-series-container {
     max-height: 70px; /* Slightly smaller for tablet but still accommodate wrapped text */
     align-items: flex-start; /* Align to top for better text display */
+    justify-content: flex-start; /* Left align for better readability */
   }
   
   .exposure-table tbody tr {
@@ -3204,6 +3582,7 @@
   .all-series-container {
     max-height: 60px; /* Smaller container for mobile but still allow scrolling */
     align-items: flex-start; /* Align to top for better text display */
+    justify-content: flex-start; /* Left align for better readability */
   }
   
   .exposure-table th:nth-child(1), .exposure-table td:nth-child(1) { 
@@ -3744,10 +4123,7 @@ END OLD CSS */
   animation-delay: -2.5s;
 }
 
-.grievance-icon-reference::before {
-  content: '';
-  position: absolute;
-  top: 0;
+/* End of Dashboard CSS */
   left: -100%;
   width: 100%;
   height: 100%;

@@ -887,47 +887,49 @@ const SeriesDetails = () => {
           <h2 className="section-title">Recent Transactions</h2>
           <div className="transactions-table-card">
             {seriesData.transactions && seriesData.transactions.length > 0 ? (
-              <table className="transactions-table">
-                <thead>
-                  <tr>
-                    <th>Date & Time</th>
-                    <th>Investor Name</th>
-                    <th>Investor ID</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {seriesData.transactions.map((transaction, index) => (
-                    <tr key={index}>
-                      <td>
-                        <div className="date-time-cell">
-                          <div className="date">{transaction.date}</div>
-                          {transaction.timestamp && (
-                            <div className="time">
-                              {new Date(transaction.timestamp).toLocaleTimeString('en-IN', { 
-                                hour: '2-digit', 
-                                minute: '2-digit',
-                                hour12: true 
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td>{transaction.investor}</td>
-                      <td>
-                        <span className="investor-id-badge">{transaction.investorId}</span>
-                      </td>
-                      <td>
-                        <span className={`type-badge ${transaction.type}`}>
-                          {transaction.type}
-                        </span>
-                      </td>
-                      <td className="amount-cell">{formatCurrencyFull(transaction.amount)}</td>
+              <div className="recent-transactions-table-container">
+                <table className="transactions-table">
+                  <thead>
+                    <tr>
+                      <th>Date & Time</th>
+                      <th>Investor Name</th>
+                      <th>Investor ID</th>
+                      <th>Type</th>
+                      <th>Amount</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {seriesData.transactions.map((transaction, index) => (
+                      <tr key={index}>
+                        <td>
+                          <div className="date-time-cell">
+                            <div className="date">{transaction.date}</div>
+                            {transaction.timestamp && (
+                              <div className="time">
+                                {new Date(transaction.timestamp).toLocaleTimeString('en-IN', { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit',
+                                  hour12: true 
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td>{transaction.investor}</td>
+                        <td>
+                          <span className="investor-id-badge">{transaction.investorId}</span>
+                        </td>
+                        <td>
+                          <span className={`type-badge ${transaction.type}`}>
+                            {transaction.type}
+                          </span>
+                        </td>
+                        <td className="amount-cell">{formatCurrencyFull(transaction.amount)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             ) : (
               <div className="no-transactions">
                 <p>No transactions available</p>

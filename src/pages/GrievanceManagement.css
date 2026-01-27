@@ -1,11 +1,21 @@
-/* Grievance Management - FIXED FLOATING OVERFLOW */
+/* Grievance Management - SURGICAL PRECISION 100% RESPONSIVE */
 .grievance-page {
   width: 100%;
-  padding: 0 0.75rem;
+  padding: clamp(0rem, 1vw, 0.75rem) clamp(0.5rem, 1.5vw, 0.75rem);
   box-sizing: border-box;
   overflow-x: hidden;
-  /* ENSURE NO VERTICAL OVERFLOW CLIPPING */
   overflow-y: visible;
+  max-width: 100%;
+  /* SURGICAL: Add container query support */
+  container-type: inline-size;
+}
+
+/* SURGICAL: Fluid content wrapper */
+.grievance-content-wrapper {
+  max-width: min(1400px, 100%);
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 clamp(0rem, 1vw, 1rem);
 }
 
 /* Header Section - matching Dashboard pattern */
@@ -82,21 +92,22 @@
   min-height: 25rem;
 }
 
-/* Summary Cards with Premium Effects - FIXED FLOATING OVERFLOW */
+/* Summary Cards with Premium Effects - SURGICAL PRECISION FLUID SCALING */
 .grievance-summary-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
+  gap: clamp(0.5rem, 1.5vw, 0.75rem);
   margin-bottom: 1.5rem;
   overflow-x: hidden;
-  /* ADD PADDING TO ACCOMMODATE FLOATING ANIMATION */
-  padding-top: 0.5rem; /* Extra space for floating animation */
-  padding-bottom: 0.25rem; /* Balance the spacing */
+  padding-top: 0.5rem;
+  padding-bottom: 0.25rem;
+  /* SURGICAL: Add container query support */
+  container-type: inline-size;
 }
 
 .grievance-summary-cards .summary-card {
   border-radius: 1rem;
-  padding: 2rem 1.5rem;
+  padding: clamp(1.25rem, 3vw, 2rem) clamp(1rem, 2.5vw, 1.5rem);
   cursor: pointer;
   position: relative;
   overflow: hidden;
@@ -1665,5 +1676,78 @@
   
   .field-help {
     font-size: 11px;
+  }
+}
+/* SURGICAL PRECISION: 100% FLUID RESPONSIVE BREAKPOINTS */
+
+/* Container queries for true responsiveness */
+@container (max-width: 1366px) {
+  .grievance-summary-cards {
+    gap: clamp(0.375rem, 1.2vw, 0.5rem);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  
+  .grievance-summary-cards .summary-card {
+    padding: clamp(1rem, 2.5vw, 1.5rem) clamp(0.875rem, 2vw, 1.25rem);
+  }
+}
+
+@container (max-width: 1200px) {
+  .grievance-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(0.75rem, 2vw, 1rem);
+  }
+}
+
+@container (max-width: 768px) {
+  .grievance-summary-cards {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Fluid scaling for all screen sizes */
+@media (max-width: 1600px) {
+  .grievance-page {
+    padding: clamp(0rem, 0.8vw, 0.75rem) clamp(0.5rem, 1.2vw, 0.75rem);
+  }
+  
+  .grievance-summary-cards {
+    gap: clamp(0.5rem, 1.3vw, 0.75rem);
+  }
+  
+  .grievance-summary-cards .summary-card {
+    padding: clamp(1.25rem, 2.8vw, 2rem) clamp(1rem, 2.3vw, 1.5rem);
+  }
+}
+
+@media (max-width: 1366px) {
+  .grievance-summary-cards {
+    gap: clamp(0.375rem, 1.2vw, 0.5rem);
+  }
+  
+  .grievance-summary-cards .summary-card {
+    padding: clamp(1rem, 2.5vw, 1.5rem) clamp(0.875rem, 2vw, 1.25rem);
+  }
+  
+  .grievance-summary-cards .card-value {
+    font-size: clamp(1.5rem, 3vw, 2rem);
+  }
+  
+  .grievance-summary-cards .card-label {
+    font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  }
+}
+
+@media (max-width: 1200px) {
+  .grievance-summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: clamp(0.75rem, 2vw, 1rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .grievance-summary-cards {
+    grid-template-columns: 1fr;
   }
 }
