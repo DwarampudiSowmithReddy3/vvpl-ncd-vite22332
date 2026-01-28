@@ -392,6 +392,17 @@ const InterestPayout = () => {
     };
   };
 
+  // Get unique series names from payout data for export dropdown
+  const getUniqueSeriesFromPayouts = () => {
+    const uniqueSeries = new Set();
+    generateExportPayoutData.forEach(payout => {
+      if (payout.seriesName) {
+        uniqueSeries.add(payout.seriesName);
+      }
+    });
+    return Array.from(uniqueSeries).sort();
+  };
+
   // Download export data as CSV
   const handleDownloadExport = () => {
     const data = getExportData();

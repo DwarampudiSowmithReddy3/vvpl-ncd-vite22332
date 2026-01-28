@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +17,9 @@ import {
 import { 
   FiUsers,
   FiPercent,
-  FiTrendingUp
+  FiTrendingUp,
+  FiLock,
+  FiCalendar
 } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -46,6 +48,86 @@ const SeriesDetails = () => {
       navigate('/ncd-series'); // Default fallback
     }
   };
+
+  // Generate upcoming month payout data for this specific series (same as Interest Payout Export - Upcoming Month)
+  const getUpcomingPayoutData = useMemo(() => {
+    if (!id || !series || !investors) return [];
+    
+    // Get current series data
+    const currentSeries = series.find(s => s.id === parseInt(id));
+    if (!currentSeries || currentSeries.status !== 'active') return [];
+    
+    // Load payout status updates from localStorage (same as Interest Payout page)
+    const payoutStatusUpdates = JSON.parse(localStorage.getItem('payoutStatusUpdates') || '{}');
+    
+    // Calculate upcoming month (same logic as Interest Payout Export)
+    const currentDate = new Date();
+    const nextMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1);
+    const upcomingMonth = nextMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    // Helper function to parse date string (DD/MM/YYYY) - same as Interest Payout
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+      }
+      return null;
+    };
+    
+    // Helper function to check if payout is due - same as Interest Payout
+    const isPayoutDue = (issueDate, frequency) => {
+      const issue = parseDate(issueDate);
+      if (!issue) return false;
+      
+      const today = new Date();
+      const daysDiff = Math.floor((today - issue) / (1000 * 60 * 60 * 24));
+      
+      // At least 30 days must have passed for monthly payouts
+      return daysDiff >= 30;
+    };
+    
+    // Check if this series has any due payouts
+    if (!isPayoutDue(currentSeries.issueDate, currentSeries.interestFrequency)) {
+      return [];
+    }
+    
+    // Get investors for this series
+    const seriesInvestors = investors.filter(inv => 
+      inv.series && Array.isArray(inv.series) && inv.series.includes(currentSeries.name)
+    );
+    
+    if (seriesInvestors.length === 0) return [];
+    
+    // Generate upcoming month payout data (exact same logic as Interest Payout Export)
+    const upcomingPayouts = [];
+    
+    seriesInvestors.forEach(investor => {
+      const investmentPerSeries = investor.investment / investor.series.length;
+      const interestAmount = (investmentPerSeries * currentSeries.interestRate) / 100 / 12;
+      
+      const upcomingPayoutKey = `${investor.investorId}-${currentSeries.name}-${upcomingMonth}`;
+      const upcomingPayoutStatus = payoutStatusUpdates[upcomingPayoutKey] || 'Scheduled';
+      
+      upcomingPayouts.push({
+        id: upcomingPayouts.length + 1,
+        investorId: investor.investorId,
+        investorName: investor.name,
+        seriesName: currentSeries.name,
+        interestMonth: upcomingMonth,
+        interestDate: `15-${nextMonth.toLocaleString('default', { month: 'short' })}-${nextMonth.getFullYear()}`,
+        amount: Math.round(interestAmount),
+        status: upcomingPayoutStatus,
+        bankAccountNumber: investor.bankAccountNumber || 'N/A',
+        ifscCode: investor.ifscCode || 'N/A',
+        bankName: investor.bankName || 'N/A'
+      });
+    });
+    
+    return upcomingPayouts;
+  }, [id, series, investors]);
+
+
 
   // Hardcoded data for now - different series based on ID
   const getDefaultSeriesData = (seriesId) => {
@@ -87,36 +169,7 @@ const SeriesDetails = () => {
 
   const defaultSeries = {
     ...getDefaultSeriesData(id),
-    payouts: [
-      {
-        id: 1,
-        date: '1/2/2024',
-        investors: 95,
-        status: 'scheduled',
-        amount: 831250
-      },
-      {
-        id: 2,
-        date: '1/5/2024',
-        investors: 95,
-        status: 'scheduled',
-        amount: 831250
-      },
-      {
-        id: 3,
-        date: '1/8/2024',
-        investors: 95,
-        status: 'scheduled',
-        amount: 831250
-      },
-      {
-        id: 4,
-        date: '1/11/2023',
-        investors: 89,
-        status: 'completed',
-        amount: 787500
-      }
-    ],
+    // Remove hardcoded payouts - will use real data from getSeriesPayoutData
     transactions: [
       {
         date: '15/1/2024',
@@ -157,7 +210,6 @@ const SeriesDetails = () => {
                 foundSeries.status === 'upcoming' ? 'Releasing soon' :
                 foundSeries.status === 'active' ? 'Active' : foundSeries.status,
         progress: Math.round((foundSeries.fundsRaised / foundSeries.targetAmount) * 100),
-        payouts: [], // No fake payouts - will be calculated from real data
         transactions: [] // Will be populated from actual investments
       };
     }
@@ -229,6 +281,115 @@ const SeriesDetails = () => {
     seriesData.investors = seriesInvestors.length;
     seriesData.progress = Math.round((actualFundsRaised / seriesData.targetAmount) * 100);
   }
+
+  // Calculate Lock-in and Maturity Details
+  const getSeriesInsights = useMemo(() => {
+    if (!seriesData || !seriesData.issueDate || !seriesData.maturityDate) return null;
+
+    const today = new Date();
+    
+    // Helper function to parse date string (DD/MM/YYYY or D/M/YYYY)
+    const parseDate = (dateStr) => {
+      if (!dateStr) return null;
+      try {
+        const parts = dateStr.split('/');
+        if (parts.length === 3) {
+          return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return null;
+      } catch (error) {
+        console.error('Error parsing date:', dateStr, error);
+        return null;
+      }
+    };
+
+    // Calculate lock-in details (assuming 1 year lock-in period from issue date)
+    const issueDate = parseDate(seriesData.issueDate);
+    const maturityDate = parseDate(seriesData.maturityDate);
+    
+    let lockInDetails = null;
+    let maturityDetails = null;
+
+    if (issueDate) {
+      try {
+        // Lock-in period is typically 1 year from issue date
+        const lockInEndDate = new Date(issueDate);
+        lockInEndDate.setFullYear(lockInEndDate.getFullYear() + 1);
+        
+        const lockInDaysLeft = Math.ceil((lockInEndDate - today) / (1000 * 60 * 60 * 24));
+        const isLockInActive = lockInDaysLeft > 0;
+        
+        // For demo purposes, assume some investors left after lock-in
+        // TODO: In real implementation, this should come from actual investor exit data
+        // Check for investors with status 'exited' or similar in the investors array
+        const exitedInvestors = seriesInvestors.filter(inv => inv.status === 'exited' || inv.status === 'deleted');
+        const investorsLeftAfterLockIn = exitedInvestors.length;
+        
+        // Calculate actual amount returned to exited investors
+        let amountAfterLockIn = 0;
+        exitedInvestors.forEach(inv => {
+          if (inv.investments && Array.isArray(inv.investments)) {
+            const seriesInvestments = inv.investments.filter(investment => investment.seriesName === seriesData.name);
+            amountAfterLockIn += seriesInvestments.reduce((sum, investment) => sum + investment.amount, 0);
+          } else {
+            // Fallback calculation
+            amountAfterLockIn += inv.series.length > 0 ? inv.investment / inv.series.length : 0;
+          }
+        });
+        
+        // Calculate remaining investors (active investors still in the series)
+        const activeInvestorsInSeries = seriesInvestors.filter(inv => inv.status !== 'exited' && inv.status !== 'deleted');
+        const remainingInvestors = activeInvestorsInSeries.length;
+        
+        lockInDetails = {
+          lockInEndDate: lockInEndDate.toLocaleDateString('en-GB'),
+          daysLeft: lockInDaysLeft,
+          isActive: isLockInActive,
+          investorsLeft: investorsLeftAfterLockIn,
+          amountAfterLockIn: Math.round(amountAfterLockIn),
+          remainingInvestors: remainingInvestors
+        };
+      } catch (error) {
+        console.error('Error calculating lock-in details:', error);
+        lockInDetails = null;
+      }
+    }
+
+    if (maturityDate) {
+      try {
+        const maturityDaysLeft = Math.ceil((maturityDate - today) / (1000 * 60 * 60 * 24));
+        const isMatured = maturityDaysLeft <= 0;
+        
+        // Calculate remaining funds for active investors at maturity
+        const activeInvestorsCount = seriesInvestors ? seriesInvestors.length : 0;
+        const remainingFundsAtMaturity = seriesData.fundsRaised; // Total amount to be returned to active investors
+        
+        // Get real series status from seriesData
+        const realSeriesStatus = seriesData.status === 'active' ? 'Active' : 
+                                seriesData.status === 'ACCEPTING' ? 'Accepting' :
+                                seriesData.status === 'upcoming' ? 'Upcoming' :
+                                seriesData.status === 'DRAFT' ? 'Draft' :
+                                isMatured ? 'Matured' : 'Active';
+        
+        maturityDetails = {
+          maturityDate: maturityDate.toLocaleDateString('en-GB'),
+          daysLeft: maturityDaysLeft,
+          isMatured: isMatured,
+          activeInvestorsCount: activeInvestorsCount,
+          remainingFundsAtMaturity: remainingFundsAtMaturity,
+          realSeriesStatus: realSeriesStatus
+        };
+      } catch (error) {
+        console.error('Error calculating maturity details:', error);
+        maturityDetails = null;
+      }
+    }
+
+    return {
+      lockIn: lockInDetails,
+      maturity: maturityDetails
+    };
+  }, [seriesData, seriesInvestors]);
 
   const formatCurrency = (amount) => {
     if (amount >= 10000000) {
@@ -327,28 +488,62 @@ const SeriesDetails = () => {
       
       doc.setFontSize(16);
       doc.setTextColor(40, 40, 40);
-      doc.text('Payout Schedule', 20, yPosition);
+      doc.text('Upcoming Payout Schedule', 20, yPosition);
       yPosition += 15;
       
-      doc.setFontSize(12);
-      doc.text('Scheduled Interest Payouts:', 20, yPosition);
-      yPosition += 10;
-      
-      seriesData.payouts.forEach((payout, index) => {
-        if (yPosition > pageHeight - 30) {
-          doc.addPage();
-          yPosition = 20;
-        }
+      if (getUpcomingPayoutData && getUpcomingPayoutData.length > 0) {
+        doc.setFontSize(12);
+        doc.text('Next Month Interest Payout Details:', 20, yPosition);
+        yPosition += 10;
+        
+        // Summary information
+        const totalAmount = getUpcomingPayoutData.reduce((sum, p) => sum + p.amount, 0);
+        const upcomingMonth = getUpcomingPayoutData[0]?.interestMonth;
+        const payoutDate = getUpcomingPayoutData[0]?.interestDate;
         
         doc.setFontSize(10);
         doc.setTextColor(60, 60, 60);
-        doc.text((index + 1) + '. Payout Date: ' + payout.date, 25, yPosition);
+        doc.text('Payout Month: ' + upcomingMonth, 25, yPosition);
         yPosition += 6;
-        doc.text('   Amount: ' + formatCurrencyFull(payout.amount) + ', Investors: ' + payout.investors, 30, yPosition);
+        doc.text('Payout Date: ' + payoutDate, 25, yPosition);
         yPosition += 6;
-        doc.text('   Status: ' + payout.status.charAt(0).toUpperCase() + payout.status.slice(1), 30, yPosition);
+        doc.text('Total Amount: ' + formatCurrencyFull(totalAmount), 25, yPosition);
+        yPosition += 6;
+        doc.text('Total Investors: ' + getUpcomingPayoutData.length, 25, yPosition);
         yPosition += 12;
-      });
+        
+        // Individual investor details
+        doc.setFontSize(12);
+        doc.text('Individual Investor Payouts:', 20, yPosition);
+        yPosition += 10;
+        
+        getUpcomingPayoutData.forEach((payout, index) => {
+          if (yPosition > pageHeight - 25) {
+            doc.addPage();
+            yPosition = 20;
+          }
+          
+          doc.setFontSize(9);
+          doc.setTextColor(60, 60, 60);
+          doc.text((index + 1) + '. ' + payout.investorName + ' (' + payout.investorId + ')', 25, yPosition);
+          yPosition += 5;
+          doc.text('   Amount: ₹' + payout.amount.toLocaleString('en-IN') + ', Status: ' + payout.status, 30, yPosition);
+          yPosition += 5;
+          doc.text('   Bank: ' + payout.bankName + ' | A/C: ' + payout.bankAccountNumber + ' | IFSC: ' + payout.ifscCode, 30, yPosition);
+          yPosition += 8;
+        });
+      } else {
+        doc.setFontSize(12);
+        doc.setTextColor(100, 100, 100);
+        if (seriesData.status === 'Yet to be approved') {
+          doc.text('No payout schedule available - Series pending board approval', 20, yPosition);
+        } else if (seriesData.status === 'Releasing soon') {
+          doc.text('No payout schedule available - Series not yet released', 20, yPosition);
+        } else {
+          doc.text('No upcoming payout data available - Series may be too new or have no investors', 20, yPosition);
+        }
+        yPosition += 15;
+      }
       
       yPosition += 10;
       
@@ -646,6 +841,91 @@ const SeriesDetails = () => {
           </button>
         </div>
 
+        {/* Series Insights Cards - Lock-in and Maturity Details */}
+        {getSeriesInsights && seriesData && (
+          <div className="series-insights-grid">
+            {/* Lock-in Details Card */}
+            {getSeriesInsights.lockIn && (
+              <div className="insight-card lock-in-card">
+                <div className="insight-header">
+                  <h3 className="insight-title">Lock-in Period Details</h3>
+                  <div className="insight-icon lock-in-icon">
+                    <FiLock size={18} />
+                  </div>
+                </div>
+                <div className="insight-content">
+                  <div className="insight-main-info">
+                    <div className="insight-date">
+                      <span className="insight-label">Lock-in End Date</span>
+                      <span className="insight-value">{getSeriesInsights.lockIn.lockInEndDate}</span>
+                    </div>
+                    <div className="insight-days">
+                      <span className="insight-label">Days</span>
+                      <span className={`insight-days-value ${getSeriesInsights.lockIn.isActive ? 'active' : 'completed'}`}>
+                        {getSeriesInsights.lockIn.isActive ? `+${getSeriesInsights.lockIn.daysLeft}` : `-${Math.abs(getSeriesInsights.lockIn.daysLeft)}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="insight-details">
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Investors Left After Lock-in</span>
+                      <span className="detail-value">{getSeriesInsights.lockIn.investorsLeft}</span>
+                    </div>
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Amount After Lock-in</span>
+                      <span className="detail-value">{formatCurrency(getSeriesInsights.lockIn.amountAfterLockIn)}</span>
+                    </div>
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Remaining Investors</span>
+                      <span className="detail-value">{getSeriesInsights.lockIn.remainingInvestors}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Maturity Details Card */}
+            {getSeriesInsights.maturity && (
+              <div className="insight-card maturity-card">
+                <div className="insight-header">
+                  <h3 className="insight-title">Maturity Period Details</h3>
+                  <div className="insight-icon maturity-icon">
+                    <FiCalendar size={18} />
+                  </div>
+                </div>
+                <div className="insight-content">
+                  <div className="insight-main-info">
+                    <div className="insight-date">
+                      <span className="insight-label">Maturity Date</span>
+                      <span className="insight-value">{getSeriesInsights.maturity.maturityDate}</span>
+                    </div>
+                    <div className="insight-days">
+                      <span className="insight-label">Days</span>
+                      <span className={`insight-days-value ${getSeriesInsights.maturity.isMatured ? 'matured' : 'active'}`}>
+                        {getSeriesInsights.maturity.isMatured ? `-${Math.abs(getSeriesInsights.maturity.daysLeft)}` : `+${getSeriesInsights.maturity.daysLeft}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="insight-details">
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Active Investors Count</span>
+                      <span className="detail-value">{getSeriesInsights.maturity.activeInvestorsCount}</span>
+                    </div>
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Remaining Funds</span>
+                      <span className="detail-value remaining-funds">{formatCurrency(getSeriesInsights.maturity.remainingFundsAtMaturity)}</span>
+                    </div>
+                    <div className="insight-detail-item">
+                      <span className="detail-label">Series Status</span>
+                      <span className="detail-value">{getSeriesInsights.maturity.realSeriesStatus}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Key Metrics Cards */}
         <div className="metrics-grid">
           <div className="metric-card clickable-card" onClick={() => setShowFundsModal(true)}>
@@ -750,44 +1030,80 @@ const SeriesDetails = () => {
 
           <div className="payout-schedule-card">
             <h2 className="card-title">Payout Schedule</h2>
-            <div className="payout-list">
-              {seriesData.payouts && seriesData.payouts.length > 0 ? (
-                seriesData.payouts.map((payout, index) => (
-                  <div key={index} className="payout-row">
-                    <div className="payout-item">
-                      <div className="payout-content">
-                        <div className="payout-date-section">
-                          <div className="payout-label-with-icon">
-                            <HiOutlineCalendar className="payout-icon" />
-                            <span className="payout-date">{payout.date}</span>
-                          </div>
-                          <span className={`payout-status-badge ${payout.status}`}>
-                            {payout.status === 'completed' && <HiCheckCircle className="status-icon" />}
-                            {payout.status.charAt(0).toUpperCase() + payout.status.slice(1)}
-                          </span>
-                        </div>
-                        <div className="payout-details">
-                          <div className="payout-amount">
-                            <span className="payout-label">Amount</span>
-                            <span className="payout-value">{formatCurrency(payout.amount)}</span>
-                          </div>
-                          <div className="payout-investors">
-                            <span className="payout-label">Investors</span>
-                            <span className="payout-value">{payout.investors}</span>
-                          </div>
-                        </div>
-                      </div>
+            <div className="payout-schedule-content">
+              {getUpcomingPayoutData && getUpcomingPayoutData.length > 0 ? (
+                <>
+                  <div className="payout-schedule-header">
+                    <div className="schedule-info">
+                      <span className="schedule-month">Upcoming Month: {getUpcomingPayoutData[0]?.interestMonth}</span>
+                      <span className="schedule-date">Payout Date: {getUpcomingPayoutData[0]?.interestDate}</span>
+                    </div>
+                    <div className="schedule-summary">
+                      <span className="total-amount">
+                        Total: {formatCurrency(getUpcomingPayoutData.reduce((sum, p) => sum + p.amount, 0))}
+                      </span>
+                      <span className="total-investors">
+                        {getUpcomingPayoutData.length} Investors
+                      </span>
                     </div>
                   </div>
-                ))
+                  
+                  <div className="payout-schedule-table-container">
+                    <table className="payout-schedule-table">
+                      <thead>
+                        <tr>
+                          <th>Investor</th>
+                          <th>Amount</th>
+                          <th>Status</th>
+                          <th>Bank Details</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getUpcomingPayoutData.map((payout) => (
+                          <tr key={payout.id}>
+                            <td>
+                              <div className="investor-info">
+                                <div className="investor-name">{payout.investorName}</div>
+                                <div className="investor-id">{payout.investorId}</div>
+                              </div>
+                            </td>
+                            <td className="amount-cell">
+                              ₹{payout.amount.toLocaleString('en-IN')}
+                            </td>
+                            <td>
+                              <span className={`status-badge ${payout.status.toLowerCase()}`}>
+                                {payout.status}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="bank-info">
+                                <div className="bank-name">{payout.bankName}</div>
+                                <div className="bank-details">
+                                  {payout.bankAccountNumber} | {payout.ifscCode}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               ) : (
                 <div className="no-payouts">
-                  <p>No payout schedule available</p>
+                  <p>No upcoming payout data available</p>
                   {seriesData.status === 'Yet to be approved' && (
                     <p className="draft-message">Payout schedule will be generated after series approval.</p>
                   )}
                   {seriesData.status === 'Releasing soon' && (
                     <p className="draft-message">Payout schedule will be available after series release.</p>
+                  )}
+                  {seriesData.status === 'Active' && (
+                    <p className="draft-message">
+                      No upcoming payouts available. This may be because:
+                      <br />• Series is too new (less than 30 days old)
+                      <br />• No investors have been added to this series yet
+                    </p>
                   )}
                 </div>
               )}

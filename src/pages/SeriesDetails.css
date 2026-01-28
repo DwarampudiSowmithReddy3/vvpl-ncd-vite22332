@@ -143,6 +143,237 @@
   box-shadow: 0 0.25rem 0.75rem rgba(251, 191, 36, 0.3) !important;
 }
 
+/* Series Insights Grid - Lock-in and Maturity Cards */
+.series-details-page .series-insights-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.series-details-page .insight-card {
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  box-shadow: 
+    0 0.375rem 1rem rgba(0, 0, 0, 0.08),
+    0 0.125rem 0.5rem rgba(0, 0, 0, 0.04),
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  min-height: 222px;
+  max-height: 242px;
+  display: flex;
+  flex-direction: column;
+}
+
+.series-details-page .insight-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  transition: left 0.6s ease;
+}
+
+.series-details-page .insight-card:hover::before {
+  left: 100%;
+}
+
+.series-details-page .insight-card:hover {
+  transform: translateY(-0.5rem) scale(1.02);
+  box-shadow: 
+    0 1rem 2.5rem rgba(0, 0, 0, 0.15),
+    0 0.5rem 1.5rem rgba(0, 0, 0, 0.1),
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.9);
+}
+
+.series-details-page .insight-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.series-details-page .insight-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.series-details-page .insight-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.625rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  color: #64748b;
+  transition: all 0.3s ease;
+}
+
+.series-details-page .lock-in-card .insight-icon {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.series-details-page .maturity-card .insight-icon {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.series-details-page .insight-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.series-details-page .insight-main-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  border-radius: 0.625rem;
+  border: 1px solid #e2e8f0;
+}
+
+.series-details-page .insight-date {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.series-details-page .insight-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.series-details-page .insight-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.series-details-page .insight-days {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.series-details-page .insight-days-value {
+  font-size: 1.375rem;
+  font-weight: 800;
+  font-family: 'Inter', sans-serif;
+}
+
+.series-details-page .insight-days-value.active {
+  color: #059669;
+}
+
+.series-details-page .insight-days-value.completed {
+  color: #dc2626;
+}
+
+.series-details-page .insight-days-value.matured {
+  color: #dc2626;
+}
+
+.series-details-page .insight-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.625rem;
+  padding: 0.5rem 0.25rem 1rem 0.25rem;
+}
+
+.series-details-page .insight-detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.625rem 0.375rem;
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 0.5rem;
+  border: 1px solid rgba(226, 232, 240, 0.6);
+  transition: all 0.2s ease;
+  min-height: 3.5rem;
+}
+
+.series-details-page .insight-detail-item:hover {
+  background: rgba(248, 250, 252, 0.9);
+  border-color: rgba(226, 232, 240, 0.8);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.series-details-page .detail-label {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.375rem;
+  line-height: 1.2;
+}
+
+.series-details-page .detail-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.3;
+}
+
+.series-details-page .detail-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.series-details-page .detail-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  line-height: 1.2;
+}
+
+.series-details-page .detail-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.series-details-page .detail-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.series-details-page .detail-value.remaining-funds {
+  color: #059669;
+  font-weight: 700;
+}
+
+.series-details-page .detail-value.status-active {
+  color: #059669;
+}
+
+.series-details-page .detail-value.status-matured {
+  color: #dc2626;
+}
+
 /* Metrics Grid */
 .metrics-grid {
   display: grid;
@@ -395,7 +626,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem; /* Increased gap for better spacing */
   margin-bottom: 1.5rem;
-  overflow-x: hidden;
+  /* REMOVED: overflow-x: hidden; - This was preventing cards from floating freely on hover */
 }
 
 .series-details-page .series-details-card,
@@ -631,6 +862,255 @@
 .series-details-page .payout-status-badge.scheduled {
   background: #fef3c7;
   color: #d97706;
+}
+
+.series-details-page .payout-status-badge.partial {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.series-details-page .payout-status-badge.pending {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* New Payout Schedule Table Styles */
+.series-details-page .payout-schedule-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 1rem;
+  padding-bottom: 0.5rem; /* Add padding at bottom to prevent touching card border */
+}
+
+.series-details-page .payout-schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+}
+
+.series-details-page .schedule-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.series-details-page .schedule-month {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.875rem;
+}
+
+.series-details-page .schedule-date {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.series-details-page .schedule-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.series-details-page .total-amount {
+  font-weight: 600;
+  color: #059669;
+  font-size: 0.875rem;
+}
+
+.series-details-page .total-investors {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* CRITICAL: Scrollable table container with fixed height and proper spacing */
+.series-details-page .payout-schedule-table-container {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 280px; /* Reduced to leave space at bottom */
+  margin-bottom: 1rem; /* Add space between table and card bottom */
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  background: white;
+  box-shadow: 
+    0 0.125rem 0.5rem rgba(0, 0, 0, 0.06),
+    inset 0 0.0625rem 0 rgba(255, 255, 255, 0.9);
+  /* Add visual indicator for scrollable content */
+  position: relative;
+}
+
+/* Add scroll indicator shadow when content overflows */
+.series-details-page .payout-schedule-table-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1rem;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.05));
+  pointer-events: none;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.series-details-page .payout-schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+
+.series-details-page .payout-schedule-table thead {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.series-details-page .payout-schedule-table th {
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 700;
+  color: #1e293b;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+}
+
+.series-details-page .payout-schedule-table th:first-child {
+  border-top-left-radius: 0.5rem;
+}
+
+.series-details-page .payout-schedule-table th:last-child {
+  border-top-right-radius: 0.5rem;
+}
+
+.series-details-page .payout-schedule-table td {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: top;
+}
+
+.series-details-page .payout-schedule-table tbody tr:hover {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+.series-details-page .investor-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.series-details-page .investor-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.8125rem;
+}
+
+.series-details-page .investor-id {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-family: 'Courier New', monospace;
+  background: #f1f5f9;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  display: inline-block;
+  width: fit-content;
+}
+
+.series-details-page .amount-cell {
+  font-weight: 700;
+  color: #059669;
+  font-size: 0.875rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.series-details-page .status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  border: 1px solid transparent;
+}
+
+.series-details-page .status-badge.scheduled {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border-color: #93c5fd;
+}
+
+.series-details-page .status-badge.paid {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #166534;
+  border-color: #86efac;
+}
+
+.series-details-page .status-badge.pending {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.series-details-page .bank-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.series-details-page .bank-name {
+  font-weight: 600;
+  color: #1e293b;
+  font-size: 0.8125rem;
+}
+
+.series-details-page .bank-details {
+  font-size: 0.6875rem;
+  color: #64748b;
+  font-family: 'Courier New', monospace;
+  background: #f8fafc;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid #e2e8f0;
+}
+
+/* Enhanced scrollbar for payout table - More visible and obvious */
+.series-details-page .payout-schedule-table-container::-webkit-scrollbar {
+  width: 8px; /* Increased width for better visibility */
+}
+
+.series-details-page .payout-schedule-table-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+  margin: 0.5rem 0; /* Add margin to track */
+}
+
+.series-details-page .payout-schedule-table-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+  border-radius: 4px;
+  border: 1px solid #e2e8f0;
+  /* Add subtle animation */
+  transition: all 0.2s ease;
+}
+
+.series-details-page .payout-schedule-table-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  border-color: #cbd5e1;
+  transform: scaleY(1.1);
+}
+
+/* Add scroll hint for better UX */
+.series-details-page .payout-schedule-table-container:hover::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
 }
 
 .series-details-page .payout-status-badge.pending {
@@ -929,6 +1409,29 @@
     gap: 1.25rem;
   }
 
+  /* Series Insights Grid - Tablet - SCOPED */
+  .series-details-page .series-insights-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .series-details-page .insight-card {
+    padding: 1.25rem;
+  }
+
+  .series-details-page .insight-title {
+    font-size: 1rem;
+  }
+
+  .series-details-page .insight-main-info {
+    padding: 0.75rem;
+  }
+
+  .series-details-page .insight-days-value {
+    font-size: 1.25rem;
+  }
+
   /* Series Details Card - Tablet - SCOPED */
   .series-details-page .series-details-card,
   .series-details-page .payout-schedule-card {
@@ -1028,6 +1531,98 @@
   .series-details-page .payout-row {
     min-height: 2.5rem; /* Increased height */
     padding: 0.75rem 0; /* Increased padding */
+  }
+
+  /* Series Insights Grid - Mobile - SCOPED */
+  .series-details-page .series-insights-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .series-details-page .insight-card {
+    padding: 1rem;
+  }
+
+  .series-details-page .insight-title {
+    font-size: 0.9375rem;
+  }
+
+  .series-details-page .insight-icon {
+    font-size: 1.25rem;
+  }
+
+  .series-details-page .insight-main-info {
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .series-details-page .insight-days {
+    align-items: flex-start;
+  }
+
+  .series-details-page .insight-days-value {
+    font-size: 1.125rem;
+  }
+
+  .series-details-page .insight-detail-item {
+    padding: 0.625rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+
+  .series-details-page .detail-label {
+    font-size: 0.75rem;
+  }
+
+  .series-details-page .detail-value {
+    font-size: 0.8125rem;
+  }
+  .series-details-page .payout-schedule-table-container {
+    max-height: 220px; /* Reduced height for mobile with bottom spacing */
+    margin-bottom: 0.75rem; /* Maintain spacing on mobile */
+  }
+
+  .series-details-page .payout-schedule-table th,
+  .series-details-page .payout-schedule-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .series-details-page .payout-schedule-table th {
+    font-size: 0.6875rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .series-details-page .investor-name {
+    font-size: 0.75rem;
+  }
+
+  .series-details-page .amount-cell {
+    font-size: 0.8125rem;
+  }
+
+  .series-details-page .bank-name {
+    font-size: 0.75rem;
+  }
+
+  .series-details-page .payout-schedule-header {
+    padding: 0.75rem;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .series-details-page .schedule-summary {
+    align-items: flex-start;
+  }
+
+  /* Enhanced mobile scrollbar */
+  .series-details-page .payout-schedule-table-container::-webkit-scrollbar {
+    width: 6px; /* Slightly smaller on mobile */
   }
 
   .series-details-page .payout-content {

@@ -5,6 +5,22 @@
   box-sizing: border-box;
 }
 
+/* CRITICAL FIX: Remove gap between header and sidebar for Administrator page only */
+.administrator-container {
+  /* Override Layout.css padding to eliminate gap between header and sidebar */
+  margin: -2rem -2rem 0 -2rem; /* Negative margins to counteract layout-main padding */
+  padding: 2rem 2rem 0 2rem; /* Restore internal padding but remove top gap */
+  max-width: none; /* Allow full width */
+}
+
+/* Ensure proper spacing for Administrator content */
+.administrator-container .administrator-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
 .loading-message {
   display: flex;
   justify-content: center;
@@ -622,6 +638,9 @@
 @media (max-width: 768px) {
   .administrator-container {
     padding: 0 1rem;
+    /* Adjust negative margins for mobile */
+    margin: -1rem -1rem 0 -1rem;
+    padding: 1rem 1rem 0 1rem;
   }
 
   .administrator-header {
@@ -930,6 +949,9 @@
 @media (max-width: 480px) {
   .administrator-container {
     padding: 0 0.75rem;
+    /* Adjust negative margins for small mobile */
+    margin: -0.5rem -0.5rem 0 -0.5rem;
+    padding: 0.5rem 0.75rem 0 0.75rem;
   }
 
   .administrator-container .administrator-header .header-content .page-title {
