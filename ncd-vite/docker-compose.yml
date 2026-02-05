@@ -1,0 +1,67 @@
+# Docker Compose configuration for NCD Management System
+# Use this for local development or simple production deployment
+
+version: '3.8'
+
+services:
+  # Frontend Application
+  ncd-frontend:
+    build: .
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    networks:
+      - ncd-network
+
+  # PostgreSQL Database (optional - for full-stack deployment)
+  ncd-database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ncd_management
+      POSTGRES_USER: ncd_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password_123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    networks:
+      - ncd-network
+
+  # Redis Cache (optional - for session management)
+  ncd-redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - ncd-network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+  # Backend API (placeholder - add your backend service here)
+  # ncd-backend:
+  #   build: ./backend
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - DATABASE_URL=postgresql://ncd_user:${DB_PASSWORD:-secure_password_123}@ncd-database:5432/ncd_management
+  #     - REDIS_URL=redis://ncd-redis:6379
+  #   depends_on:
+  #     - ncd-database
+  #     - ncd-redis
+  #   restart: unless-stopped
+  #   networks:
+  #     - ncd-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  ncd-network:
+    driver: bridge

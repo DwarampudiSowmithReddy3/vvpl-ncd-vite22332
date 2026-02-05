@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Permission Test</title>
+</head>
+<body>
+    <h1>Permission Persistence Test</h1>
+    <p>Let's test the permission system directly without the syntax errors:</p>
+    
+    <button onclick="testPermissions()">Test Permission Persistence</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPermissions() {
+            const result = document.getElementById('result');
+            result.innerHTML = 'Testing...';
+            
+            try {
+                // 1. Login
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!loginResponse.ok) {
+                    result.innerHTML = '❌ Login failed';
+                    return;
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // 2. Get current permissions
+                const getResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!getResponse.ok) {
+                    result.innerHTML = '❌ Failed to get permissions';
+                    return;
+                }
+                
+                const permissions = await getResponse.json();
+                
+                // 3. Toggle Finance Executive NCD Series View
+                const originalValue = permissions['Finance Executive']['ncdSeries']['view'];
+                const newValue = !originalValue;
+                
+                permissions['Finance Executive']['ncdSeries']['view'] = newValue;
+                
+                // 4. Update permissions
+                const updateResponse = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(permissions)
+                });
+                
+                if (!updateResponse.ok) {
+                    result.innerHTML = '❌ Failed to update permissions';
+                    return;
+                }
+                
+                // 5. Verify persistence
+                const verifyResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const freshPermissions = await verifyResponse.json();
+                const freshValue = freshPermissions['Finance Executive']['ncdSeries']['view'];
+                
+                if (freshValue === newValue) {
+                    result.innerHTML = `✅ SUCCESS! Permission changed from ${originalValue} to ${newValue} and persisted!`;
+                } else {
+                    result.innerHTML = `❌ FAILED! Expected ${newValue}, got ${freshValue}`;
+                }
+                
+                // Restore original value
+                permissions['Finance Executive']['ncdSeries']['view'] = originalValue;
+                await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(permissions)
+                });
+                
+            } catch (error) {
+                result.innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

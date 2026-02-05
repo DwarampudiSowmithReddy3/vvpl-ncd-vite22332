@@ -2,6 +2,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import './Communication.css';
 import { HiOutlineMail, HiOutlineDeviceMobile, HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
@@ -539,7 +540,16 @@ const Communication = () => {
       const successCount = results.filter(r => r.status === 'Success').length;
       const failedCount = results.filter(r => r.status === 'Failed').length;
       
-      // Add audit log
+      // Add audit log using auditService
+      auditService.logMessageSent({
+        type: messageType,
+        subject: `Bulk ${messageType} to ${selectedInvestorsList.length} investors`,
+        recipientCount: selectedInvestorsList.length
+      }, user).catch(error => {
+        console.error('Failed to log communication:', error);
+      });
+      
+      // Also add to local audit log for backward compatibility
       addAuditLog({
         action: communicationType === 'sms' ? 'Sent SMS' : 'Sent Email',
         adminName: user ? user.name : 'User',

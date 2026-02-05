@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import { 
   MdReportProblem, 
   MdCheckCircle, 
@@ -256,9 +257,15 @@ const GrievanceManagement = () => {
       return;
     }
 
+    const oldStatus = complaint?.status;
     updateComplaintStatus(id, newStatus, resolution);
 
-    // Add audit log for complaint status change
+    // Add audit log using auditService
+    auditService.logGrievanceUpdated(complaint, [`status changed from ${oldStatus} to ${newStatus}`], user).catch(error => {
+      console.error('Failed to log grievance status update:', error);
+    });
+
+    // Also add to local audit log for backward compatibility
     addAuditLog({
       action: `${newStatus === 'resolved' ? 'Resolved' : newStatus === 'in-progress' ? 'Started Progress on' : 'Reopened'} Grievance`,
       adminName: user ? user.name : 'User',
@@ -268,7 +275,7 @@ const GrievanceManagement = () => {
       entityId: complaint?.investorId || 'Unknown',
       changes: {
         grievanceId: id,
-        oldStatus: complaint?.status,
+        oldStatus: oldStatus,
         newStatus: newStatus,
         resolution: newStatus === 'resolved' ? resolution : null
       }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import './InterestPayout.css';
 import { MdOutlineFileDownload, MdPayment } from "react-icons/md";
@@ -774,7 +775,15 @@ const InterestPayout = () => {
           
           setImportStatus(`success:${message}`);
           
-          // Add audit log
+          // Add audit log using auditService
+          auditService.logPayoutImported({
+            fileName: 'Bulk Status Update',
+            recordCount: Object.keys(newStatusUpdates).filter(key => newStatusUpdates[key] !== payoutStatusUpdates[key]).length
+          }, user).catch(error => {
+            console.error('Failed to log bulk payout update:', error);
+          });
+          
+          // Also add to local audit log for backward compatibility
           addAuditLog({
             action: 'Imported Data',
             adminName: user ? user.name : 'Admin',

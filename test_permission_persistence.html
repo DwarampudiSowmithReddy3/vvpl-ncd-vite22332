@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Persistence Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #1e293b;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .results {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-weight: 500;
+        }
+        
+        .instructions {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #0ea5e9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Permission Persistence Test</h1>
+            <p>Test if permission changes are saved and persist after page refresh</p>
+        </div>
+        
+        <div class="instructions">
+            <h3>📋 Test Instructions:</h3>
+            <ol>
+                <li><strong>Step 1:</strong> Click "Check Current Permissions" to see the current state</li>
+                <li><strong>Step 2:</strong> Click "Toggle NCD Series View" to change the permission</li>
+                <li><strong>Step 3:</strong> Click "Check Current Permissions" again to verify the change</li>
+                <li><strong>Step 4:</strong> Refresh this page and check again - it should persist!</li>
+                <li><strong>Step 5:</strong> Go to the actual Administrator page and verify the toggle state</li>
+            </ol>
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Permission Tests</h3>
+            <button class="test-button" onclick="checkCurrentPermissions()">Check Current Permissions</button>
+            <button class="test-button" onclick="toggleNcdSeriesView()">Toggle NCD Series View</button>
+            <button class="test-button" onclick="clearPermissions()">Clear Saved Permissions</button>
+            <button class="test-button" onclick="resetToDefaults()">Reset to Defaults</button>
+            <div id="results" class="results" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Quick Links</h3>
+            <a href="http://localhost:5175/administrator" target="_blank" class="test-button">
+                Go to Administrator Page
+            </a>
+            <a href="http://localhost:5175" target="_blank" class="test-button">
+                Go to Frontend
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function showResults(content, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.textContent = content;
+            resultsDiv.className = isError ? 'results error' : 'results';
+        }
+        
+        function checkCurrentPermissions() {
+            try {
+                const savedPermissions = localStorage.getItem('userPermissions');
+                
+                if (savedPermissions) {
+                    const permissions = JSON.parse(savedPermissions);
+                    const financeExecutive = permissions['Finance Executive'];
+                    const ncdSeriesView = financeExecutive?.ncdSeries?.view;
+                    
+                    showResults(`✅ Permissions found in localStorage:
+
+Finance Executive -> NCD Series -> View: ${ncdSeriesView}
+
+Full Finance Executive permissions:
+${JSON.stringify(financeExecutive, null, 2)}
+
+Total roles in storage: ${Object.keys(permissions).length}`);
+                } else {
+                    showResults('❌ No permissions found in localStorage\nThis means permissions are not being saved!', true);
+                }
+            } catch (error) {
+                showResults(`❌ Error checking permissions: ${error.message}`, true);
+            }
+        }
+        
+        function toggleNcdSeriesView() {
+            try {
+                let permissions;
+                const savedPermissions = localStorage.getItem('userPermissions');
+                
+                if (savedPermissions) {
+                    permissions = JSON.parse(savedPermissions);
+                } else {
+                    // Use default permissions if none saved
+                    permissions = getDefaultPermissions();
+                }
+                
+                // Toggle the Finance Executive NCD Series View permission
+                const currentValue = permissions['Finance Executive'].ncdSeries.view;
+                const newValue = !currentValue;
+                
+                permissions['Finance Executive'].ncdSeries.view = newValue;
+                
+                // Save back to localStorage
+                localStorage.setItem('userPermissions', JSON.stringify(permissions));
+                
+                showResults(`✅ Permission toggled successfully!
+
+Finance Executive -> NCD Series -> View: ${currentValue} → ${newValue}
+
+Permission has been saved to localStorage.
+Now refresh the page and check again to verify persistence!`);
+                
+            } catch (error) {
+                showResults(`❌ Error toggling permission: ${error.message}`, true);
+            }
+        }
+        
+        function clearPermissions() {
+            localStorage.removeItem('userPermissions');
+            showResults('🗑️ Cleared all saved permissions from localStorage');
+        }
+        
+        function resetToDefaults() {
+            const defaultPermissions = getDefaultPermissions();
+            localStorage.setItem('userPermissions', JSON.stringify(defaultPermissions));
+            showResults('🔄 Reset permissions to default values and saved to localStorage');
+        }
+        
+        function getDefaultPermissions() {
+            return {
+                'Finance Executive': {
+                    dashboard: { view: true, create: false, edit: false, delete: false },
+                    ncdSeries: { view: true, create: false, edit: false, delete: false },
+                    investors: { view: false, create: false, edit: false, delete: false },
+                    reports: { view: true, create: false, edit: false, delete: false },
+                    compliance: { view: true, create: false, edit: false, delete: false },
+                    interestPayout: { view: true, create: false, edit: false, delete: false },
+                    communication: { view: false, create: false, edit: false, delete: false },
+                    administrator: { view: false, create: false, edit: false, delete: false },
+                    approval: { view: false, create: false, edit: false, delete: false },
+                    grievanceManagement: { view: false, create: false, edit: false, delete: false }
+                },
+                'Super Admin': {
+                    dashboard: { view: true, create: true, edit: true, delete: true },
+                    ncdSeries: { view: true, create: true, edit: true, delete: true },
+                    investors: { view: true, create: true, edit: true, delete: true },
+                    reports: { view: true, create: true, edit: true, delete: true },
+                    compliance: { view: true, create: true, edit: true, delete: true },
+                    interestPayout: { view: true, create: true, edit: true, delete: true },
+                    communication: { view: true, create: true, edit: true, delete: true },
+                    administrator: { view: true, create: true, edit: true, delete: true },
+                    approval: { view: true, create: true, edit: true, delete: true },
+                    grievanceManagement: { view: true, create: true, edit: true, delete: true }
+                }
+            };
+        }
+        
+        // Auto-check permissions on page load
+        window.onload = function() {
+            checkCurrentPermissions();
+        };
+    </script>
+</body>
+</html>

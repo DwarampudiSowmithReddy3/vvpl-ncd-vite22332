@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Dummy Data</title>
+</head>
+<body>
+    <h1>🧹 Clear Dummy Data</h1>
+    <p>This page will automatically clear all dummy data and redirect to your frontend.</p>
+    <div id="status">Clearing dummy data...</div>
+    
+    <script>
+        // Auto-clear dummy data when this page loads
+        console.log('🧹 CLEARING ALL DUMMY DATA...');
+        
+        // Clear everything
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Set clean empty data
+        localStorage.setItem('series', JSON.stringify([]));
+        localStorage.setItem('investors', JSON.stringify([]));
+        localStorage.setItem('complaints', JSON.stringify([]));
+        localStorage.setItem('dataVersion', '9.0.0-bookmark-cleared');
+        localStorage.setItem('lastClear', new Date().toISOString());
+        
+        document.getElementById('status').innerHTML = '✅ Dummy data cleared! Redirecting...';
+        
+        // Redirect to your frontend
+        setTimeout(() => {
+            window.location.href = 'http://localhost:5173'; // Adjust port if needed
+        }, 2000);
+    </script>
+</body>
+</html>

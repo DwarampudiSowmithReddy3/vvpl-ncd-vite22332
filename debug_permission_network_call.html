@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Permission Network Call</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .critical {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .success {
+            background: #e8f5e8;
+            border: 2px solid #4CAF50;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .step {
+            background: #e3f2fd;
+            padding: 10px;
+            border-left: 4px solid #2196F3;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Permission Network Call</h1>
+    
+    <div class="critical">
+        <h2>🚨 NETWORK TAB SHOWS NO REQUEST = API CALL NOT BEING MADE</h2>
+        <p>The permission toggle button is only updating React state, not calling the backend API.</p>
+        <p>This means the issue is in the <code>handlePermissionToggle</code> function or the <code>updatePermissions</code> function.</p>
+    </div>
+
+    <div class="debug-container">
+        <h2>🧪 Step-by-Step Debug Process</h2>
+        
+        <div class="step">
+            <strong>Step 1:</strong> Open your application in another tab
+        </div>
+        
+        <div class="step">
+            <strong>Step 2:</strong> Open Developer Tools (F12) → Network Tab
+        </div>
+        
+        <div class="step">
+            <strong>Step 3:</strong> Clear network logs (🚫 button)
+        </div>
+        
+        <div class="step">
+            <strong>Step 4:</strong> Go to Administrator → Permissions tab
+        </div>
+        
+        <div class="step">
+            <strong>Step 5:</strong> Open Console tab (alongside Network tab)
+        </div>
+        
+        <div class="step">
+            <strong>Step 6:</strong> Click any permission toggle button
+        </div>
+        
+        <div class="step">
+            <strong>Step 7:</strong> Check both Console and Network tabs
+        </div>
+    </div>
+
+    <div class="debug-container">
+        <h2>🔍 What to Look For</h2>
+        
+        <h3>In Console Tab:</h3>
+        <div class="code">Expected console messages:
+🔄 Administrator: Toggling permission [role].[module].[action]
+🔄 Administrator: true → false (or false → true)
+🔄 Administrator: Calling updatePermissions from AuthContext...
+🔄 AuthContext: Updating permissions... [array of role names]
+🔄 AuthContext: Sending permissions to backend...
+🔄 AuthContext: API call details: {url: '/permissions/', method: 'PUT', ...}
+✅ AuthContext: Backend permissions updated successfully: {success: true, ...}</div>
+
+        <h3>In Network Tab:</h3>
+        <div class="code">Expected network request:
+Method: PUT
+URL: http://localhost:8000/permissions/
+Status: 200 OK
+Request Headers: Authorization: Bearer [token]
+Request Body: {all permission data}</div>
+    </div>
+
+    <div class="debug-container">
+        <h2>🚨 Possible Issues & Fixes</h2>
+        
+        <h3>Issue 1: Console shows messages but no network request</h3>
+        <div class="code">Problem: apiService.updatePermissions() is not working
+Fix: Check if apiService is imported correctly
+Fix: Check if the API service method exists</div>
+
+        <h3>Issue 2: Console stops at "Calling updatePermissions"</h3>
+        <div class="code">Problem: updatePermissions function is not being called
+Fix: Check if updatePermissions is properly imported from useAuth()
+Fix: Check if there's an error in the function call</div>
+
+        <h3>Issue 3: Console shows error messages</h3>
+        <div class="code">Problem: JavaScript error preventing API call
+Fix: Look at the specific error message
+Fix: Check for typos or missing imports</div>
+
+        <h3>Issue 4: No console messages at all</h3>
+        <div class="code">Problem: handlePermissionToggle is not being called
+Fix: Check if onClick handler is properly attached to toggle buttons
+Fix: Check if the function is defined correctly</div>
+    </div>
+
+    <div class="debug-container">
+        <h2>🔧 Quick Test</h2>
+        <p>Run this in your browser console while on the Administrator page:</p>
+        
+        <div class="code">// Test if updatePermissions function exists
+console.log('updatePermissions function:', typeof window.authContext?.updatePermissions);
+
+// Test if apiService exists
+console.log('apiService:', typeof window.apiService);
+
+// Test direct API call
+const token = localStorage.getItem('authToken');
+if (token) {
+    fetch('http://localhost:8000/permissions/', {
+        method: 'GET',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => console.log('Direct API test:', data))
+    .catch(err => console.error('Direct API error:', err));
+} else {
+    console.error('No auth token found');
+}</div>
+
+        <button onclick="runQuickTest()">🚀 Run Quick Test</button>
+    </div>
+
+    <div class="debug-container">
+        <h2>📋 Debug Results</h2>
+        <div id="debugResults">
+            <p>Click the "Run Quick Test" button above, then test the permission toggle in your app.</p>
+        </div>
+    </div>
+
+    <script>
+        function runQuickTest() {
+            const results = document.getElementById('debugResults');
+            results.innerHTML = '<h3>🧪 Quick Test Results:</h3>';
+            
+            // Check if we can access the main app
+            if (window.opener || window.parent !== window) {
+                results.innerHTML += '<div style="color: orange;">⚠️ This is a popup/iframe. Open this page in the same tab as your app.</div>';
+                return;
+            }
+            
+            // Check localStorage
+            const token = localStorage.getItem('authToken');
+            if (token) {
+                results.innerHTML += '<div style="color: green;">✅ Auth token found</div>';
+            } else {
+                results.innerHTML += '<div style="color: red;">❌ No auth token - please login first</div>';
+                return;
+            }
+            
+            // Test direct API call
+            results.innerHTML += '<div>🔄 Testing direct API call...</div>';
+            
+            fetch('http://localhost:8000/permissions/', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    results.innerHTML += '<div style="color: green;">✅ Backend API is responding</div>';
+                    return response.json();
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            })
+            .then(data => {
+                results.innerHTML += `<div style="color: green;">✅ Got ${Object.keys(data).length} roles from backend</div>`;
+                results.innerHTML += '<div style="color: blue;">📝 Now test the permission toggle in your app and check Network tab</div>';
+            })
+            .catch(error => {
+                results.innerHTML += `<div style="color: red;">❌ Backend API error: ${error.message}</div>`;
+                results.innerHTML += '<div style="color: orange;">⚠️ Make sure backend is running on port 8000</div>';
+            });
+        }
+        
+        // Auto-run test
+        setTimeout(runQuickTest, 1000);
+    </script>
+</body>
+</html>

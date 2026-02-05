@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Backend Call Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Permission Backend Call Test</h1>
+    <p><strong>Purpose:</strong> Test if permission updates are calling the backend and creating audit logs</p>
+
+    <div class="test-section">
+        <h3>Test 1: Direct Permission Update API Call</h3>
+        <button onclick="testDirectPermissionUpdate()">Test Direct API Call</button>
+        <div id="directTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Check Recent Audit Logs</h3>
+        <button onclick="checkRecentAuditLogs()">Check Audit Logs</button>
+        <div id="auditTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Instructions</h3>
+        <ol>
+            <li><strong>First:</strong> Run Test 1 to make a direct permission update</li>
+            <li><strong>Then:</strong> Run Test 2 to check if audit log was created</li>
+            <li><strong>Finally:</strong> Go to Administrator page and toggle a permission</li>
+            <li><strong>Check:</strong> Run Test 2 again to see if new audit log appears</li>
+        </ol>
+    </div>
+
+    <script>
+        async function testDirectPermissionUpdate() {
+            const result = document.getElementById('directTest');
+            result.innerHTML = '<p class="info">Testing direct permission update...</p>';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    result.innerHTML = '<p class="error">❌ No auth token found. Please login first.</p>';
+                    return;
+                }
+
+                // Test permission data - minimal change
+                const testPermissions = {
+                    'Finance Executive': {
+                        dashboard: { view: true, create: false, edit: false, delete: false },
+                        ncdSeries: { view: true, create: false, edit: false, delete: false },
+                        investors: { view: false, create: false, edit: false, delete: false },
+                        reports: { view: true, create: false, edit: false, delete: false },
+                        compliance: { view: true, create: false, edit: false, delete: false },
+                        interestPayout: { view: true, create: false, edit: false, delete: false },
+                        communication: { view: false, create: false, edit: false, delete: false },
+                        administrator: { view: false, create: false, edit: false, delete: false },
+                        approval: { view: false, create: false, edit: false, delete: false },
+                        grievanceManagement: { view: false, create: false, edit: false, delete: false }
+                    }
+                };
+
+                console.log('🔄 Making direct permission update API call...');
+                
+                const response = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(testPermissions)
+                });
+
+                const responseData = await response.json();
+
+                if (response.ok) {
+                    result.innerHTML = `
+                        <p class="success">✅ Direct permission update successful!</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                        <p class="info">🔍 This should have created an audit log entry!</p>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <p class="error">❌ Direct permission update failed</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                        <p><strong>Response:</strong></p>
+                        <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    `;
+                }
+                
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Direct test failed: ${error.message}</p>`;
+            }
+        }
+
+        async function checkRecentAuditLogs() {
+            const result = document.getElementById('auditTest');
+            result.innerHTML = '<p class="info">Checking recent audit logs...</p>';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    result.innerHTML = '<p class="error">❌ No auth token found. Please login first.</p>';
+                    return;
+                }
+
+                console.log('🔄 Fetching recent audit logs...');
+                
+                const response = await fetch('http://localhost:8000/audit/?limit=10', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const auditLogs = await response.json();
+
+                if (response.ok) {
+                    // Filter for permission-related logs
+                    const permissionLogs = auditLogs.filter(log => 
+                        log.action.toLowerCase().includes('permission') || 
+                        log.entity_type === 'Permissions' || 
+                        log.entity_type === 'Permission System'
+                    );
+
+                    if (permissionLogs.length > 0) {
+                        result.innerHTML = `
+                            <p class="success">✅ Found ${permissionLogs.length} permission-related audit logs!</p>
+                            <p><strong>Recent Permission Logs:</strong></p>
+                            <pre>${JSON.stringify(permissionLogs, null, 2)}</pre>
+                        `;
+                    } else {
+                        result.innerHTML = `
+                            <p class="error">❌ No permission-related audit logs found</p>
+                            <p><strong>All Recent Logs (${auditLogs.length} total):</strong></p>
+                            <pre>${JSON.stringify(auditLogs.slice(0, 3), null, 2)}</pre>
+                            <p class="info">Permission changes are not being logged to audit trail!</p>
+                        `;
+                    }
+                } else {
+                    result.innerHTML = `
+                        <p class="error">❌ Failed to fetch audit logs</p>
+                        <p><strong>Status:</strong> ${response.status}</p>
+                    `;
+                }
+                
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Audit log check failed: ${error.message}</p>`;
+            }
+        }
+
+        // Auto-run audit log check on page load
+        window.onload = function() {
+            setTimeout(checkRecentAuditLogs, 1000);
+        };
+    </script>
+</body>
+</html>

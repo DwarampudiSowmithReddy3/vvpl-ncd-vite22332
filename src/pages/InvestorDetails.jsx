@@ -14,7 +14,7 @@ import {
   HiOutlineDocumentText,
   HiCheckCircle
 } from 'react-icons/hi';
-import { MdAccountBalance, MdReportProblem, MdEdit, MdDelete } from 'react-icons/md';
+import { MdAccountBalance, MdReportProblem, MdEdit, MdDelete, MdInfo, MdAdd } from 'react-icons/md';
 import { FiUpload } from 'react-icons/fi';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -95,8 +95,9 @@ const InvestorDetails = () => {
     ]
   };
 
-  // Find investor by ID, or use default data
-  let investor = defaultInvestor;
+  // Find investor by ID, or show not found message
+  let investor = null;
+  let isRealData = false;
   
   console.log('Looking for investor with ID:', id, 'type:', typeof id);
   console.log('Available investors:', investors);
@@ -108,6 +109,7 @@ const InvestorDetails = () => {
     console.log('Investor ID type:', foundInvestor ? typeof foundInvestor.id : 'N/A');
     
     if (foundInvestor) {
+      isRealData = true;
       // Generate holdings from investments array with real series status
       const holdings = [];
       if (foundInvestor.investments && Array.isArray(foundInvestor.investments)) {
@@ -270,6 +272,39 @@ const InvestorDetails = () => {
     }
   } else {
     console.log('No investors data available or no ID provided, using default data');
+  }
+  
+  // If no real data found and no investors exist in system, show not found
+  if (!investor && investors.length === 0) {
+    return (
+      <Layout>
+        <div className="investor-details-container">
+          <div className="no-investor-message">
+            <div className="no-investor-content">
+              <div className="no-investor-icon">
+                <MdInfo size={48} />
+              </div>
+              <h2>No Investors Available</h2>
+              <p>No investors have been added yet. Add an investor first to view their details.</p>
+              <div className="no-investor-actions">
+                <button 
+                  className="btn-create-investor"
+                  onClick={() => navigate('/investors')}
+                >
+                  <MdAdd size={16} />
+                  Go to Investors
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // If no real data found but investors exist, use fallback data for demo purposes
+  if (!investor) {
+    investor = defaultInvestor;
   }
 
   // Filter complaints for this specific investor

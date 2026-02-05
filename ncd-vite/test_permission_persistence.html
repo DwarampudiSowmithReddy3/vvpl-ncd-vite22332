@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Permission Persistence</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background-color: #f8f9fa;
+        }
+        .success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.good {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.bad {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 Test Permission Persistence Fix</h1>
+        <p><strong>Purpose:</strong> Verify that permission changes persist after page refresh</p>
+        
+        <div class="status" id="status">
+            <span id="statusText">Ready to test permission persistence...</span>
+        </div>
+
+        <div class="step">
+            <h3>📋 TESTING STEPS:</h3>
+            <ol>
+                <li><strong>Step 1:</strong> <button onclick="checkCurrentPermissions()">Check Current Permissions</button></li>
+                <li><strong>Step 2:</strong> Go to main app → Administrator → Permissions</li>
+                <li><strong>Step 3:</strong> Toggle Finance Executive → NCD Series → View permission</li>
+                <li><strong>Step 4:</strong> <button onclick="checkAfterToggle()">Check After Toggle</button></li>
+                <li><strong>Step 5:</strong> <button onclick="refreshPage()">Refresh Page</button></li>
+                <li><strong>Step 6:</strong> <button onclick="checkAfterRefresh()">Check After Refresh</button></li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <h3>📊 Test Results:</h3>
+            <div id="results">
+                Results will appear here...
+            </div>
+        </div>
+
+        <div class="step">
+            <h3>✅ SUCCESS CRITERIA:</h3>
+            <ul>
+                <li>Permission toggle works immediately ✅</li>
+                <li>Permission is saved to localStorage ✅</li>
+                <li>Permission is saved to backend database ✅</li>
+                <li><strong>Permission persists after page refresh ✅</strong></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let results = document.getElementById('results');
+        let status = document.getElementById('status');
+        let statusText = document.getElementById('statusText');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const colors = {
+                info: '#333',
+                success: '#28a745',
+                error: '#dc3545',
+                warning: '#ffc107'
+            };
+            
+            results.innerHTML += `<div style="color: ${colors[type]}; margin: 5px 0;">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        function updateStatus(message, isGood = true) {
+            status.className = `status ${isGood ? 'good' : 'bad'}`;
+            statusText.textContent = message;
+        }
+
+        function checkCurrentPermissions() {
+            log('🔍 Checking current permissions...', 'info');
+            
+            // Check localStorage
+            const savedPermissions = localStorage.getItem('userPermissions');
+            if (savedPermissions) {
+                const permissions = JSON.parse(savedPermissions);
+                const feNcdSeries = permissions['Finance Executive']?.['ncdSeries']?.['view'];
+                log(`📂 localStorage: Finance Executive NCD Series View = ${feNcdSeries}`, 'info');
+            } else {
+                log('📂 localStorage: No permissions found', 'warning');
+            }
+            
+            // Check if user is logged in
+            const token = localStorage.getItem('authToken');
+            const user = localStorage.getItem('user');
+            log(`🔑 Auth Token: ${token ? 'Present' : 'Missing'}`, token ? 'success' : 'error');
+            log(`👤 User: ${user ? JSON.parse(user).username : 'Not logged in'}`, user ? 'success' : 'error');
+            
+            updateStatus('Current permissions checked. See results above.', true);
+        }
+
+        function checkAfterToggle() {
+            log('🔍 Checking permissions after toggle...', 'info');
+            
+            const savedPermissions = localStorage.getItem('userPermissions');
+            if (savedPermissions) {
+                const permissions = JSON.parse(savedPermissions);
+                const feNcdSeries = permissions['Finance Executive']?.['ncdSeries']?.['view'];
+                log(`📂 localStorage after toggle: Finance Executive NCD Series View = ${feNcdSeries}`, 'info');
+                
+                if (feNcdSeries !== undefined) {
+                    log('✅ Permission found in localStorage!', 'success');
+                    updateStatus('✅ Permission saved to localStorage!', true);
+                } else {
+                    log('❌ Permission not found in localStorage!', 'error');
+                    updateStatus('❌ Permission not saved to localStorage!', false);
+                }
+            } else {
+                log('❌ No permissions in localStorage after toggle!', 'error');
+                updateStatus('❌ No permissions saved!', false);
+            }
+        }
+
+        function refreshPage() {
+            log('🔄 Refreshing page to test persistence...', 'warning');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+
+        function checkAfterRefresh() {
+            log('🔍 Checking permissions after page refresh...', 'info');
+            
+            const savedPermissions = localStorage.getItem('userPermissions');
+            if (savedPermissions) {
+                const permissions = JSON.parse(savedPermissions);
+                const feNcdSeries = permissions['Finance Executive']?.['ncdSeries']?.['view'];
+                log(`📂 localStorage after refresh: Finance Executive NCD Series View = ${feNcdSeries}`, 'info');
+                
+                if (feNcdSeries !== undefined) {
+                    log('🎉 SUCCESS: Permission persisted after refresh!', 'success');
+                    updateStatus('🎉 SUCCESS: Permissions persist after refresh!', true);
+                } else {
+                    log('💥 FAILURE: Permission lost after refresh!', 'error');
+                    updateStatus('💥 FAILURE: Permissions lost after refresh!', false);
+                }
+            } else {
+                log('💥 FAILURE: No permissions after refresh!', 'error');
+                updateStatus('💥 FAILURE: All permissions lost!', false);
+            }
+        }
+
+        // Auto-check on page load
+        setTimeout(() => {
+            log('🧪 Permission Persistence Test Tool Ready', 'info');
+            checkCurrentPermissions();
+        }, 1000);
+    </script>
+</body>
+</html>

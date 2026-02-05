@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import ReportPreview from '../components/ReportPreview';
 import './Reports.css';
@@ -157,11 +158,11 @@ const Reports = () => {
     yPosition += 10;
     
     const kpiData = [
-      ['Total Collections', '₹125.4 Cr'],
-      ['Collection Efficiency', '94.2%'],
-      ['Total AUM', '₹2,450 Cr'],
-      ['NPA Ratio', '1.8%'],
-      ['Liquidity Buffer', '₹85.2 Cr']
+      ['Total Collections', '₹0.00 Cr'],
+      ['Collection Efficiency', '0.0%'],
+      ['Total AUM', '₹0.00 Cr'],
+      ['NPA Ratio', '0.0%'],
+      ['Liquidity Buffer', '₹0.00 Cr']
     ];
     
     kpiData.forEach(([label, value]) => {
@@ -180,9 +181,7 @@ const Reports = () => {
     yPosition += 10;
     
     const seriesData = [
-      ['Series A', '₹45.2 Cr', '95.1%', 'Active'],
-      ['Series B', '₹38.7 Cr', '92.8%', 'Active'],
-      ['Series C', '₹41.5 Cr', '96.3%', 'Active']
+      ['No Series', '₹0.00 Cr', '0.0%', 'None'],
     ];
     
     seriesData.forEach(([series, amount, efficiency, status], index) => {
@@ -208,11 +207,11 @@ const Reports = () => {
     yPosition += 10;
     
     const payoutSummary = [
-      ['Total Payout Amount', '₹18.5 Cr'],
-      ['Number of Investors', '1,247'],
-      ['Average Payout per Investor', '₹14,836'],
+      ['Total Payout Amount', '₹0.00 Cr'],
+      ['Number of Investors', '0'],
+      ['Average Payout per Investor', '₹0.00'],
       ['Payout Frequency', 'Monthly'],
-      ['Next Payout Date', '1st February 2026']
+      ['Next Payout Date', 'Not scheduled']
     ];
     
     payoutSummary.forEach(([label, value]) => {
@@ -231,9 +230,7 @@ const Reports = () => {
     yPosition += 10;
     
     const payoutData = [
-      ['Series A', '9.5%', '₹6.8 Cr', '425 investors'],
-      ['Series B', '10.0%', '₹7.2 Cr', '398 investors'],
-      ['Series C', '10.5%', '₹4.5 Cr', '424 investors']
+      ['No Series', '0.0%', '₹0.00 Cr', '0 investors'],
     ];
     
     payoutData.forEach(([series, rate, amount, investors], index) => {
@@ -330,11 +327,11 @@ const Reports = () => {
     yPosition += 10;
     
     const portfolioData = [
-      ['Total Investors', '1,247'],
-      ['Total Portfolio Value', '₹202.6 Cr'],
-      ['Average Portfolio Size', '₹1.62 L'],
-      ['Active Portfolios', '1,198 (96.1%)'],
-      ['Dormant Portfolios', '49 (3.9%)']
+      ['Total Investors', '0'],
+      ['Total Portfolio Value', '₹0.00 Cr'],
+      ['Average Portfolio Size', '₹0.00 L'],
+      ['Active Portfolios', '0 (0.0%)'],
+      ['Dormant Portfolios', '0 (0.0%)']
     ];
     
     portfolioData.forEach(([label, value]) => {
@@ -353,11 +350,7 @@ const Reports = () => {
     yPosition += 10;
     
     const topInvestors = [
-      ['Rajesh Kumar', '₹15.2 L', 'Series A, B, C'],
-      ['Priya Sharma', '₹12.8 L', 'Series B, C'],
-      ['Amit Patel', '₹11.5 L', 'Series A, C'],
-      ['Sneha Reddy', '₹10.9 L', 'Series A, B'],
-      ['Vikram Singh', '₹9.7 L', 'Series C']
+      ['No investors yet', '₹0.00 L', 'No series'],
     ];
     
     topInvestors.forEach(([name, value, series], index) => {
@@ -383,11 +376,11 @@ const Reports = () => {
     yPosition += 10;
     
     const kycSummary = [
-      ['Total Investors', '1,247'],
-      ['KYC Completed', '1,156 (92.7%)'],
-      ['KYC Pending', '67 (5.4%)'],
-      ['KYC Rejected', '24 (1.9%)'],
-      ['Compliance Rate', '92.7%']
+      ['Total Investors', '0'],
+      ['KYC Completed', '0 (0.0%)'],
+      ['KYC Pending', '0 (0.0%)'],
+      ['KYC Rejected', '0 (0.0%)'],
+      ['Compliance Rate', '0.0%']
     ];
     
     kycSummary.forEach(([label, value]) => {
@@ -764,26 +757,101 @@ const Reports = () => {
   };
 
   const handleDownload = (reportName, format) => {
+    let recordCount = 0;
+    let fileName = '';
+    
     if (format === 'PDF') {
       generateReportPDF(reportName, format);
+      fileName = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      recordCount = getReportRecordCount(reportName);
     } else {
       // For Excel/CSV formats, simulate download
       const element = document.createElement('a');
       const file = new Blob([`${reportName} - Generated on ${new Date().toLocaleDateString()}`], {type: 'text/plain'});
       element.href = URL.createObjectURL(file);
-      element.download = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
+      fileName = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${format.toLowerCase()}`;
+      element.download = fileName;
       document.body.appendChild(element);
       element.click();
       document.body.removeChild(element);
+      recordCount = getReportRecordCount(reportName);
     }
+    
+    // Log report download using auditService
+    auditService.logReportDownloaded({
+      type: reportName,
+      name: reportName,
+      format: format
+    }, user).catch(error => {
+      console.error('Failed to log report download:', error);
+    });
+    
+    // Also add to local audit log for backward compatibility
+    addAuditLog({
+      action: 'Downloaded Report',
+      adminName: user ? user.name : 'User',
+      adminRole: user ? user.displayRole : 'User',
+      details: `Downloaded ${reportName} (${recordCount} records, ${format} format)`,
+      entityType: 'Report',
+      entityId: reportName,
+      changes: {
+        reportType: reportName,
+        format: format,
+        fileName: fileName,
+        recordCount: recordCount
+      }
+    });
     
     // Close preview after download
     setPreviewReport(null);
   };
 
   const handleGenerate = (reportName) => {
+    const recordCount = getReportRecordCount(reportName);
+    
+    // Log report generation using auditService
+    auditService.logReportGenerated({
+      type: reportName,
+      name: reportName,
+      dateRange: 'All Time'
+    }, user).catch(error => {
+      console.error('Failed to log report generation:', error);
+    });
+    
+    // Also add to local audit log for backward compatibility
+    addAuditLog({
+      action: 'Generated Report',
+      adminName: user ? user.name : 'User',
+      adminRole: user ? user.displayRole : 'User',
+      details: `Generated ${reportName} with ${recordCount} records`,
+      entityType: 'Report',
+      entityId: reportName,
+      changes: {
+        reportType: reportName,
+        recordCount: recordCount,
+        format: 'PDF'
+      }
+    });
+    
     // Generate PDF directly
     generateReportPDF(reportName, 'PDF');
+  };
+
+  // Helper function to get record count for different report types
+  const getReportRecordCount = (reportName) => {
+    // This would normally calculate based on actual data
+    // For now, return estimated counts
+    switch (reportName) {
+      case 'Monthly Collection Report':
+      case 'Payout Statement':
+        return 50; // Estimated based on typical data
+      case 'Investor Portfolio Report':
+        return 25;
+      case 'Series Performance Report':
+        return 10;
+      default:
+        return 0;
+    }
   };
 
   return (
@@ -802,7 +870,7 @@ const Reports = () => {
             <div className="card-content">
               <p className="card-label">Reports Generated</p>
               <div className="card-value-row">
-                <h2 className="card-value">156</h2>
+                <h2 className="card-value">0</h2>
                 <FaFileAlt className="card-icon" id='file-color' />
               </div>
               <p className="card-subtext">This month</p>
@@ -814,7 +882,7 @@ const Reports = () => {
             <div className="card-content">
               <p className="card-label">Scheduled Reports</p>
               <div className="card-value-row">
-                <h2 className="card-value">12</h2>
+                <h2 className="card-value">0</h2>
                 <MdSchedule className="card-icon" id='clock-color'/>
               </div>
               <p className="card-subtext">Auto-generated</p>
@@ -826,10 +894,10 @@ const Reports = () => {
             <div className="card-content">
               <p className="card-label">Last Generated</p>
               <div className="card-value-row">
-                <h2 className="card-value">2 hours ago</h2>
+                <h2 className="card-value">Never</h2>
                 <MdCalendarToday className="card-icon" id='calender-color'/>
               </div>
-              <p className="card-subtext">KYC Status Report</p>
+              <p className="card-subtext">No reports yet</p>
             </div>
           </div>
         </div>

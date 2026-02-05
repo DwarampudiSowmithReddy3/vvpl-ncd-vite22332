@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NCD Management API Testing</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+        }
+        .test-section h2 {
+            color: #2d3748;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+        }
+        .test-section h2::before {
+            content: "🧪";
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #f0fff4;
+            border: 1px solid #9ae6b4;
+            color: #22543d;
+        }
+        .error {
+            background: #fed7d7;
+            border: 1px solid #feb2b2;
+            color: #742a2a;
+        }
+        .info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            color: #2a4365;
+        }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-success { background: #48bb78; }
+        .status-error { background: #f56565; }
+        .status-pending { background: #ed8936; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .login-section {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+        .login-section h2 {
+            color: white;
+        }
+        .credentials {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 NCD Management System API Testing</h1>
+        
+        <div class="test-section login-section">
+            <h2>🔐 Authentication Testing</h2>
+            <div class="credentials">
+                <strong>Login Credentials:</strong><br>
+                Username: admin<br>
+                Password: admin123<br>
+                User Type: admin
+            </div>
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testCurrentUser()" id="testUserBtn" disabled>Test Get Current User</button>
+            <div id="loginResult" class="result" style="display: none;"></div>
+        </div>
+
+        <div class="grid">
+            <div class="test-section">
+                <h2>📊 Dashboard APIs</h2>
+                <button onclick="testDashboardMetrics()">Test Dashboard Metrics</button>
+                <button onclick="testRecentActivities()">Test Recent Activities</button>
+                <div id="dashboardResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📈 Series Management</h2>
+                <button onclick="testSeriesList()">Test Series List</button>
+                <button onclick="testSeriesDetails()">Test Series Details</button>
+                <div id="seriesResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>👥 Investor Management</h2>
+                <button onclick="testInvestorsList()">Test Investors List</button>
+                <button onclick="testInvestorDetails()">Test Investor Details</button>
+                <div id="investorsResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>💰 Interest Payout</h2>
+                <button onclick="testInterestPayouts()">Test Payouts List</button>
+                <button onclick="testCalculateInterest()">Test Calculate Interest</button>
+                <div id="interestResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📋 Compliance</h2>
+                <button onclick="testComplianceRequirements()">Test Requirements</button>
+                <button onclick="testSeriesCompliance()">Test Series Compliance</button>
+                <div id="complianceResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📄 Reports</h2>
+                <button onclick="testReportsList()">Test Reports List</button>
+                <button onclick="testGenerateReport()">Test Generate Report</button>
+                <div id="reportsResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>📧 Communication</h2>
+                <button onclick="testCommunications()">Test Communications</button>
+                <button onclick="testCreateCommunication()">Test Create Communication</button>
+                <div id="communicationResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>🎫 Grievance Management</h2>
+                <button onclick="testInvestorGrievances()">Test Investor Grievances</button>
+                <button onclick="testTrusteeGrievances()">Test Trustee Grievances</button>
+                <div id="grievanceResult" class="result" style="display: none;"></div>
+            </div>
+
+            <div class="test-section">
+                <h2>⚙️ Administration</h2>
+                <button onclick="testAdminUsers()">Test Admin Users</button>
+                <button onclick="testSystemHealth()">Test System Health</button>
+                <div id="adminResult" class="result" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 Run All Tests</h2>
+            <button onclick="runAllTests()" style="font-size: 18px; padding: 15px 30px;">Run Complete API Test Suite</button>
+            <div id="allTestsResult" class="result" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8001/api/v1';
+        let authToken = null;
+
+        function showResult(elementId, content, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = content;
+            element.style.display = 'block';
+        }
+
+        function formatResponse(response) {
+            return JSON.stringify(response, null, 2);
+        }
+
+        async function makeRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            };
+
+            if (authToken) {
+                options.headers['Authorization'] = `Bearer ${authToken}`;
+            }
+
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`, options);
+                const responseData = await response.json();
+                
+                if (response.ok) {
+                    return { success: true, data: responseData, status: response.status };
+                } else {
+                    return { success: false, error: responseData, status: response.status };
+                }
+            } catch (error) {
+                return { success: false, error: error.message, status: 0 };
+            }
+        }
+
+        // Authentication Tests
+        async function testLogin() {
+            const loginData = {
+                username: 'admin',
+                password: 'admin123',
+                user_type: 'admin'
+            };
+
+            const result = await makeRequest('/auth/login', 'POST', loginData);
+            
+            if (result.success) {
+                authToken = result.data.access_token;
+                document.getElementById('testUserBtn').disabled = false;
+                showResult('loginResult', 
+                    `✅ Login Successful!\n\nToken: ${authToken.substring(0, 50)}...\n\nUser Info:\n${formatResponse(result.data.user_info)}`, 
+                    'success'
+                );
+            } else {
+                showResult('loginResult', 
+                    `❌ Login Failed!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testCurrentUser() {
+            const result = await makeRequest('/auth/me');
+            
+            if (result.success) {
+                showResult('loginResult', 
+                    `✅ Current User Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('loginResult', 
+                    `❌ Failed to get current user!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Dashboard Tests
+        async function testDashboardMetrics() {
+            const result = await makeRequest('/dashboard/metrics');
+            
+            if (result.success) {
+                showResult('dashboardResult', 
+                    `✅ Dashboard Metrics Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('dashboardResult', 
+                    `❌ Failed to get dashboard metrics!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testRecentActivities() {
+            const result = await makeRequest('/dashboard/recent-activities');
+            
+            if (result.success) {
+                showResult('dashboardResult', 
+                    `✅ Recent Activities Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('dashboardResult', 
+                    `❌ Failed to get recent activities!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Series Tests
+        async function testSeriesList() {
+            const result = await makeRequest('/series/');
+            
+            if (result.success) {
+                showResult('seriesResult', 
+                    `✅ Series List Retrieved! (${result.data.length} series found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('seriesResult', 
+                    `❌ Failed to get series list!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testSeriesDetails() {
+            const result = await makeRequest('/series/1');
+            
+            if (result.success) {
+                showResult('seriesResult', 
+                    `✅ Series Details Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('seriesResult', 
+                    `❌ Failed to get series details!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Investors Tests
+        async function testInvestorsList() {
+            const result = await makeRequest('/investors/');
+            
+            if (result.success) {
+                showResult('investorsResult', 
+                    `✅ Investors List Retrieved! (${result.data.length} investors found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('investorsResult', 
+                    `❌ Failed to get investors list!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testInvestorDetails() {
+            const result = await makeRequest('/investors/1');
+            
+            if (result.success) {
+                showResult('investorsResult', 
+                    `✅ Investor Details Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('investorsResult', 
+                    `❌ Failed to get investor details!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Interest Tests
+        async function testInterestPayouts() {
+            const result = await makeRequest('/interest/payouts');
+            
+            if (result.success) {
+                showResult('interestResult', 
+                    `✅ Interest Payouts Retrieved! (${result.data.length} payouts found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('interestResult', 
+                    `❌ Failed to get interest payouts!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testCalculateInterest() {
+            const result = await makeRequest('/interest/calculate/1', 'POST');
+            
+            if (result.success) {
+                showResult('interestResult', 
+                    `✅ Interest Calculation Initiated!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('interestResult', 
+                    `❌ Failed to calculate interest!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Compliance Tests
+        async function testComplianceRequirements() {
+            const result = await makeRequest('/compliance/requirements');
+            
+            if (result.success) {
+                showResult('complianceResult', 
+                    `✅ Compliance Requirements Retrieved! (${result.data.length} requirements found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('complianceResult', 
+                    `❌ Failed to get compliance requirements!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testSeriesCompliance() {
+            const result = await makeRequest('/compliance/series/1');
+            
+            if (result.success) {
+                showResult('complianceResult', 
+                    `✅ Series Compliance Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('complianceResult', 
+                    `❌ Failed to get series compliance!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Reports Tests
+        async function testReportsList() {
+            const result = await makeRequest('/reports/');
+            
+            if (result.success) {
+                showResult('reportsResult', 
+                    `✅ Reports List Retrieved! (${result.data.length} reports found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('reportsResult', 
+                    `❌ Failed to get reports list!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testGenerateReport() {
+            const result = await makeRequest('/reports/generate?report_type=investor_summary&format=pdf', 'POST');
+            
+            if (result.success) {
+                showResult('reportsResult', 
+                    `✅ Report Generation Initiated!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('reportsResult', 
+                    `❌ Failed to generate report!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Communication Tests
+        async function testCommunications() {
+            const result = await makeRequest('/communication/');
+            
+            if (result.success) {
+                showResult('communicationResult', 
+                    `✅ Communications Retrieved! (${result.data.length} communications found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('communicationResult', 
+                    `❌ Failed to get communications!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testCreateCommunication() {
+            const result = await makeRequest('/communication/', 'POST', {});
+            
+            if (result.success) {
+                showResult('communicationResult', 
+                    `✅ Communication Created!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('communicationResult', 
+                    `❌ Failed to create communication!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Grievance Tests
+        async function testInvestorGrievances() {
+            const result = await makeRequest('/grievance/investor');
+            
+            if (result.success) {
+                showResult('grievanceResult', 
+                    `✅ Investor Grievances Retrieved! (${result.data.length} grievances found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('grievanceResult', 
+                    `❌ Failed to get investor grievances!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testTrusteeGrievances() {
+            const result = await makeRequest('/grievance/trustee');
+            
+            if (result.success) {
+                showResult('grievanceResult', 
+                    `✅ Trustee Grievances Retrieved! (${result.data.length} grievances found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('grievanceResult', 
+                    `❌ Failed to get trustee grievances!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Admin Tests
+        async function testAdminUsers() {
+            const result = await makeRequest('/admin/users');
+            
+            if (result.success) {
+                showResult('adminResult', 
+                    `✅ Admin Users Retrieved! (${result.data.length} users found)\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('adminResult', 
+                    `❌ Failed to get admin users!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        async function testSystemHealth() {
+            const result = await makeRequest('/admin/system-health');
+            
+            if (result.success) {
+                showResult('adminResult', 
+                    `✅ System Health Retrieved!\n\n${formatResponse(result.data)}`, 
+                    'success'
+                );
+            } else {
+                showResult('adminResult', 
+                    `❌ Failed to get system health!\n\nError: ${formatResponse(result.error)}`, 
+                    'error'
+                );
+            }
+        }
+
+        // Run All Tests
+        async function runAllTests() {
+            showResult('allTestsResult', '🚀 Running complete API test suite...\n\n', 'info');
+            
+            let results = [];
+            let totalTests = 0;
+            let passedTests = 0;
+
+            // Test Login first
+            const loginResult = await makeRequest('/auth/login', 'POST', {
+                username: 'admin',
+                password: 'admin123',
+                user_type: 'admin'
+            });
+            
+            totalTests++;
+            if (loginResult.success) {
+                authToken = loginResult.data.access_token;
+                passedTests++;
+                results.push('✅ Authentication: PASSED');
+            } else {
+                results.push('❌ Authentication: FAILED');
+            }
+
+            // Test all endpoints
+            const tests = [
+                { name: 'Dashboard Metrics', endpoint: '/dashboard/metrics' },
+                { name: 'Recent Activities', endpoint: '/dashboard/recent-activities' },
+                { name: 'Series List', endpoint: '/series/' },
+                { name: 'Investors List', endpoint: '/investors/' },
+                { name: 'Interest Payouts', endpoint: '/interest/payouts' },
+                { name: 'Compliance Requirements', endpoint: '/compliance/requirements' },
+                { name: 'Reports List', endpoint: '/reports/' },
+                { name: 'Communications', endpoint: '/communication/' },
+                { name: 'Investor Grievances', endpoint: '/grievance/investor' },
+                { name: 'Trustee Grievances', endpoint: '/grievance/trustee' },
+                { name: 'Admin Users', endpoint: '/admin/users' },
+                { name: 'System Health', endpoint: '/admin/system-health' }
+            ];
+
+            for (const test of tests) {
+                totalTests++;
+                const result = await makeRequest(test.endpoint);
+                if (result.success) {
+                    passedTests++;
+                    results.push(`✅ ${test.name}: PASSED`);
+                } else {
+                    results.push(`❌ ${test.name}: FAILED`);
+                }
+            }
+
+            const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+            
+            const summary = `
+🎯 TEST SUMMARY
+===============
+Total Tests: ${totalTests}
+Passed: ${passedTests}
+Failed: ${totalTests - passedTests}
+Success Rate: ${successRate}%
+
+📊 DETAILED RESULTS
+==================
+${results.join('\n')}
+
+${successRate >= 90 ? '🎉 EXCELLENT! All systems working perfectly!' : 
+  successRate >= 70 ? '👍 GOOD! Most systems working well.' : 
+  '⚠️ ISSUES DETECTED! Some systems need attention.'}
+            `;
+
+            showResult('allTestsResult', summary, successRate >= 90 ? 'success' : successRate >= 70 ? 'info' : 'error');
+        }
+
+        // Auto-run login test on page load
+        window.onload = function() {
+            console.log('🚀 NCD Management API Testing Interface Loaded');
+            console.log('📊 Backend Server: http://localhost:8000');
+            console.log('🔐 Login Credentials: admin / admin123');
+        };
+    </script>
+</body>
+</html>

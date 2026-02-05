@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 6px;
+            margin: 10px 0;
+        }
+        
+        .status.success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        
+        .status.error {
+            background: #fef2f2;
+            color: #dc2626;
+        }
+        
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Frontend API Integration Test</h1>
+        <p>Testing the connection between React frontend and FastAPI backend</p>
+        
+        <div class="status info">
+            <strong>Backend:</strong> http://localhost:8000<br>
+            <strong>Frontend:</strong> http://localhost:5177<br>
+            <strong>Test Page:</strong> This standalone test
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 1: Test Backend Directly</h3>
+            <button class="test-button" onclick="testBackendHealth()">Test Backend Health</button>
+            <button class="test-button" onclick="testBackendLogin()">Test Backend Login</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 2: Test CORS</h3>
+            <button class="test-button" onclick="testCORS()">Test CORS from Browser</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>Step 3: Test Frontend Login Flow</h3>
+            <button class="test-button" onclick="testFrontendLogin()">Test Frontend Login</button>
+        </div>
+        
+        <div id="testResults" class="test-results" style="display: none;"></div>
+        
+        <div class="test-section">
+            <h3>🔗 Quick Links</h3>
+            <a href="http://localhost:8000/health" target="_blank" class="test-button">Backend Health</a>
+            <a href="http://localhost:8000/docs" target="_blank" class="test-button">API Docs</a>
+            <a href="http://localhost:5177" target="_blank" class="test-button">Frontend App</a>
+            <a href="http://localhost:5177/login" target="_blank" class="test-button">Frontend Login</a>
+        </div>
+    </div>
+
+    <script>
+        function showResults(content) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.textContent = content;
+        }
+        
+        function addResult(content) {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.style.display = 'block';
+            resultsDiv.textContent += '\n' + content;
+        }
+        
+        async function testBackendHealth() {
+            showResults('Testing backend health...');
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                const data = await response.json();
+                addResult('✅ Backend Health: SUCCESS');
+                addResult('Response: ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                addResult('❌ Backend Health: FAILED');
+                addResult('Error: ' + error.message);
+            }
+        }
+        
+        async function testBackendLogin() {
+            showResults('Testing backend login...');
+            try {
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addResult('✅ Backend Login: SUCCESS');
+                    addResult('User: ' + data.user.username + ' (' + data.user.role + ')');
+                    addResult('Token: ' + data.access_token.substring(0, 20) + '...');
+                    
+                    // Store token for further tests
+                    window.testToken = data.access_token;
+                } else {
+                    const errorData = await response.json();
+                    addResult('❌ Backend Login: FAILED');
+                    addResult('Status: ' + response.status);
+                    addResult('Error: ' + JSON.stringify(errorData, null, 2));
+                }
+            } catch (error) {
+                addResult('❌ Backend Login: FAILED');
+                addResult('Error: ' + error.message);
+            }
+        }
+        
+        async function testCORS() {
+            showResults('Testing CORS...');
+            try {
+                // Test preflight request
+                const response = await fetch('http://localhost:8000/health', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                addResult('✅ CORS: SUCCESS');
+                addResult('Status: ' + response.status);
+                addResult('Headers: ' + JSON.stringify([...response.headers.entries()], null, 2));
+            } catch (error) {
+                addResult('❌ CORS: FAILED');
+                addResult('Error: ' + error.message);
+                addResult('This might be a CORS issue - check backend CORS configuration');
+            }
+        }
+        
+        async function testFrontendLogin() {
+            showResults('Testing frontend login simulation...');
+            
+            // Simulate the exact same flow as the React app
+            try {
+                // Step 1: Try API login
+                addResult('Step 1: Attempting API login...');
+                
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (loginResponse.ok) {
+                    const loginData = await loginResponse.json();
+                    addResult('✅ API Login: SUCCESS');
+                    
+                    // Step 2: Test getting current user
+                    addResult('Step 2: Testing getCurrentUser...');
+                    
+                    const userResponse = await fetch('http://localhost:8000/auth/me', {
+                        headers: {
+                            'Authorization': `Bearer ${loginData.access_token}`,
+                            'Content-Type': 'application/json',
+                        }
+                    });
+                    
+                    if (userResponse.ok) {
+                        const userData = await userResponse.json();
+                        addResult('✅ Get Current User: SUCCESS');
+                        addResult('User Data: ' + JSON.stringify(userData, null, 2));
+                        
+                        // Step 3: Test getting users
+                        addResult('Step 3: Testing getUsers...');
+                        
+                        const usersResponse = await fetch('http://localhost:8000/users/', {
+                            headers: {
+                                'Authorization': `Bearer ${loginData.access_token}`,
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                        
+                        if (usersResponse.ok) {
+                            const usersData = await usersResponse.json();
+                            addResult('✅ Get Users: SUCCESS');
+                            addResult('Users Count: ' + usersData.length);
+                            
+                            addResult('\n🎉 ALL TESTS PASSED! Frontend should work correctly.');
+                        } else {
+                            addResult('❌ Get Users: FAILED');
+                            addResult('Status: ' + usersResponse.status);
+                        }
+                    } else {
+                        addResult('❌ Get Current User: FAILED');
+                        addResult('Status: ' + userResponse.status);
+                    }
+                } else {
+                    addResult('❌ API Login: FAILED');
+                    addResult('Status: ' + loginResponse.status);
+                    const errorData = await loginResponse.json();
+                    addResult('Error: ' + JSON.stringify(errorData, null, 2));
+                }
+            } catch (error) {
+                addResult('❌ Frontend Login Test: FAILED');
+                addResult('Error: ' + error.message);
+                addResult('Stack: ' + error.stack);
+            }
+        }
+        
+        // Auto-run basic tests on page load
+        window.onload = function() {
+            setTimeout(() => {
+                testBackendHealth();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

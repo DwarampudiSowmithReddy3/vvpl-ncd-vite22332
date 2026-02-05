@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import './InvestorsNew.css';
 import { MdOutlineFileDownload, MdTrendingUp, MdCurrencyRupee } from "react-icons/md";
@@ -347,7 +348,12 @@ const Investors = () => {
       return; // Don't close modal if duplicate ID
     }
     
-    // Add audit log for investor creation
+    // Add audit log for investor creation using auditService
+    auditService.logInvestorCreated(newInvestor, user).catch(error => {
+      console.error('Failed to log investor creation:', error);
+    });
+    
+    // Also add to local audit log for backward compatibility
     addAuditLog({
       action: 'Created Investor',
       adminName: user ? user.name : 'Admin',
@@ -517,6 +523,39 @@ const Investors = () => {
     
     // Update investor
     updateInvestor(selectedInvestor.id, updatedInvestor);
+    
+    // Add audit log for investment creation using auditService
+    auditService.logGenericAction(
+      'Created Investment',
+      `Created investment of ₹${investmentAmount} for investor "${selectedInvestor.name}" in series "${selectedSeries.name}"`,
+      'Investment',
+      `${selectedInvestor.name}-${selectedSeries.name}`,
+      {
+        investorName: selectedInvestor.name,
+        seriesName: selectedSeries.name,
+        amount: parseInt(investmentAmount),
+        investmentDate: new Date().toISOString()
+      }
+    ).catch(error => {
+      console.error('Failed to log investment creation:', error);
+    });
+    
+    // Also add to local audit log for backward compatibility
+    addAuditLog({
+      action: 'Created Investment',
+      adminName: user ? user.name : 'Admin',
+      adminRole: user ? user.displayRole : 'Admin',
+      details: `Created investment of ₹${parseInt(investmentAmount).toLocaleString()} for investor "${selectedInvestor.fullName}" in series "${selectedSeries.name}"`,
+      entityType: 'Investment',
+      entityId: `${selectedInvestor.investorId}-${selectedSeries.name}`,
+      changes: {
+        investorId: selectedInvestor.investorId,
+        investorName: selectedInvestor.fullName,
+        seriesName: selectedSeries.name,
+        amount: parseInt(investmentAmount),
+        date: new Date().toLocaleDateString('en-GB')
+      }
+    });
     
     // Close modal and reset form
     handleCloseInvestmentModal();

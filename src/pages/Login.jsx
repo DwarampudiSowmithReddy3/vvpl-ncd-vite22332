@@ -7,24 +7,38 @@ const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const { login, loading } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    const result = login(username, password);
+    setIsLoading(true);
     
-    if (result.success) {
-      if (result.role === 'admin') {
-        navigate('/dashboard');
+    try {
+      const result = await login(username, password);
+      
+      if (result.success) {
+        // Clear any previous errors
+        setError('');
+        if (result.role === 'admin') {
+          navigate('/dashboard');
+        } else {
+          navigate('/investor/dashboard');
+        }
       } else {
-        navigate('/investor/dashboard');
+        setError(result.error || 'Invalid credentials');
       }
-    } else {
-      setError(result.error || 'Invalid credentials');
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const isSubmitting = isLoading || loading;
 
   return (
     <div className="login-container">
@@ -71,6 +85,7 @@ const Login = () => {
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="Enter your username"
+              disabled={isSubmitting}
             />
           </div>
           <div className="form-group">
@@ -82,9 +97,16 @@ const Login = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="Enter your password"
+              disabled={isSubmitting}
             />
           </div>
-          <button type="submit" className="login-button">Sign In</button>
+          <button 
+            type="submit" 
+            className="login-button"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Signing In...' : 'Sign In'}
+          </button>
         </form>
         <div className="login-hint">
           <p className="contact-message">

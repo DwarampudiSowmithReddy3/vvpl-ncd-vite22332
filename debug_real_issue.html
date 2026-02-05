@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Real Issue</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .step { margin: 15px 0; padding: 15px; border: 1px solid #ddd; }
+        .error { background: #f8d7da; color: #721c24; }
+        .success { background: #d4edda; color: #155724; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; }
+        pre { background: #f8f9fa; padding: 10px; font-size: 12px; }
+        .console-log { background: #f8f9fa; padding: 5px; margin: 2px 0; font-family: monospace; font-size: 11px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Real Issue - Step by Step</h1>
+    
+    <div class="step info">
+        <h3>Current Status</h3>
+        <p>Frontend: <a href="http://localhost:5178" target="_blank">http://localhost:5178</a></p>
+        <p>Backend: <a href="http://localhost:8000/docs" target="_blank">http://localhost:8000/docs</a></p>
+    </div>
+
+    <div class="step">
+        <h3>Step 1: Test Backend API Directly</h3>
+        <button onclick="testBackendAPI()">Test Backend</button>
+        <div id="backendResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 2: Test Frontend API Service</h3>
+        <button onclick="testFrontendAPI()">Test Frontend API Service</button>
+        <div id="frontendAPIResult"></div>
+    </div>
+
+    <div class="step">
+        <h3>Step 3: Manual Frontend Test Instructions</h3>
+        <div class="info">
+            <p><strong>Do this manually:</strong></p>
+            <ol>
+                <li>Open <a href="http://localhost:5178" target="_blank">http://localhost:5178</a> in a new tab</li>
+                <li>Open Developer Tools (F12) and go to Console tab</li>
+                <li>Login with: admin / admin123</li>
+                <li>Look for console logs starting with "🔄 AuthContext:" or "❌ AuthContext:"</li>
+                <li>Go to Administrator → Permissions tab</li>
+                <li>Toggle Finance Executive → Dashboard → Create permission</li>
+                <li>Look for console logs about permission updates</li>
+                <li>Refresh the page (F5)</li>
+                <li>Check if the permission stayed toggled</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="step">
+        <h3>Step 4: Console Logs to Watch For</h3>
+        <pre>
+Expected Success Logs:
+🔄 AuthContext: Loading permissions from backend...
+✅ AuthContext: Permissions loaded from backend: [object]
+✅ AuthContext: Permissions state updated with backend data
+🔄 Administrator: Loading permissions for Super Admin...
+🔄 AuthContext: Updating permissions...
+✅ AuthContext: Permissions saved to backend
+✅ AuthContext: Local permissions state updated
+
+Expected Error Logs (if still broken):
+❌ AuthContext: Failed to load permissions from backend: [error]
+❌ Administrator: Failed to update permissions: [error]
+        </pre>
+    </div>
+
+    <div class="step">
+        <h3>Debug Results</h3>
+        <div id="debugResults"></div>
+    </div>
+
+    <script>
+        async function testBackendAPI() {
+            const resultDiv = document.getElementById('backendResult');
+            try {
+                // Test login
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // Test get permissions
+                const getResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!getResponse.ok) {
+                    throw new Error(`Get permissions failed: ${getResponse.status}`);
+                }
+                
+                const permissions = await getResponse.json();
+                const financeExec = permissions['Finance Executive'];
+                const currentValue = financeExec.dashboard.create;
+                
+                // Test update permissions
+                const newValue = !currentValue;
+                permissions['Finance Executive'].dashboard.create = newValue;
+                
+                const updateResponse = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(permissions)
+                });
+                
+                if (!updateResponse.ok) {
+                    throw new Error(`Update permissions failed: ${updateResponse.status}`);
+                }
+                
+                // Verify persistence
+                const verifyResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const verifyPermissions = await verifyResponse.json();
+                const verifyValue = verifyPermissions['Finance Executive'].dashboard.create;
+                
+                if (verifyValue === newValue) {
+                    resultDiv.innerHTML = `<div class="success">✅ Backend API working perfectly! Toggled ${currentValue} → ${newValue} and verified persistence.</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Backend persistence failed! Expected ${newValue}, got ${verifyValue}</div>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Backend API Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testFrontendAPI() {
+            const resultDiv = document.getElementById('frontendAPIResult');
+            try {
+                // Load the frontend API service (simulate)
+                const apiService = {
+                    token: null,
+                    
+                    setToken(token) {
+                        this.token = token;
+                        localStorage.setItem('authToken', token);
+                    },
+                    
+                    getHeaders() {
+                        return {
+                            'Content-Type': 'application/json',
+                            ...(this.token && { 'Authorization': `Bearer ${this.token}` })
+                        };
+                    },
+                    
+                    async request(endpoint, options = {}) {
+                        const response = await fetch(`http://localhost:8000${endpoint}`, {
+                            headers: this.getHeaders(),
+                            ...options
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.detail || `HTTP ${response.status}`);
+                        }
+                        
+                        return response.json();
+                    },
+                    
+                    async login(username, password) {
+                        const response = await this.request('/auth/login', {
+                            method: 'POST',
+                            body: JSON.stringify({ username, password })
+                        });
+                        
+                        if (response.access_token) {
+                            this.setToken(response.access_token);
+                        }
+                        
+                        return response;
+                    },
+                    
+                    async getPermissions() {
+                        return await this.request('/permissions/');
+                    },
+                    
+                    async updatePermissions(permissionsData) {
+                        return await this.request('/permissions/', {
+                            method: 'PUT',
+                            body: JSON.stringify(permissionsData)
+                        });
+                    }
+                };
+                
+                // Test the frontend API service
+                await apiService.login('admin', 'admin123');
+                const permissions = await apiService.getPermissions();
+                const currentValue = permissions['Finance Executive'].dashboard.create;
+                
+                // Toggle and update
+                const newValue = !currentValue;
+                permissions['Finance Executive'].dashboard.create = newValue;
+                await apiService.updatePermissions(permissions);
+                
+                // Verify
+                const verifyPermissions = await apiService.getPermissions();
+                const verifyValue = verifyPermissions['Finance Executive'].dashboard.create;
+                
+                if (verifyValue === newValue) {
+                    resultDiv.innerHTML = `<div class="success">✅ Frontend API Service working! Toggled ${currentValue} → ${newValue}</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Frontend API Service failed! Expected ${newValue}, got ${verifyValue}</div>`;
+                }
+                
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Frontend API Service Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

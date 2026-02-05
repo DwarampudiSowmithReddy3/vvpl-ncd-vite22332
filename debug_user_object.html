@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug User Object</title>
+</head>
+<body>
+    <h1>Debug User Object</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        async function debugUserObject() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // Login and get user data
+                console.log('🔄 Logging in...');
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                console.log('✅ Login response:', loginData);
+                
+                // Get current user
+                const token = loginData.access_token;
+                const userResponse = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!userResponse.ok) {
+                    throw new Error(`Get user failed: ${userResponse.status}`);
+                }
+                
+                const userData = await userResponse.json();
+                console.log('✅ User data:', userData);
+                
+                // Transform user data like AuthContext does
+                const transformedUser = {
+                    ...userData,
+                    name: userData.full_name,
+                    displayRole: userData.role
+                };
+                
+                console.log('✅ Transformed user:', transformedUser);
+                
+                // Test audit log data structure
+                const auditLogData = {
+                    action: 'Test Action',
+                    adminName: transformedUser.name,
+                    adminRole: transformedUser.displayRole,
+                    details: 'Testing user object properties',
+                    entityType: 'Test',
+                    entityId: 'test-123',
+                    changes: {
+                        test: 'value'
+                    }
+                };
+                
+                console.log('✅ Audit log data structure:', auditLogData);
+                
+                // Transform to API format like DataContext does
+                const apiLogData = {
+                    action: auditLogData.action,
+                    admin_name: auditLogData.adminName,
+                    admin_role: auditLogData.adminRole,
+                    details: auditLogData.details,
+                    entity_type: auditLogData.entityType,
+                    entity_id: auditLogData.entityId,
+                    changes: auditLogData.changes
+                };
+                
+                console.log('✅ API log data structure:', apiLogData);
+                
+                // Test the actual API call
+                const auditResponse = await fetch(`${API_BASE_URL}/audit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(apiLogData)
+                });
+                
+                console.log('📡 Audit response status:', auditResponse.status);
+                
+                if (!auditResponse.ok) {
+                    const errorText = await auditResponse.text();
+                    console.error('❌ Audit error:', errorText);
+                    throw new Error(`Audit failed: ${auditResponse.status} - ${errorText}`);
+                }
+                
+                const auditResult = await auditResponse.json();
+                console.log('✅ Audit result:', auditResult);
+                
+                resultsDiv.innerHTML = `
+                    <h2>✅ Debug Results</h2>
+                    <h3>Login Data:</h3>
+                    <pre>${JSON.stringify(loginData, null, 2)}</pre>
+                    
+                    <h3>Raw User Data:</h3>
+                    <pre>${JSON.stringify(userData, null, 2)}</pre>
+                    
+                    <h3>Transformed User:</h3>
+                    <pre>${JSON.stringify(transformedUser, null, 2)}</pre>
+                    
+                    <h3>Audit Log Data:</h3>
+                    <pre>${JSON.stringify(auditLogData, null, 2)}</pre>
+                    
+                    <h3>API Log Data:</h3>
+                    <pre>${JSON.stringify(apiLogData, null, 2)}</pre>
+                    
+                    <h3>Audit Result:</h3>
+                    <pre>${JSON.stringify(auditResult, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Debug failed:', error);
+                resultsDiv.innerHTML = `
+                    <h2>❌ Debug Failed!</h2>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the browser console for more details.</p>
+                `;
+            }
+        }
+        
+        window.addEventListener('load', debugUserObject);
+    </script>
+</body>
+</html>

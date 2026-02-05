@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 5px;
+        }
+        
+        .results {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Token Debug Test</h1>
+        <p>Testing token storage and usage</p>
+        
+        <button class="test-button" onclick="testTokenFlow()">Test Complete Token Flow</button>
+        <button class="test-button" onclick="checkLocalStorage()">Check LocalStorage</button>
+        <button class="test-button" onclick="clearStorage()">Clear Storage</button>
+        
+        <div id="results" class="results"></div>
+    </div>
+
+    <script>
+        let globalToken = null;
+        
+        function showResults(content) {
+            document.getElementById('results').textContent = content;
+        }
+        
+        function addResult(content) {
+            document.getElementById('results').textContent += content + '\n';
+        }
+        
+        function checkLocalStorage() {
+            showResults('Checking localStorage...\n');
+            
+            const authToken = localStorage.getItem('authToken');
+            const user = localStorage.getItem('user');
+            
+            addResult('authToken: ' + (authToken ? authToken.substring(0, 20) + '...' : 'None'));
+            addResult('user: ' + (user ? 'Present' : 'None'));
+            
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    addResult('User data: ' + JSON.stringify(userData, null, 2));
+                } catch (e) {
+                    addResult('User data parse error: ' + e.message);
+                }
+            }
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            showResults('Storage cleared.\n');
+        }
+        
+        async function testTokenFlow() {
+            showResults('Testing complete token flow...\n');
+            
+            try {
+                // Step 1: Login
+                addResult('Step 1: Login...');
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!loginResponse.ok) {
+                    addResult('❌ Login failed: ' + loginResponse.status);
+                    return;
+                }
+                
+                const loginData = await loginResponse.json();
+                globalToken = loginData.access_token;
+                
+                // Store token like the frontend does
+                localStorage.setItem('authToken', globalToken);
+                localStorage.setItem('user', JSON.stringify(loginData.user));
+                
+                addResult('✅ Login successful');
+                addResult('Token: ' + globalToken.substring(0, 20) + '...');
+                
+                // Step 2: Test immediate API call
+                addResult('\nStep 2: Test immediate API call...');
+                const usersResponse = await fetch('http://localhost:8000/users/', {
+                    headers: { 
+                        'Authorization': `Bearer ${globalToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (usersResponse.ok) {
+                    const users = await usersResponse.json();
+                    addResult('✅ Immediate API call successful: ' + users.length + ' users');
+                } else {
+                    addResult('❌ Immediate API call failed: ' + usersResponse.status);
+                    const errorText = await usersResponse.text();
+                    addResult('Error: ' + errorText);
+                }
+                
+                // Step 3: Test API call using localStorage token
+                addResult('\nStep 3: Test API call using localStorage token...');
+                const storedToken = localStorage.getItem('authToken');
+                
+                const usersResponse2 = await fetch('http://localhost:8000/users/', {
+                    headers: { 
+                        'Authorization': `Bearer ${storedToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (usersResponse2.ok) {
+                    const users2 = await usersResponse2.json();
+                    addResult('✅ localStorage token API call successful: ' + users2.length + ' users');
+                } else {
+                    addResult('❌ localStorage token API call failed: ' + usersResponse2.status);
+                    const errorText2 = await usersResponse2.text();
+                    addResult('Error: ' + errorText2);
+                }
+                
+                // Step 4: Test user update
+                if (usersResponse2.ok) {
+                    addResult('\nStep 4: Test user update...');
+                    const users = await usersResponse2.json();
+                    
+                    if (users.length > 0) {
+                        const firstUser = users[0];
+                        const updateResponse = await fetch(`http://localhost:8000/users/${firstUser.id}`, {
+                            method: 'PUT',
+                            headers: { 
+                                'Authorization': `Bearer ${storedToken}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                full_name: firstUser.full_name + ' (Updated)'
+                            })
+                        });
+                        
+                        if (updateResponse.ok) {
+                            addResult('✅ User update successful');
+                        } else {
+                            addResult('❌ User update failed: ' + updateResponse.status);
+                            const errorText3 = await updateResponse.text();
+                            addResult('Error: ' + errorText3);
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                addResult('❌ Test failed: ' + error.message);
+            }
+        }
+        
+        // Auto-check storage on load
+        window.onload = () => {
+            checkLocalStorage();
+        };
+    </script>
+</body>
+</html>

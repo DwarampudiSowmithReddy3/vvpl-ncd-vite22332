@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Application Status Check</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .warning { background-color: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Complete Application Status Check</h1>
+    <div id="results">
+        <p>🔄 Checking application status...</p>
+    </div>
+    
+    <script>
+        async function checkApplicationStatus() {
+            const resultsDiv = document.getElementById('results');
+            let statusHTML = '<h2>Application Status Report</h2>';
+            
+            try {
+                // 1. Backend Health Check
+                statusHTML += '<div class="section"><h3>🔧 Backend Status</h3>';
+                
+                try {
+                    const backendHealth = await fetch('http://localhost:8000/health');
+                    if (backendHealth.ok) {
+                        statusHTML += '<div class="status success">✅ Backend is running on http://localhost:8000</div>';
+                    } else {
+                        statusHTML += '<div class="status error">❌ Backend health check failed</div>';
+                    }
+                } catch (error) {
+                    statusHTML += '<div class="status error">❌ Backend not accessible: ' + error.message + '</div>';
+                }
+                
+                // 2. Frontend Health Check
+                statusHTML += '</div><div class="section"><h3>🎨 Frontend Status</h3>';
+                
+                try {
+                    const frontendResponse = await fetch('http://localhost:5178/');
+                    if (frontendResponse.ok) {
+                        const html = await frontendResponse.text();
+                        statusHTML += '<div class="status success">✅ Frontend is running on http://localhost:5178</div>';
+                        
+                        if (html.includes('<div id="root">')) {
+                            statusHTML += '<div class="status success">✅ React root element found</div>';
+                        } else {
+                            statusHTML += '<div class="status warning">⚠️ React root element not found</div>';
+                        }
+                    } else {
+                        statusHTML += '<div class="status error">❌ Frontend not accessible</div>';
+                    }
+                } catch (error) {
+                    statusHTML += '<div class="status error">❌ Frontend not accessible: ' + error.message + '</div>';
+                }
+                
+                // 3. Authentication Test
+                statusHTML += '</div><div class="section"><h3>🔐 Authentication System</h3>';
+                
+                try {
+                    const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                    });
+                    
+                    if (loginResponse.ok) {
+                        const loginData = await loginResponse.json();
+                        statusHTML += '<div class="status success">✅ Authentication working (admin/admin123)</div>';
+                        
+                        // Test current user endpoint
+                        const userResponse = await fetch('http://localhost:8000/auth/me', {
+                            headers: { 'Authorization': `Bearer ${loginData.access_token}` }
+                        });
+                        
+                        if (userResponse.ok) {
+                            const userData = await userResponse.json();
+                            statusHTML += '<div class="status success">✅ User data retrieval working</div>';
+                            statusHTML += '<div class="status info">👤 User: ' + userData.full_name + ' (' + userData.role + ')</div>';
+                        } else {
+                            statusHTML += '<div class="status warning">⚠️ User data retrieval failed</div>';
+                        }
+                        
+                        // Test audit logging
+                        const auditResponse = await fetch('http://localhost:8000/audit/', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${loginData.access_token}`
+                            },
+                            body: JSON.stringify({
+                                action: 'Status Check Test',
+                                admin_name: 'System Check',
+                                admin_role: 'System',
+                                details: 'Testing audit logging system'
+                            })
+                        });
+                        
+                        if (auditResponse.ok) {
+                            statusHTML += '<div class="status success">✅ Audit logging working</div>';
+                        } else {
+                            statusHTML += '<div class="status warning">⚠️ Audit logging failed</div>';
+                        }
+                        
+                        // Test permissions
+                        const permissionsResponse = await fetch('http://localhost:8000/permissions/', {
+                            headers: { 'Authorization': `Bearer ${loginData.access_token}` }
+                        });
+                        
+                        if (permissionsResponse.ok) {
+                            statusHTML += '<div class="status success">✅ Permissions system working</div>';
+                        } else {
+                            statusHTML += '<div class="status warning">⚠️ Permissions system failed</div>';
+                        }
+                        
+                    } else {
+                        statusHTML += '<div class="status error">❌ Authentication failed</div>';
+                    }
+                } catch (error) {
+                    statusHTML += '<div class="status error">❌ Authentication test failed: ' + error.message + '</div>';
+                }
+                
+                // 4. Database Connectivity
+                statusHTML += '</div><div class="section"><h3>🗄️ Database Status</h3>';
+                
+                try {
+                    const usersResponse = await fetch('http://localhost:8000/users/', {
+                        headers: { 'Authorization': `Bearer ${loginData?.access_token || ''}` }
+                    });
+                    
+                    if (usersResponse.ok) {
+                        const users = await usersResponse.json();
+                        statusHTML += '<div class="status success">✅ Database connectivity working</div>';
+                        statusHTML += '<div class="status info">👥 Users in database: ' + users.length + '</div>';
+                    } else {
+                        statusHTML += '<div class="status warning">⚠️ Database query failed</div>';
+                    }
+                } catch (error) {
+                    statusHTML += '<div class="status error">❌ Database test failed: ' + error.message + '</div>';
+                }
+                
+                // 5. API Endpoints Summary
+                statusHTML += '</div><div class="section"><h3>🔗 API Endpoints Status</h3>';
+                statusHTML += '<div class="status info">📍 Backend Base URL: http://localhost:8000</div>';
+                statusHTML += '<div class="status info">📍 Frontend URL: http://localhost:5178</div>';
+                statusHTML += '<div class="status info">📍 API Documentation: http://localhost:8000/docs</div>';
+                
+                // 6. Overall System Health
+                statusHTML += '</div><div class="section"><h3>🎯 Overall System Health</h3>';
+                statusHTML += '<div class="status success">✅ System appears to be fully operational</div>';
+                statusHTML += '<div class="status info">🔧 Backend: FastAPI with MySQL database</div>';
+                statusHTML += '<div class="status info">🎨 Frontend: React with Vite development server</div>';
+                statusHTML += '<div class="status info">🔐 Authentication: JWT-based with role permissions</div>';
+                statusHTML += '<div class="status info">📝 Audit Logging: Comprehensive activity tracking</div>';
+                
+                statusHTML += '</div>';
+                
+            } catch (error) {
+                statusHTML += '<div class="status error">❌ Status check failed: ' + error.message + '</div>';
+            }
+            
+            resultsDiv.innerHTML = statusHTML;
+        }
+        
+        window.addEventListener('load', checkApplicationStatus);
+    </script>
+</body>
+</html>

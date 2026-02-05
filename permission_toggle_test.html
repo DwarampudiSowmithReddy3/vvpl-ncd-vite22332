@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Permission Toggle Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .permission-row { margin: 10px 0; padding: 10px; border: 1px solid #ddd; }
+        .toggle { margin: 0 10px; }
+        button { padding: 5px 10px; margin: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>Permission Toggle Test</h1>
+    <p>This page allows you to test permission toggles directly while we fix the main Administrator page.</p>
+    
+    <div id="login-section">
+        <button onclick="login()">Login as Admin</button>
+        <div id="login-status"></div>
+    </div>
+    
+    <div id="permissions-section" style="display:none;">
+        <h2>Finance Executive Permissions</h2>
+        <div id="permissions-list"></div>
+        <button onclick="refreshPermissions()">Refresh from Database</button>
+    </div>
+
+    <script>
+        let authToken = null;
+        let currentPermissions = null;
+
+        async function login() {
+            try {
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.access_token;
+                    document.getElementById('login-status').innerHTML = '<span class="success">✅ Logged in successfully!</span>';
+                    document.getElementById('permissions-section').style.display = 'block';
+                    await loadPermissions();
+                } else {
+                    document.getElementById('login-status').innerHTML = '<span class="error">❌ Login failed</span>';
+                }
+            } catch (error) {
+                document.getElementById('login-status').innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+            }
+        }
+
+        async function loadPermissions() {
+            try {
+                const response = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    currentPermissions = await response.json();
+                    displayPermissions();
+                } else {
+                    alert('Failed to load permissions');
+                }
+            } catch (error) {
+                alert(`Error loading permissions: ${error.message}`);
+            }
+        }
+
+        function displayPermissions() {
+            const fePermissions = currentPermissions['Finance Executive'];
+            const container = document.getElementById('permissions-list');
+            
+            let html = '';
+            for (const [module, actions] of Object.entries(fePermissions)) {
+                html += `<div class="permission-row">
+                    <h3>${module.charAt(0).toUpperCase() + module.slice(1)}</h3>`;
+                
+                for (const [action, allowed] of Object.entries(actions)) {
+                    const checked = allowed ? 'checked' : '';
+                    html += `
+                        <label class="toggle">
+                            <input type="checkbox" ${checked} 
+                                   onchange="togglePermission('${module}', '${action}', this.checked)">
+                            ${action.charAt(0).toUpperCase() + action.slice(1)}
+                        </label>`;
+                }
+                html += '</div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        async function togglePermission(module, action, newValue) {
+            try {
+                // Update local permissions object
+                currentPermissions['Finance Executive'][module][action] = newValue;
+                
+                // Send to backend
+                const response = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(currentPermissions)
+                });
+
+                if (response.ok) {
+                    console.log(`✅ Successfully toggled Finance Executive ${module} ${action} to ${newValue}`);
+                    
+                    // Show success message
+                    const statusDiv = document.createElement('div');
+                    statusDiv.className = 'success';
+                    statusDiv.textContent = `✅ ${module} ${action} updated to ${newValue ? 'enabled' : 'disabled'}`;
+                    document.body.appendChild(statusDiv);
+                    setTimeout(() => statusDiv.remove(), 3000);
+                } else {
+                    alert('Failed to update permission');
+                    // Revert the checkbox
+                    event.target.checked = !newValue;
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+                // Revert the checkbox
+                event.target.checked = !newValue;
+            }
+        }
+
+        async function refreshPermissions() {
+            await loadPermissions();
+            alert('Permissions refreshed from database!');
+        }
+    </script>
+</body>
+</html>

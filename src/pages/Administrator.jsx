@@ -1,19 +1,32 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
+import apiService from '../services/api';
 import './Administrator.css';
-import { MdAdminPanelSettings, MdSearch, MdPersonAdd, MdClose, MdSecurity, MdOutlineFileDownload } from "react-icons/md";
+import { MdAdminPanelSettings, MdSearch, MdPersonAdd, MdClose, MdSecurity, MdOutlineFileDownload, MdDelete } from "react-icons/md";
 import { FaEye, FaUser, FaUserShield, FaUserTie, FaUserCog, FaUsers } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
 
 const Administrator = () => {
   const navigate = useNavigate();
-  const { PERMISSIONS, updatePermissions, hasPermission } = useAuth();
-  const { auditLogs, addAuditLog } = useData();
+  const { permissions, updatePermissions, hasPermission, PERMISSIONS } = useAuth();
+  const { auditLogs, addAuditLog, loadAuditLogs } = useData();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
+
+  // CRITICAL DEBUG: Check what we're getting from AuthContext
+  console.log('🚨 CRITICAL DEBUG: Administrator component loaded');
+  console.log('🚨 CRITICAL DEBUG: permissions from useAuth:', permissions);
+  console.log('🚨 CRITICAL DEBUG: PERMISSIONS from useAuth:', PERMISSIONS);
+  console.log('🚨 CRITICAL DEBUG: permissions type:', typeof permissions);
+  console.log('🚨 CRITICAL DEBUG: permissions is null/undefined:', permissions == null);
+
+  // Use permissions or fallback to PERMISSIONS or empty object
+  const currentPermissions = permissions || PERMISSIONS || {};
+  console.log('🚨 CRITICAL DEBUG: currentPermissions:', currentPermissions);
+  console.log('🚨 CRITICAL DEBUG: currentPermissions keys:', Object.keys(currentPermissions));
 
   // Define all available roles
   const ALL_ROLES = [
@@ -35,106 +48,69 @@ const Administrator = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [fromDate, setFromDate] = useState(new Date().toISOString().split('T')[0]);
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAllLogs, setShowAllLogs] = useState(false);
+  const [showAllUsers, setShowAllUsers] = useState(false);
   
-  // Mock users data - in real app this would come from context/API
-  const [users, setUsers] = useState([
-    {
-      id: 1,
-      userId: 'USR001',
-      username: 'john_admin',
-      fullName: 'John Smith',
-      role: 'Admin',
-      email: 'john@company.com',
-      phone: '+91 9876543210',
-      lastUsed: '2024-01-05 14:30',
-      createdAt: '2024-01-01'
-    },
-    {
-      id: 2,
-      userId: 'USR002',
-      username: 'sarah_manager',
-      fullName: 'Sarah Johnson',
-      role: 'Finance Manager',
-      email: 'sarah@company.com',
-      phone: '+91 9876543211',
-      lastUsed: '2024-01-05 12:15',
-      createdAt: '2024-01-02'
-    },
-    {
-      id: 3,
-      userId: 'USR003',
-      username: 'mike_exec',
-      fullName: 'Mike Wilson',
-      role: 'Investor Relationship Executive',
-      email: 'mike@company.com',
-      phone: '+91 9876543212',
-      lastUsed: '2024-01-04 16:45',
-      createdAt: '2024-01-03'
-    }
-  ]);
+  // Users data - loaded from API
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Mock user logs data - make it stateful so we can add new logs
-  const [userLogs, setUserLogs] = useState([
-    {
-      id: 1,
-      adminName: 'john_admin',
-      username: 'sarah_manager',
-      description: 'Role updated',
-      pastValue: 'Investor Relationship Executive',
-      updatedValue: 'Finance Manager',
-      timestamp: '2024-01-05 14:30:25',
-      date: '2024-01-05'
-    },
-    {
-      id: 2,
-      adminName: 'super_admin',
-      username: 'mike_exec',
-      description: 'Email updated',
-      pastValue: 'mike.old@company.com',
-      updatedValue: 'mike@company.com',
-      timestamp: '2024-01-05 12:15:10',
-      date: '2024-01-05'
-    },
-    {
-      id: 3,
-      adminName: 'john_admin',
-      username: 'sarah_manager',
-      description: 'Phone number updated',
-      pastValue: '+91 9876543200',
-      updatedValue: '+91 9876543211',
-      timestamp: '2024-01-04 16:45:30',
-      date: '2024-01-04'
-    },
-    {
-      id: 4,
-      adminName: 'super_admin',
-      username: 'john_admin',
-      description: 'Password updated',
-      pastValue: '********',
-      updatedValue: '********',
-      timestamp: '2024-01-04 10:20:15',
-      date: '2024-01-04'
-    },
-    {
-      id: 5,
-      adminName: 'john_admin',
-      username: 'mike_exec',
-      description: 'Full name updated',
-      pastValue: 'Michael Wilson',
-      updatedValue: 'Mike Wilson',
-      timestamp: '2024-01-03 09:30:45',
-      date: '2024-01-03'
-    }
-  ]);
+  // Load users from API on component mount
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
-  // Permissions data structure
-  // Use permissions as state so we can modify them
-  const [permissions, setPermissions] = useState(PERMISSIONS || {});
+  // Load audit logs when component mounts or when date filters change
+  useEffect(() => {
+    // FIXED: Only load audit logs once on mount, not on every render
+    if (loadAuditLogs) {
+      console.log('🔄 Administrator: Loading audit logs once on mount');
+      loadAuditLogs();
+    }
+  }, []); // Empty dependency array - load only once on mount
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const usersData = await apiService.getUsers();
+      console.log('✅ Users loaded from API:', usersData);
+      
+      // Map API response to frontend format
+      const mappedUsers = usersData.map(user => ({
+        id: user.id,
+        userId: user.user_id,
+        username: user.username,
+        fullName: user.full_name,
+        role: user.role,
+        email: user.email,
+        phone: user.phone,
+        lastUsed: user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never',
+        createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown',
+        isActive: user.is_active
+      }));
+      
+      setUsers(mappedUsers);
+    } catch (error) {
+      console.error('❌ Failed to load users:', error);
+      // Keep empty array if API fails
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // User logs data - starts empty for clean state
+  const [userLogs, setUserLogs] = useState([]);
+
+  // Remove local permissions state - use AuthContext permissions instead
+  // const [permissions, setPermissions] = useState(PERMISSIONS || {});
 
   const [formData, setFormData] = useState({
+    userId: '',
     username: '',
     fullName: '',
     role: 'Finance Executive',
@@ -159,24 +135,33 @@ const Administrator = () => {
   const [errors, setErrors] = useState({});
 
   const filteredUsers = useMemo(() => {
-    if (!searchTerm.trim()) return users;
+    // Only show active users
+    const activeUsers = users.filter(user => user.isActive !== false);
+    
+    if (!searchTerm.trim()) return activeUsers;
     
     const searchLower = searchTerm.toLowerCase();
-    return users.filter(user => 
-      user.username.toLowerCase().includes(searchLower) ||
-      user.userId.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower) ||
-      user.fullName.toLowerCase().includes(searchLower) ||
-      user.lastUsed.toLowerCase().includes(searchLower)
+    return activeUsers.filter(user => 
+      (user.username || '').toLowerCase().includes(searchLower) ||
+      (user.userId || '').toLowerCase().includes(searchLower) ||
+      (user.role || '').toLowerCase().includes(searchLower) ||
+      (user.fullName || '').toLowerCase().includes(searchLower) ||
+      (user.lastUsed || '').toLowerCase().includes(searchLower)
     );
   }, [users, searchTerm]);
 
+  // Get total count of active users (before limiting to 7)
+  const totalActiveUsersCount = useMemo(() => {
+    return users.filter(user => user.isActive !== false).length;
+  }, [users]);
+
   const filteredLogs = useMemo(() => {
     const filtered = auditLogs.filter(log => {
-      // Only filter by date range
+      // Filter by date range
       const logDate = new Date(log.timestamp).toISOString().split('T')[0];
       const matchesDateRange = logDate >= fromDate && logDate <= toDate;
       
+      // Show ALL audit logs - no exclusions
       return matchesDateRange;
     });
     
@@ -193,9 +178,24 @@ const Administrator = () => {
     return auditLogs.filter(log => {
       const logDate = new Date(log.timestamp).toISOString().split('T')[0];
       const matchesDateRange = logDate >= fromDate && logDate <= toDate;
+      
+      // Show ALL audit logs - no exclusions
       return matchesDateRange;
     }).length;
   }, [auditLogs, fromDate, toDate]);
+
+  // Filtered users for display (show only 7 by default, like audit logs show 10)
+  const displayedUsers = useMemo(() => {
+    // Only show active users
+    const activeUsers = users.filter(user => user.isActive !== false);
+    
+    // Return only latest 7 users if not showing all
+    if (!showAllUsers) {
+      return activeUsers.slice(0, 7);
+    }
+    
+    return activeUsers;
+  }, [users, showAllUsers]);
 
   const validateForm = (data, isEdit = false) => {
     const newErrors = {};
@@ -208,6 +208,7 @@ const Administrator = () => {
         newErrors.newPassword = 'Password must be at least 6 characters';
       }
     } else {
+      if (!data.userId.trim()) newErrors.userId = 'User ID is required';
       if (!data.username.trim()) newErrors.username = 'Username is required';
       if (!data.fullName.trim()) newErrors.fullName = 'Full name is required';
       if (!data.password) newErrors.password = 'Password is required';
@@ -217,6 +218,19 @@ const Administrator = () => {
       }
       if (!data.email.trim()) newErrors.email = 'Email is required';
       if (!/\S+@\S+\.\S+/.test(data.email)) newErrors.email = 'Email is invalid';
+      
+      // Check for duplicates
+      const duplicateUserId = users.find(u => u.userId && u.userId.toLowerCase() === data.userId.toLowerCase());
+      if (duplicateUserId) newErrors.userId = 'User ID already exists';
+      
+      const duplicateUsername = users.find(u => u.username && u.username.toLowerCase() === data.username.toLowerCase());
+      if (duplicateUsername) newErrors.username = 'Username already exists';
+      
+      const duplicateEmail = users.find(u => u.email && u.email.toLowerCase() === data.email.toLowerCase());
+      if (duplicateEmail) newErrors.email = 'Email already exists';
+      
+      const duplicatePhone = users.find(u => u.phone && u.phone === data.phone);
+      if (duplicatePhone) newErrors.phone = 'Phone number already exists';
     }
     
     setErrors(newErrors);
@@ -224,267 +238,128 @@ const Administrator = () => {
   };
 
   const generateUserId = () => {
+    if (users.length === 0) return 'USR001';
+    
     const lastUser = users[users.length - 1];
-    const lastId = lastUser ? parseInt(lastUser.userId.replace('USR', '')) : 0;
+    const lastId = lastUser && lastUser.userId ? parseInt(lastUser.userId.replace(/[A-Z]/g, '')) : 0;
     return `USR${String(lastId + 1).padStart(3, '0')}`;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm(formData)) return;
 
-    const newUser = {
-      id: users.length + 1,
-      userId: generateUserId(),
-      username: formData.username,
-      fullName: formData.fullName,
-      role: formData.role,
-      email: formData.email,
-      phone: formData.phone,
-      lastUsed: 'Never',
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    setUsers([...users, newUser]);
-    
-    // Add to global audit log system
-    addAuditLog({
-      action: 'Created User',
-      adminName: user ? user.name : 'Admin',
-      adminRole: user ? user.displayRole : 'Admin',
-      details: `Created new user "${formData.username}" with role "${formData.role}"`,
-      entityType: 'User',
-      entityId: formData.username,
-      changes: {
-        userId: newUser.userId,
+    try {
+      setLoading(true);
+      
+      // Create user via API
+      const userData = {
+        user_id: formData.userId,
         username: formData.username,
-        fullName: formData.fullName,
+        full_name: formData.fullName,
         role: formData.role,
         email: formData.email,
         phone: formData.phone,
-        action: 'user_created'
-      }
-    });
-    
-    setShowAddUserModal(false);
-    setFormData({
-      username: '',
-      fullName: '',
-      role: 'Executive',
-      password: '',
-      confirmPassword: '',
-      email: '',
-      phone: '+91 '
-    });
-    setErrors({});
-    
-    showSuccess(`User ${formData.username} created successfully`);
+        password: formData.password
+      };
+
+      console.log('🔄 Creating user via API:', userData);
+      const newUser = await apiService.createUser(userData);
+      console.log('✅ User created successfully:', newUser);
+      
+      // Reload users from API to get updated list (audit log created automatically by backend)
+      await loadUsers();
+      
+      setShowAddUserModal(false);
+      setFormData({
+        userId: '',
+        username: '',
+        fullName: '',
+        role: 'Finance Executive',
+        password: '',
+        confirmPassword: '',
+        email: '',
+        phone: '+91 '
+      });
+      setErrors({});
+      
+      showSuccess(`User ${formData.username} created successfully and saved to database`);
+      
+    } catch (error) {
+      console.error('❌ Failed to create user:', error);
+      setErrors({ 
+        general: error.message || 'Failed to create user. Please try again.' 
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm(editFormData, true)) return;
 
-    const updatedUser = { ...selectedUser };
-    const changes = [];
+    try {
+      setLoading(true);
+      
+      // Prepare update data for API
+      const updateData = {};
+      const changes = [];
 
-    // Check what changed and create log entries
-    const newLogEntries = [];
-    const currentTimestamp = new Date().toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    }).replace(',', '');
+      if (editFormData.fullName !== (selectedUser.full_name || selectedUser.fullName)) {
+        updateData.full_name = editFormData.fullName;
+        changes.push('full name');
+      }
+      
+      if (editFormData.newEmail && editFormData.newEmail !== editFormData.oldEmail) {
+        updateData.email = editFormData.newEmail;
+        changes.push('email');
+      }
+      
+      if (editFormData.newPhone && editFormData.newPhone !== editFormData.oldPhone) {
+        updateData.phone = editFormData.newPhone;
+        changes.push('phone number');
+      }
+      
+      if (editFormData.role !== selectedUser.role) {
+        updateData.role = editFormData.role;
+        changes.push('role');
+      }
+      
+      if (editFormData.newPassword && editFormData.newPassword !== '') {
+        updateData.password = editFormData.newPassword;
+        changes.push('password');
+      }
 
-    if (editFormData.newPassword && editFormData.newPassword !== '') {
-      changes.push('password');
-      
-      // Add to global audit log system
-      addAuditLog({
-        action: 'Updated User Password',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Changed password for user "${selectedUser.username}"`,
-        entityType: 'User',
-        entityId: selectedUser.username,
-        changes: {
-          field: 'password',
-          oldValue: '********',
-          newValue: '********',
-          userId: selectedUser.userId,
-          userFullName: selectedUser.fullName
-        }
-      });
-      
-      // Also add to local logs for backward compatibility
-      newLogEntries.push({
-        id: userLogs.length + newLogEntries.length + 1,
-        adminName: user ? user.name : 'current_admin',
-        username: selectedUser.username,
-        description: 'Password updated',
-        pastValue: '********',
-        updatedValue: '********',
-        timestamp: currentTimestamp,
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
-    
-    if (editFormData.newEmail && editFormData.newEmail !== editFormData.oldEmail) {
-      updatedUser.email = editFormData.newEmail;
-      changes.push('email');
-      
-      // Add to global audit log system
-      addAuditLog({
-        action: 'Updated User Email',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Changed email from "${editFormData.oldEmail}" to "${editFormData.newEmail}" for user "${selectedUser.username}"`,
-        entityType: 'User',
-        entityId: selectedUser.username,
-        changes: {
-          field: 'email',
-          oldValue: editFormData.oldEmail,
-          newValue: editFormData.newEmail,
-          userId: selectedUser.userId,
-          userFullName: selectedUser.fullName
-        }
-      });
-      
-      // Also add to local logs for backward compatibility
-      newLogEntries.push({
-        id: userLogs.length + newLogEntries.length + 1,
-        adminName: user ? user.name : 'current_admin',
-        username: selectedUser.username,
-        description: 'Email updated',
-        pastValue: editFormData.oldEmail,
-        updatedValue: editFormData.newEmail,
-        timestamp: currentTimestamp,
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
-    
-    if (editFormData.newPhone && editFormData.newPhone !== editFormData.oldPhone) {
-      updatedUser.phone = editFormData.newPhone;
-      changes.push('phone number');
-      
-      // Add to global audit log system
-      addAuditLog({
-        action: 'Updated User Phone',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Changed phone number from "${editFormData.oldPhone}" to "${editFormData.newPhone}" for user "${selectedUser.username}"`,
-        entityType: 'User',
-        entityId: selectedUser.username,
-        changes: {
-          field: 'phone',
-          oldValue: editFormData.oldPhone,
-          newValue: editFormData.newPhone,
-          userId: selectedUser.userId,
-          userFullName: selectedUser.fullName
-        }
-      });
-      
-      // Also add to local logs for backward compatibility
-      newLogEntries.push({
-        id: userLogs.length + newLogEntries.length + 1,
-        adminName: user ? user.name : 'current_admin',
-        username: selectedUser.username,
-        description: 'Phone number updated',
-        pastValue: editFormData.oldPhone,
-        updatedValue: editFormData.newPhone,
-        timestamp: currentTimestamp,
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
-    
-    if (editFormData.role !== selectedUser.role) {
-      updatedUser.role = editFormData.role;
-      changes.push('role');
-      
-      // Add to global audit log system
-      addAuditLog({
-        action: 'Updated User Role',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Changed user role from "${selectedUser.role}" to "${editFormData.role}" for user "${selectedUser.username}"`,
-        entityType: 'User',
-        entityId: selectedUser.username,
-        changes: {
-          field: 'role',
-          oldValue: selectedUser.role,
-          newValue: editFormData.role,
-          userId: selectedUser.userId,
-          userFullName: selectedUser.fullName
-        }
-      });
-      
-      // Also add to local logs for backward compatibility
-      newLogEntries.push({
-        id: userLogs.length + newLogEntries.length + 1,
-        adminName: user ? user.name : 'current_admin',
-        username: selectedUser.username,
-        description: 'Role updated',
-        pastValue: selectedUser.role,
-        updatedValue: editFormData.role,
-        timestamp: currentTimestamp,
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
-    
-    if (editFormData.fullName !== selectedUser.fullName) {
-      updatedUser.fullName = editFormData.fullName;
-      changes.push('full name');
-      
-      // Add to global audit log system
-      addAuditLog({
-        action: 'Updated User Full Name',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Changed full name from "${selectedUser.fullName}" to "${editFormData.fullName}" for user "${selectedUser.username}"`,
-        entityType: 'User',
-        entityId: selectedUser.username,
-        changes: {
-          field: 'fullName',
-          oldValue: selectedUser.fullName,
-          newValue: editFormData.fullName,
-          userId: selectedUser.userId,
-          userFullName: selectedUser.fullName
-        }
-      });
-      
-      // Also add to local logs for backward compatibility
-      newLogEntries.push({
-        id: userLogs.length + newLogEntries.length + 1,
-        adminName: user ? user.name : 'current_admin',
-        username: selectedUser.username,
-        description: 'Full name updated',
-        pastValue: selectedUser.fullName,
-        updatedValue: editFormData.fullName,
-        timestamp: currentTimestamp,
-        date: new Date().toISOString().split('T')[0]
-      });
-    }
+      if (changes.length === 0) {
+        setErrors({ general: 'No changes detected from previous data' });
+        setLoading(false);
+        return;
+      }
 
-    if (changes.length === 0) {
-      setErrors({ general: 'No changes detected from previous data' });
-      return;
+      console.log('🔄 Updating user via API:', { userId: selectedUser.id, updateData });
+      
+      // Update user via API
+      const updatedUser = await apiService.updateUser(selectedUser.id, updateData);
+      console.log('✅ User updated successfully:', updatedUser);
+      
+      // Reload users from API to get updated list (audit log created automatically by backend)
+      await loadUsers();
+      
+      setShowEditUserModal(false);
+      setSelectedUser(null);
+      setErrors({});
+      
+      showSuccess(`${selectedUser.username}: ${changes.join(', ')} updated successfully`);
+      
+    } catch (error) {
+      console.error('❌ Failed to update user:', error);
+      setErrors({ 
+        general: error.message || 'Failed to update user. Please try again.' 
+      });
+    } finally {
+      setLoading(false);
     }
-
-    // Update user in the list
-    setUsers(users.map(user => user.id === selectedUser.id ? updatedUser : user));
-    
-    // Add new log entries to the logs
-    setUserLogs(prevLogs => [...prevLogs, ...newLogEntries]);
-    
-    setShowEditUserModal(false);
-    setSelectedUser(null);
-    setErrors({});
-    
-    showSuccess(`${selectedUser.username}: ${changes.join(', ')} updated successfully`);
   };
 
   const showSuccess = (message) => {
@@ -493,6 +368,38 @@ const Administrator = () => {
     setTimeout(() => {
       setShowSuccessMessage(false);
     }, 2000);
+  };
+
+  const handleDeleteUser = (user) => {
+    setUserToDelete(user);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (userToDelete) {
+      try {
+        setLoading(true);
+        
+        console.log('🔄 Deleting user via API:', userToDelete.id);
+        
+        // Delete user via API
+        const result = await apiService.deleteUser(userToDelete.id);
+        console.log('✅ User deleted successfully:', result);
+        
+        // Reload users from API to get updated list (audit log created automatically by backend)
+        await loadUsers();
+        
+        showSuccess(`User ${userToDelete.username} deleted successfully`);
+        
+      } catch (error) {
+        console.error('❌ Failed to delete user:', error);
+        showSuccess(`Failed to delete user: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    }
+    setShowDeleteConfirm(false);
+    setUserToDelete(null);
   };
   
   const handleExportAuditLog = () => {
@@ -547,7 +454,7 @@ const Administrator = () => {
     setSelectedUser(user);
     setEditFormData({
       username: user.username,
-      fullName: user.fullName,
+      fullName: user.full_name || user.fullName, // Handle both API and local format
       role: user.role,
       newPassword: '',
       confirmPassword: '',
@@ -589,45 +496,113 @@ const Administrator = () => {
     }
   };
 
-  // Permission toggle handler - Now actually updates permissions
-  const handlePermissionToggle = (role, module, action) => {
-    const oldValue = permissions[role][module][action];
+  // Permission toggle handler - FIXED TO SEND ONLY CHANGED ROLE
+  const handlePermissionToggle = async (role, module, action) => {
+    console.log('🚨 CRITICAL DEBUG: Permission toggle clicked!');
+    console.log('🚨 CRITICAL DEBUG: Changing permission for role:', role, 'module:', module, 'action:', action);
+    
+    // CRITICAL FIX: Add safety check for permissions
+    if (!currentPermissions || !currentPermissions[role] || !currentPermissions[role][module]) {
+      console.error('❌ Permissions object is not available:', { currentPermissions, role, module, action });
+      showSuccess('Error: Permissions not loaded');
+      return;
+    }
+    
+    // CRITICAL FIX: Check if updatePermissions is a function
+    if (typeof updatePermissions !== 'function') {
+      console.error('🚨 CRITICAL ERROR: updatePermissions is not a function!', typeof updatePermissions);
+      showSuccess('Error: updatePermissions function not available');
+      return;
+    }
+    
+    const oldValue = currentPermissions[role][module][action];
     const newValue = !oldValue;
     
-    const newPermissions = {
-      ...permissions,
+    // CRITICAL FIX: Only send the specific role that changed, not all roles
+    const changedRolePermissions = {
       [role]: {
-        ...permissions[role],
+        ...currentPermissions[role],
         [module]: {
-          ...permissions[role][module],
+          ...currentPermissions[role][module],
           [action]: newValue
         }
       }
     };
     
-    setPermissions(newPermissions);
-    updatePermissions(newPermissions);
+    // Also update the full permissions object for local state
+    const updatedPermissions = {
+      ...currentPermissions,
+      [role]: changedRolePermissions[role]
+    };
     
-    // Add to global audit log system
-    addAuditLog({
-      action: 'Updated Permissions',
-      adminName: user ? user.name : 'Admin',
-      adminRole: user ? user.displayRole : 'Admin',
-      details: `${newValue ? 'Granted' : 'Revoked'} ${action} permission for ${role} role in ${module} module`,
-      entityType: 'Permission',
-      entityId: `${role}-${module}-${action}`,
-      changes: {
-        role: role,
-        module: module,
-        permission: action,
-        oldValue: oldValue,
-        newValue: newValue,
-        permissionPath: `${role}.${module}.${action}`
+    try {
+      // CRITICAL FIX: Send only the changed role to backend for precise audit logging
+      console.log('🚨 CRITICAL DEBUG: Sending only changed role to backend:', role);
+      const result = await updatePermissions(changedRolePermissions);
+      
+      console.log('🚨 CRITICAL DEBUG: updatePermissions result:', result);
+      
+      if (result && result.success) {
+        console.log('✅ Permission toggled successfully (API call succeeded):', `${role}.${module}.${action}`, oldValue, '→', newValue);
+        showSuccess(`${role}: ${module} ${action} permission ${newValue ? 'granted' : 'revoked'}`);
+        
+        // CRITICAL FIX: Add audit logging for permission changes
+        try {
+          console.log('🔄 Adding audit log for permission change...');
+          await addAuditLog({
+            action: 'Permission Updated',
+            adminName: user ? user.name : 'Unknown Admin',
+            adminRole: user ? user.displayRole : 'Unknown Role',
+            details: `${role}: ${module} ${action} permission ${newValue ? 'granted' : 'revoked'} (${oldValue ? 'true' : 'false'} → ${newValue ? 'true' : 'false'})`,
+            entityType: 'Permission System',
+            entityId: `${role}.${module}.${action}`,
+            changes: {
+              role: role,
+              module: module,
+              action: action,
+              oldValue: oldValue,
+              newValue: newValue,
+              permissionPath: `${role}.${module}.${action}`,
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log('✅ Audit log created for permission change');
+          
+          // CRITICAL: Refresh audit logs to show the new entry immediately
+          if (loadAuditLogs) {
+            console.log('🔄 Refreshing audit logs after permission change...');
+            setTimeout(() => {
+              loadAuditLogs();
+            }, 500); // Small delay to ensure backend audit log is created first
+          }
+          
+        } catch (auditError) {
+          console.error('❌ Failed to create audit log for permission change:', auditError);
+          // Don't fail the permission update if audit logging fails
+        }
+        
+        if (result.warning) {
+          console.warn('⚠️ Backend sync warning:', result.warning);
+        }
+        
+        // CRITICAL FIX: Refresh audit logs after permission change
+        try {
+          console.log('🔄 Refreshing audit logs after permission change...');
+          if (loadAuditLogs) {
+            await loadAuditLogs();
+            console.log('✅ Audit logs refreshed successfully');
+          }
+        } catch (refreshError) {
+          console.error('❌ Failed to refresh audit logs:', refreshError);
+        }
+      } else {
+        console.error('❌ Permission toggle failed:', result?.error);
+        showSuccess(`Error: ${result?.error || 'Failed to update permissions'}`);
       }
-    });
-    
-    // Show a success message
-    showSuccess(`${role}: ${module} ${action} permission ${newValue ? 'granted' : 'revoked'}`);
+    } catch (error) {
+      console.error('❌ Permission toggle error:', error);
+      showSuccess(`Error: ${error.message}`);
+    }
   };
 
   return (
@@ -728,12 +703,23 @@ const Administrator = () => {
                             <span className="last-used">{user.lastUsed}</span>
                           </td>
                           <td>
-                            <button
-                              className="view-button"
-                              onClick={() => handleViewUser(user)}
-                            >
-                              <FaEye size={16} /> {hasPermission('administrator', 'edit') ? 'Edit' : 'View'}
-                            </button>
+                            <div className="user-actions">
+                              <button
+                                className="view-button"
+                                onClick={() => handleViewUser(user)}
+                              >
+                                <FaEye size={16} /> {hasPermission('administrator', 'edit') ? 'Edit' : 'View'}
+                              </button>
+                              {hasPermission('administrator', 'delete') && (
+                                <button
+                                  className="delete-button"
+                                  onClick={() => handleDeleteUser(user)}
+                                  title="Delete User"
+                                >
+                                  <MdDelete size={16} />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -805,7 +791,7 @@ const Administrator = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {displayedUsers.map((user) => (
                       <tr key={user.id} className="user-row">
                         <td>
                           <span className="user-id">{user.userId}</span>
@@ -828,12 +814,23 @@ const Administrator = () => {
                           <span className="last-used">{user.lastUsed}</span>
                         </td>
                         <td>
-                          <button
-                            className="view-button"
-                            onClick={() => handleViewUser(user)}
-                          >
-                            <FaEye size={16} /> {hasPermission('administrator', 'edit') ? 'Edit' : 'View'}
-                          </button>
+                          <div className="user-actions">
+                            <button
+                              className="view-button"
+                              onClick={() => handleViewUser(user)}
+                            >
+                              <FaEye size={16} /> {hasPermission('administrator', 'edit') ? 'Edit' : 'View'}
+                            </button>
+                            {hasPermission('administrator', 'delete') && (
+                              <button
+                                className="delete-button"
+                                onClick={() => handleDeleteUser(user)}
+                                title="Delete User"
+                              >
+                                <MdDelete size={16} />
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -842,7 +839,7 @@ const Administrator = () => {
                 
                 {/* Mobile Cards for Recently Added Users */}
                 <div className="mobile-users-list">
-                  {users.map((user) => (
+                  {displayedUsers.map((user) => (
                     <div key={user.id} className="mobile-user-card">
                       <div className="mobile-user-header">
                         <div className="mobile-user-info">
@@ -878,6 +875,29 @@ const Administrator = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* See All Users Button */}
+              {!showAllUsers && totalActiveUsersCount > 7 && (
+                <div className="see-all-logs-container">
+                  <button 
+                    className="see-all-logs-button"
+                    onClick={() => setShowAllUsers(true)}
+                  >
+                    See All Users ({totalActiveUsersCount} total)
+                  </button>
+                </div>
+              )}
+              
+              {showAllUsers && totalActiveUsersCount > 7 && (
+                <div className="see-all-logs-container">
+                  <button 
+                    className="see-all-logs-button"
+                    onClick={() => setShowAllUsers(false)}
+                  >
+                    Show Less (Latest 7 only)
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Audit Log Section */}
@@ -906,9 +926,23 @@ const Administrator = () => {
                     </div>
                   </div>
                   
-                  <button onClick={handleExportAuditLog} className="export-button">
-                    <MdOutlineFileDownload size={18} /> Export
-                  </button>
+                  <div className="audit-log-buttons">
+                    <button 
+                      onClick={() => {
+                        console.log('🔄 Manual audit log refresh clicked');
+                        if (loadAuditLogs) {
+                          loadAuditLogs();
+                        }
+                      }} 
+                      className="refresh-button"
+                      title="Refresh audit logs from database"
+                    >
+                      🔄 Refresh
+                    </button>
+                    <button onClick={handleExportAuditLog} className="export-button">
+                      <MdOutlineFileDownload size={18} /> Export
+                    </button>
+                  </div>
                 </div>
               </div>
               
@@ -1080,7 +1114,14 @@ const Administrator = () => {
               </div>
               
               <div className="permissions-tables-container">
-                {Object.entries(permissions).map(([role, rolePermissions]) => (
+                {!currentPermissions || Object.keys(currentPermissions).length === 0 ? (
+                  <div style={{padding: '20px', textAlign: 'center'}}>
+                    <p>Loading permissions...</p>
+                    <p style={{fontSize: '12px', color: '#666'}}>
+                      Debug: currentPermissions = {JSON.stringify(currentPermissions)}
+                    </p>
+                  </div>
+                ) : Object.entries(currentPermissions).map(([role, rolePermissions]) => (
                   <div key={role} className="role-permissions-section">
                     <div className="role-section-header">
                       <span className={`role-label ${role.toLowerCase().replace(/\s+/g, '-')}`}>
@@ -1190,6 +1231,17 @@ const Administrator = () => {
               <form onSubmit={handleSubmit} className="user-form">
                 <div className="form-row">
                   <div className="form-group">
+                    <label>User ID*</label>
+                    <input
+                      type="text"
+                      value={formData.userId}
+                      onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
+                      placeholder="Enter user ID (e.g., USR001, EMP123)"
+                      className={errors.userId ? 'error' : ''}
+                    />
+                    {errors.userId && <span className="error-text">{errors.userId}</span>}
+                  </div>
+                  <div className="form-group">
                     <label>Username*</label>
                     <input
                       type="text"
@@ -1285,6 +1337,7 @@ const Administrator = () => {
                 <div className="form-actions">
                   <button type="button" className="clear-button" onClick={() => {
                     setFormData({
+                      userId: '',
                       username: '',
                       fullName: '',
                       role: 'Finance Executive',
@@ -1512,6 +1565,56 @@ const Administrator = () => {
                   </div>
                 )}
               </form>
+            </div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && userToDelete && (
+          <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+            <div className="modal-content delete-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div className="modal-title-with-icon">
+                  <MdDelete size={24} className="title-icon delete-icon" />
+                  <h2>Delete User</h2>
+                </div>
+                <button 
+                  className="close-button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  <MdClose size={20} />
+                </button>
+              </div>
+              
+              <div className="modal-body">
+                <div className="delete-confirmation">
+                  <p>Are you sure you want to delete this user?</p>
+                  <div className="user-details">
+                    <p><strong>User ID:</strong> {userToDelete.userId}</p>
+                    <p><strong>Username:</strong> {userToDelete.username}</p>
+                    <p><strong>Full Name:</strong> {userToDelete.fullName}</p>
+                    <p><strong>Role:</strong> {userToDelete.role}</p>
+                  </div>
+                  <div className="warning-message">
+                    <span>⚠️ This action will deactivate the user. They won't be able to access the system.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer">
+                <button 
+                  className="btn-cancel" 
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  className="btn-delete" 
+                  onClick={confirmDeleteUser}
+                >
+                  <MdDelete size={16} />
+                  Delete User
+                </button>
+              </div>
             </div>
           </div>
         )}

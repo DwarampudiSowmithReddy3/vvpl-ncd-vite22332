@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Browser Storage</title>
+</head>
+<body>
+    <h1>🧹 Clear Browser Storage</h1>
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <div id="result"></div>
+    
+    <script>
+        function clearStorage() {
+            // Clear localStorage
+            localStorage.clear();
+            
+            // Clear sessionStorage
+            sessionStorage.clear();
+            
+            // Show result
+            document.getElementById('result').innerHTML = `
+                <div style="background: #d4edda; padding: 10px; margin: 10px 0; border-radius: 4px;">
+                    ✅ All browser storage cleared!<br>
+                    - localStorage: cleared<br>
+                    - sessionStorage: cleared<br>
+                    <br>
+                    Now try logging in again at <a href="http://localhost:5174" target="_blank">http://localhost:5174</a>
+                </div>
+            `;
+        }
+        
+        // Auto-clear on page load
+        window.onload = function() {
+            clearStorage();
+        };
+    </script>
+</body>
+</html>

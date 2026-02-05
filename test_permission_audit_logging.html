@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Audit Logging Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+        .audit-entry { background: #f9f9f9; padding: 10px; margin: 5px 0; border-left: 3px solid #007bff; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Permission Audit Logging Test</h1>
+    <p><strong>Purpose:</strong> Verify that permission changes are properly logged in the audit trail</p>
+
+    <div class="test-section">
+        <h3>Test 1: Check Recent Audit Logs</h3>
+        <button onclick="checkRecentAuditLogs()">Check Recent Audit Logs</button>
+        <div id="auditLogsTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Test 2: Backend Audit Log Creation</h3>
+        <button onclick="testBackendAuditCreation()">Test Backend Audit Creation</button>
+        <div id="backendAuditTest"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Instructions for Testing Permission Audit Logging</h3>
+        <ol>
+            <li><strong>Go to Administrator page</strong> → Permissions tab</li>
+            <li><strong>Toggle any permission</strong> (e.g., Finance Executive → Dashboard → View)</li>
+            <li><strong>Wait 2-3 seconds</strong> for the audit log to be created</li>
+            <li><strong>Check the Audit Log section</strong> on the same page</li>
+            <li><strong>Look for "Permission Updated" entries</strong></li>
+            <li><strong>Refresh this test page</strong> and click "Check Recent Audit Logs"</li>
+        </ol>
+        
+        <div class="info">
+            <h4>What to Look For:</h4>
+            <ul>
+                <li><strong>Action:</strong> "Permission Updated" or "Updated Permissions"</li>
+                <li><strong>Details:</strong> Should show role, module, action, and old → new values</li>
+                <li><strong>Entity Type:</strong> "Permission System" or "Permissions"</li>
+                <li><strong>User:</strong> Your admin username</li>
+                <li><strong>Timestamp:</strong> Recent time when you made the change</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h3>Troubleshooting</h3>
+        <div class="info">
+            <h4>If audit logs are not appearing:</h4>
+            <ol>
+                <li><strong>Check browser console</strong> for error messages</li>
+                <li><strong>Verify backend is running</strong> on http://localhost:8000</li>
+                <li><strong>Check Network tab</strong> for failed API calls</li>
+                <li><strong>Try refreshing the Administrator page</strong></li>
+                <li><strong>Check if you're logged in as Super Admin</strong></li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        async function checkRecentAuditLogs() {
+            const result = document.getElementById('auditLogsTest');
+            result.innerHTML = '<p class="info">Checking recent audit logs...</p>';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    result.innerHTML = '<p class="error">❌ No auth token found. Please login first.</p>';
+                    return;
+                }
+
+                // Get recent audit logs
+                const response = await fetch('http://localhost:8000/audit/?limit=20', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const auditLogs = await response.json();
+                
+                // Filter for permission-related logs
+                const permissionLogs = auditLogs.filter(log => 
+                    log.action.toLowerCase().includes('permission') ||
+                    log.entity_type === 'Permission System' ||
+                    log.entity_type === 'Permissions'
+                );
+
+                if (permissionLogs.length === 0) {
+                    result.innerHTML = `
+                        <p class="error">❌ No permission-related audit logs found</p>
+                        <p class="info">Total audit logs checked: ${auditLogs.length}</p>
+                        <p class="info">Try toggling a permission and check again</p>
+                    `;
+                } else {
+                    let html = `<p class="success">✅ Found ${permissionLogs.length} permission-related audit logs:</p>`;
+                    
+                    permissionLogs.slice(0, 5).forEach(log => {
+                        html += `
+                            <div class="audit-entry">
+                                <strong>Action:</strong> ${log.action}<br>
+                                <strong>User:</strong> ${log.admin_name} (${log.admin_role})<br>
+                                <strong>Details:</strong> ${log.details}<br>
+                                <strong>Entity:</strong> ${log.entity_type} - ${log.entity_id}<br>
+                                <strong>Time:</strong> ${new Date(log.timestamp).toLocaleString()}<br>
+                                ${log.changes ? `<strong>Changes:</strong> <pre>${JSON.stringify(JSON.parse(log.changes), null, 2)}</pre>` : ''}
+                            </div>
+                        `;
+                    });
+                    
+                    result.innerHTML = html;
+                }
+                
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Error checking audit logs: ${error.message}</p>`;
+            }
+        }
+
+        async function testBackendAuditCreation() {
+            const result = document.getElementById('backendAuditTest');
+            result.innerHTML = '<p class="info">Testing backend audit creation...</p>';
+            
+            try {
+                const token = localStorage.getItem('authToken');
+                if (!token) {
+                    result.innerHTML = '<p class="error">❌ No auth token found. Please login first.</p>';
+                    return;
+                }
+
+                // Test creating a direct audit log
+                const testAuditData = {
+                    action: "Test Permission Audit",
+                    admin_name: "Test Admin",
+                    admin_role: "Super Admin",
+                    details: "Testing permission audit logging system",
+                    entity_type: "Permission System",
+                    entity_id: "Test.module.action",
+                    changes: JSON.stringify({
+                        test: true,
+                        timestamp: new Date().toISOString()
+                    })
+                };
+
+                const response = await fetch('http://localhost:8000/audit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(testAuditData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const responseData = await response.json();
+                
+                result.innerHTML = `
+                    <p class="success">✅ Backend audit creation successful!</p>
+                    <p><strong>Response:</strong></p>
+                    <pre>${JSON.stringify(responseData, null, 2)}</pre>
+                    <p class="info">This confirms the backend audit system is working</p>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `<p class="error">❌ Backend audit test failed: ${error.message}</p>`;
+            }
+        }
+
+        // Auto-run the audit logs check on page load
+        window.onload = function() {
+            setTimeout(checkRecentAuditLogs, 1000);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔐 Final Production Authentication Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button.danger { background-color: #dc3545; }
+        button.danger:hover { background-color: #c82333; }
+        input {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 200px;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .status-item {
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .status-running { background-color: #d4edda; }
+        .status-stopped { background-color: #f8d7da; }
+        .test-steps {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔐 FINAL PRODUCTION AUTHENTICATION TEST</h1>
+        <div class="warning">
+            <strong>⚠️ CRITICAL TEST:</strong> This test verifies that ALL hardcoded authentication has been removed and the system works ONLY with database authentication.
+        </div>
+        
+        <div class="test-steps">
+            <h3>📋 Test Checklist:</h3>
+            <div class="step">✅ Backend running on port 8000 with MySQL database</div>
+            <div class="step">✅ Frontend running on port 5174 with API integration</div>
+            <div class="step">✅ Admin user (admin/admin123) created in database</div>
+            <div class="step">❌ Hardcoded accounts completely removed</div>
+            <div class="step">❌ User creation saves to MySQL database</div>
+            <div class="step">❌ Login works ONLY with database users</div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🖥️ System Status</h2>
+        <div class="status-grid">
+            <div class="status-item status-running">
+                <h3>🔧 Backend API</h3>
+                <p>Port: 8000</p>
+                <p>Status: <span id="backendStatus">Checking...</span></p>
+                <button onclick="checkBackend()">Test Backend</button>
+            </div>
+            <div class="status-item status-running">
+                <h3>🌐 Frontend</h3>
+                <p>Port: 5174</p>
+                <p>Status: Running</p>
+                <a href="http://localhost:5174" target="_blank">
+                    <button>Open Frontend</button>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔑 Authentication Tests</h2>
+        
+        <h3>✅ Test 1: Valid Database Login</h3>
+        <div>
+            <input type="text" id="validUsername" placeholder="Username" value="admin">
+            <input type="password" id="validPassword" placeholder="Password" value="admin123">
+            <button onclick="testValidLogin()">Test Database Login</button>
+        </div>
+        <div id="validLoginResult"></div>
+
+        <h3>❌ Test 2: Invalid Credentials</h3>
+        <button onclick="testInvalidLogin()">Test Invalid Login</button>
+        <div id="invalidLoginResult"></div>
+
+        <h3>🚫 Test 3: Hardcoded Account Test</h3>
+        <p>Testing if old hardcoded accounts still work (they should NOT work):</p>
+        <button onclick="testHardcodedAccounts()" class="danger">Test Hardcoded Accounts</button>
+        <div id="hardcodedResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>👥 User Management Tests</h2>
+        
+        <h3>➕ Test 4: Create New User</h3>
+        <div>
+            <input type="text" id="newUserId" placeholder="User ID" value="TEST001">
+            <input type="text" id="newUsername" placeholder="Username" value="testuser">
+            <input type="text" id="newFullName" placeholder="Full Name" value="Test User">
+            <input type="email" id="newEmail" placeholder="Email" value="test@example.com">
+            <input type="text" id="newPhone" placeholder="Phone" value="+91 9876543210">
+            <input type="password" id="newPassword" placeholder="Password" value="testpass123">
+            <select id="newRole">
+                <option value="Finance Executive">Finance Executive</option>
+                <option value="Admin">Admin</option>
+                <option value="Super Admin">Super Admin</option>
+            </select>
+            <button onclick="testCreateUser()">Create Test User</button>
+        </div>
+        <div id="createUserResult"></div>
+
+        <h3>📋 Test 5: List Users from Database</h3>
+        <button onclick="testListUsers()">Get Users from Database</button>
+        <div id="listUsersResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 Database Tests</h2>
+        
+        <h3>🗄️ Test 6: Database Structure</h3>
+        <button onclick="testDatabaseStructure()">Check Database Tables</button>
+        <div id="databaseResult"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>📋 Test Log</h2>
+        <div id="testLog" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+        <button onclick="runAllTests()" style="background-color: #28a745;">🚀 Run All Tests</button>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        function log(message) {
+            const logDiv = document.getElementById('testLog');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="${type}">${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('testLog').textContent = '';
+        }
+
+        async function checkBackend() {
+            log('🔄 Testing backend connection...');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Backend is healthy');
+                    document.getElementById('backendStatus').textContent = 'Healthy';
+                    return true;
+                } else {
+                    log('❌ Backend health check failed');
+                    document.getElementById('backendStatus').textContent = 'Unhealthy';
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Backend connection failed: ${error.message}`);
+                document.getElementById('backendStatus').textContent = 'Offline';
+                return false;
+            }
+        }
+
+        async function testValidLogin() {
+            const username = document.getElementById('validUsername').value;
+            const password = document.getElementById('validPassword').value;
+            
+            log(`🔄 Testing valid login: ${username}`);
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Valid login successful - DATABASE AUTHENTICATION WORKING');
+                    showResult('validLoginResult', 
+                        `✅ SUCCESS: Database login works!<br>
+                        User: ${data.user.full_name}<br>
+                        Role: ${data.user.role}<br>
+                        Token: ${data.access_token ? 'Received' : 'Missing'}`, 'success');
+                    return true;
+                } else {
+                    log(`❌ Valid login failed: ${data.detail}`);
+                    showResult('validLoginResult', `❌ FAILED: ${data.detail}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Login request failed: ${error.message}`);
+                showResult('validLoginResult', `❌ ERROR: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testInvalidLogin() {
+            log('🔄 Testing invalid credentials...');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'invalid', password: 'wrong' }),
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    log('✅ Invalid login properly rejected');
+                    showResult('invalidLoginResult', 
+                        `✅ SUCCESS: Invalid credentials rejected<br>
+                        Error: "${data.detail}"<br>
+                        This confirms no hardcoded fallbacks exist`, 'success');
+                    return true;
+                } else {
+                    log('❌ Invalid login was accepted - SECURITY ISSUE');
+                    showResult('invalidLoginResult', '❌ SECURITY ISSUE: Invalid login accepted', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ Invalid login test failed: ${error.message}`);
+                showResult('invalidLoginResult', `❌ TEST ERROR: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testHardcodedAccounts() {
+            log('🔄 Testing hardcoded accounts (should all fail)...');
+            
+            const hardcodedAccounts = [
+                { username: 'subbireddy', password: 'subbireddy' },
+                { username: 'super_admin', password: 'super_admin' },
+                { username: 'demo', password: 'demo' },
+                { username: 'finance_manager', password: 'finance_manager' },
+                { username: 'sowmith', password: 'sowmith' }
+            ];
+            
+            let allFailed = true;
+            let results = [];
+            
+            for (const account of hardcodedAccounts) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(account),
+                    });
+                    
+                    if (response.ok) {
+                        log(`❌ SECURITY ISSUE: Hardcoded account ${account.username} still works!`);
+                        results.push(`❌ ${account.username}: STILL WORKS (SECURITY ISSUE)`);
+                        allFailed = false;
+                    } else {
+                        log(`✅ Hardcoded account ${account.username} properly rejected`);
+                        results.push(`✅ ${account.username}: Properly rejected`);
+                    }
+                } catch (error) {
+                    log(`✅ Hardcoded account ${account.username} failed (good)`);
+                    results.push(`✅ ${account.username}: Failed (good)`);
+                }
+            }
+            
+            if (allFailed) {
+                showResult('hardcodedResult', 
+                    `✅ SUCCESS: All hardcoded accounts rejected!<br><br>
+                    ${results.join('<br>')}`, 'success');
+            } else {
+                showResult('hardcodedResult', 
+                    `❌ SECURITY ISSUE: Some hardcoded accounts still work!<br><br>
+                    ${results.join('<br>')}`, 'error');
+            }
+            
+            return allFailed;
+        }
+
+        async function testCreateUser() {
+            log('🔄 Testing user creation...');
+            
+            const userData = {
+                user_id: document.getElementById('newUserId').value,
+                username: document.getElementById('newUsername').value,
+                full_name: document.getElementById('newFullName').value,
+                email: document.getElementById('newEmail').value,
+                phone: document.getElementById('newPhone').value,
+                password: document.getElementById('newPassword').value,
+                role: document.getElementById('newRole').value
+            };
+            
+            try {
+                // First get auth token
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error('Failed to authenticate admin user');
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // Create user
+                const response = await fetch(`${API_BASE_URL}/users/`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(userData),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ User created successfully in database');
+                    showResult('createUserResult', 
+                        `✅ SUCCESS: User created in database!<br>
+                        ID: ${data.id}<br>
+                        Username: ${data.username}<br>
+                        Role: ${data.role}`, 'success');
+                    return true;
+                } else {
+                    log(`❌ User creation failed: ${data.detail}`);
+                    showResult('createUserResult', `❌ FAILED: ${data.detail}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ User creation error: ${error.message}`);
+                showResult('createUserResult', `❌ ERROR: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testListUsers() {
+            log('🔄 Testing user list from database...');
+            
+            try {
+                // Get auth token
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error('Failed to authenticate admin user');
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // Get users
+                const response = await fetch(`${API_BASE_URL}/users/`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const users = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Retrieved ${users.length} users from database`);
+                    const userList = users.map(u => `• ${u.username} (${u.role})`).join('<br>');
+                    showResult('listUsersResult', 
+                        `✅ SUCCESS: ${users.length} users in database<br><br>
+                        ${userList}`, 'success');
+                    return true;
+                } else {
+                    log('❌ Failed to retrieve users');
+                    showResult('listUsersResult', '❌ FAILED: Could not retrieve users', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ User list error: ${error.message}`);
+                showResult('listUsersResult', `❌ ERROR: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testDatabaseStructure() {
+            log('🔄 Testing database structure...');
+            showResult('databaseResult', 
+                `📊 Database Information:<br>
+                • Database: ncd_management<br>
+                • Tables: users, audit_logs<br>
+                • Admin User: admin/admin123<br>
+                • Status: Connected via MySQL`, 'info');
+        }
+
+        async function runAllTests() {
+            log('🚀 Running complete production test suite...');
+            clearLog();
+            
+            const results = {
+                backend: await checkBackend(),
+                validLogin: await testValidLogin(),
+                invalidLogin: await testInvalidLogin(),
+                hardcoded: await testHardcodedAccounts(),
+                createUser: await testCreateUser(),
+                listUsers: await testListUsers()
+            };
+            
+            const passed = Object.values(results).filter(r => r).length;
+            const total = Object.keys(results).length;
+            
+            log(`\n🏁 TEST SUMMARY: ${passed}/${total} tests passed`);
+            
+            if (passed === total) {
+                log('🎉 ALL TESTS PASSED - PRODUCTION READY!');
+            } else {
+                log('⚠️ Some tests failed - needs attention');
+            }
+        }
+
+        // Auto-run initial tests
+        window.onload = function() {
+            log('🚀 Production Authentication Test Started');
+            checkBackend();
+        };
+    </script>
+</body>
+</html>

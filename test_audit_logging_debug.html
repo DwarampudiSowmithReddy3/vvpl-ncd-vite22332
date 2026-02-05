@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audit Logging Debug Test</title>
+</head>
+<body>
+    <h1>Audit Logging Debug Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        // Test function to create audit log
+        async function testAuditLog() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                // Get token first (assuming admin/admin123 login)
+                console.log('🔄 Step 1: Logging in...');
+                const loginResponse = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                console.log('✅ Login successful:', loginData);
+                
+                const token = loginData.access_token;
+                
+                // Test audit log creation
+                console.log('🔄 Step 2: Creating audit log...');
+                
+                const auditData = {
+                    action: 'Test Action',
+                    admin_name: 'Test Admin',
+                    admin_role: 'Super Admin',
+                    details: 'This is a test audit log entry',
+                    entity_type: 'Test',
+                    entity_id: 'test-123',
+                    changes: {
+                        test: 'value',
+                        timestamp: new Date().toISOString()
+                    }
+                };
+                
+                console.log('🔄 Sending audit data:', auditData);
+                
+                const auditResponse = await fetch(`${API_BASE_URL}/audit/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(auditData)
+                });
+                
+                console.log('📡 Audit response status:', auditResponse.status);
+                
+                if (!auditResponse.ok) {
+                    const errorText = await auditResponse.text();
+                    console.error('❌ Audit response error:', errorText);
+                    throw new Error(`Audit log creation failed: ${auditResponse.status} - ${errorText}`);
+                }
+                
+                const auditResult = await auditResponse.json();
+                console.log('✅ Audit log created successfully:', auditResult);
+                
+                resultsDiv.innerHTML = `
+                    <h2>✅ Test Successful!</h2>
+                    <p><strong>Login:</strong> Success</p>
+                    <p><strong>Audit Log Creation:</strong> Success</p>
+                    <p><strong>Audit Log ID:</strong> ${auditResult.id}</p>
+                    <pre>${JSON.stringify(auditResult, null, 2)}</pre>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                resultsDiv.innerHTML = `
+                    <h2>❌ Test Failed!</h2>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the browser console for more details.</p>
+                `;
+            }
+        }
+        
+        // Run test when page loads
+        window.addEventListener('load', testAuditLog);
+    </script>
+</body>
+</html>

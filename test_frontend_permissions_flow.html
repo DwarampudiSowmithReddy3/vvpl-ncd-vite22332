@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Permissions Flow</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .test-results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .success {
+            color: #059669;
+        }
+        
+        .error {
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test Frontend Permissions Flow</h1>
+        <p>This test simulates what happens when you toggle a permission in the Administrator page</p>
+        
+        <div>
+            <button class="test-button" onclick="testFullFlow()">Test Full Permission Update Flow</button>
+            <button class="test-button" onclick="testGetPermissions()">Test GET Permissions</button>
+            <button class="test-button" onclick="testUpdatePermissions()">Test UPDATE Permissions</button>
+            <button class="test-button" onclick="checkDatabase()">Check Database</button>
+        </div>
+        
+        <div id="testResults" class="test-results"></div>
+    </div>
+
+    <script>
+        let token = null;
+        
+        function log(message, isError = false) {
+            const resultsDiv = document.getElementById('testResults');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            resultsDiv.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            resultsDiv.scrollTop = resultsDiv.scrollHeight;
+        }
+        
+        async function login() {
+            if (token) return token;
+            
+            try {
+                log('🔐 Logging in as admin...');
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Login failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                token = data.access_token;
+                log(`✅ Login successful, token: ${token.substring(0, 20)}...`);
+                return token;
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, true);
+                throw error;
+            }
+        }
+        
+        async function testGetPermissions() {
+            try {
+                document.getElementById('testResults').innerHTML = '';
+                await login();
+                
+                log('📥 Getting permissions from backend...');
+                const response = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`GET failed: ${response.status}`);
+                }
+                
+                const permissions = await response.json();
+                log(`✅ Got permissions for ${Object.keys(permissions).length} roles`);
+                log(`✅ Super Admin administrator permissions: ${JSON.stringify(permissions['Super Admin']['administrator'])}`);
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+            }
+        }
+        
+        async function testUpdatePermissions() {
+            try {
+                document.getElementById('testResults').innerHTML = '';
+                await login();
+                
+                log('📤 Updating permissions in backend...');
+                
+                // Toggle Super Admin administrator view permission
+                const testUpdate = {
+                    "Super Admin": {
+                        "administrator": {
+                            "view": false,  // Toggle to false
+                            "create": true,
+                            "edit": true,
+                            "delete": true
+                        }
+                    }
+                };
+                
+                log(`📤 Sending update: ${JSON.stringify(testUpdate)}`);
+                
+                const response = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUpdate)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`PUT failed: ${response.status} - ${await response.text()}`);
+                }
+                
+                const result = await response.json();
+                log(`✅ Update successful: ${JSON.stringify(result)}`);
+                
+                // Verify the update
+                log('🔍 Verifying update...');
+                const verifyResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                const permissions = await verifyResponse.json();
+                log(`✅ Verified: Super Admin administrator view = ${permissions['Super Admin']['administrator']['view']}`);
+                
+                // Toggle back to true
+                log('🔄 Toggling back to true...');
+                testUpdate['Super Admin']['administrator']['view'] = true;
+                
+                const response2 = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testUpdate)
+                });
+                
+                const result2 = await response2.json();
+                log(`✅ Toggled back: ${JSON.stringify(result2)}`);
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+            }
+        }
+        
+        async function checkDatabase() {
+            try {
+                document.getElementById('testResults').innerHTML = '';
+                await login();
+                
+                log('🔍 Checking database permissions...');
+                const response = await fetch('http://localhost:8000/permissions/Super%20Admin', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`GET failed: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                log(`✅ Database has ${Object.keys(data.permissions).length} modules for Super Admin`);
+                log(`✅ Administrator permissions: ${JSON.stringify(data.permissions.administrator)}`);
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+            }
+        }
+        
+        async function testFullFlow() {
+            try {
+                document.getElementById('testResults').innerHTML = '';
+                log('🚀 Starting full permission update flow test...');
+                log('');
+                
+                // Step 1: Login
+                await login();
+                log('');
+                
+                // Step 2: Get current permissions
+                log('📥 Step 1: Getting current permissions...');
+                let response = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                let permissions = await response.json();
+                const originalValue = permissions['Super Admin']['administrator']['view'];
+                log(`✅ Current value: Super Admin administrator view = ${originalValue}`);
+                log('');
+                
+                // Step 3: Toggle permission
+                log('🔄 Step 2: Toggling permission to opposite value...');
+                const newValue = !originalValue;
+                const updateData = {
+                    "Super Admin": {
+                        "administrator": {
+                            "view": newValue,
+                            "create": true,
+                            "edit": true,
+                            "delete": true
+                        }
+                    }
+                };
+                
+                response = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const updateResult = await response.json();
+                log(`✅ Update result: ${JSON.stringify(updateResult)}`);
+                log('');
+                
+                // Step 4: Verify the change
+                log('🔍 Step 3: Verifying the change in database...');
+                response = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                permissions = await response.json();
+                const verifiedValue = permissions['Super Admin']['administrator']['view'];
+                log(`✅ Verified value: Super Admin administrator view = ${verifiedValue}`);
+                
+                if (verifiedValue === newValue) {
+                    log('✅ SUCCESS: Permission was updated correctly in database!', false);
+                } else {
+                    log(`❌ FAILURE: Expected ${newValue} but got ${verifiedValue}`, true);
+                }
+                log('');
+                
+                // Step 5: Toggle back
+                log('🔄 Step 4: Toggling back to original value...');
+                updateData['Super Admin']['administrator']['view'] = originalValue;
+                
+                response = await fetch('http://localhost:8000/permissions/', {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(updateData)
+                });
+                
+                const restoreResult = await response.json();
+                log(`✅ Restore result: ${JSON.stringify(restoreResult)}`);
+                log('');
+                
+                log('🎉 Full flow test completed successfully!');
+                
+            } catch (error) {
+                log(`❌ Test failed: ${error.message}`, true);
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Persistence Test - FINAL FIX</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-step {
+            background: #e8f4fd;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            margin: 10px 0;
+        }
+        .success {
+            background: #e8f5e8;
+            border-left-color: #4CAF50;
+        }
+        .error {
+            background: #ffeaea;
+            border-left-color: #f44336;
+        }
+        .warning {
+            background: #fff3cd;
+            border-left-color: #ff9800;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .critical {
+            background: #ffebee;
+            border: 2px solid #f44336;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Permission Persistence Test - FINAL FIX</h1>
+    
+    <div class="critical">
+        <h2>🚨 CRITICAL ISSUE IDENTIFIED AND FIXED</h2>
+        <p><strong>Problem:</strong> Permissions were reverting to defaults after page refresh despite successful backend saves.</p>
+        <p><strong>Root Cause:</strong> Race condition between localStorage loading and backend permission loading in AuthContext.</p>
+        <p><strong>Fix Applied:</strong> Removed localStorage loading on startup, ensured backend permissions always take precedence, added proper error handling and fallbacks.</p>
+    </div>
+
+    <div class="test-container">
+        <h2>🧪 Test Instructions</h2>
+        <div class="test-step">
+            <strong>Step 1:</strong> Login to the application with admin/admin123
+        </div>
+        <div class="test-step">
+            <strong>Step 2:</strong> Go to Administrator → Permissions tab
+        </div>
+        <div class="test-step">
+            <strong>Step 3:</strong> Toggle any permission (e.g., Finance Executive → NCD Series → View)
+        </div>
+        <div class="test-step">
+            <strong>Step 4:</strong> Verify the success message appears
+        </div>
+        <div class="test-step">
+            <strong>Step 5:</strong> Refresh the page (F5 or Ctrl+R)
+        </div>
+        <div class="test-step success">
+            <strong>Expected Result:</strong> Permission should remain in the toggled state (NOT revert to default)
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔍 Debug Console Commands</h2>
+        <p>Open browser console (F12) and run these commands to debug:</p>
+        
+        <div class="code">
+// Check current permissions in state
+console.log('Current permissions:', window.authContext?.permissions);
+
+// Check localStorage backup
+console.log('localStorage permissions:', JSON.parse(localStorage.getItem('userPermissions') || '{}'));
+
+// Check specific Finance Executive permissions
+const perms = window.authContext?.permissions || JSON.parse(localStorage.getItem('userPermissions') || '{}');
+console.log('Finance Executive NCD Series:', perms['Finance Executive']?.['ncdSeries']);
+
+// Check if backend API is working
+fetch('http://localhost:8000/permissions/', {
+    headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
+        'Content-Type': 'application/json'
+    }
+})
+.then(r => r.json())
+.then(data => console.log('Backend permissions:', data))
+.catch(err => console.error('Backend error:', err));
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔧 Changes Made</h2>
+        <div class="test-step">
+            <strong>1. Removed localStorage loading on startup</strong><br>
+            Prevented race condition where localStorage would overwrite backend permissions
+        </div>
+        <div class="test-step">
+            <strong>2. Enhanced loadPermissions function</strong><br>
+            Added proper validation, error handling, and state updates
+        </div>
+        <div class="test-step">
+            <strong>3. Improved initialization flow</strong><br>
+            Added try-catch blocks and fallback mechanisms for robust permission loading
+        </div>
+        <div class="test-step">
+            <strong>4. Added localStorage fallback</strong><br>
+            If backend fails, system falls back to localStorage as emergency backup
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 Test Results</h2>
+        <div id="testResults">
+            <p>Run the test steps above and check the results here.</p>
+        </div>
+        
+        <button onclick="runQuickTest()">🚀 Run Quick Test</button>
+        <button onclick="checkPermissionState()">🔍 Check Permission State</button>
+        <button onclick="clearAllData()">🗑️ Clear All Data</button>
+    </div>
+
+    <script>
+        function runQuickTest() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<h3>🧪 Quick Test Results:</h3>';
+            
+            // Check if user is logged in
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                results.innerHTML += '<div class="error">❌ Not logged in - please login first</div>';
+                return;
+            }
+            
+            // Check permissions in localStorage
+            const localPerms = localStorage.getItem('userPermissions');
+            if (localPerms) {
+                results.innerHTML += '<div class="success">✅ Permissions found in localStorage</div>';
+                const parsed = JSON.parse(localPerms);
+                results.innerHTML += `<div class="test-step">📊 Found ${Object.keys(parsed).length} roles in localStorage</div>`;
+            } else {
+                results.innerHTML += '<div class="warning">⚠️ No permissions in localStorage</div>';
+            }
+            
+            // Test backend API
+            fetch('http://localhost:8000/permissions/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    results.innerHTML += '<div class="success">✅ Backend API responding</div>';
+                    return response.json();
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            })
+            .then(data => {
+                results.innerHTML += `<div class="success">✅ Backend returned ${Object.keys(data).length} roles</div>`;
+                
+                // Check specific permission
+                const fe = data['Finance Executive'];
+                if (fe && fe.ncdSeries) {
+                    results.innerHTML += `<div class="test-step">📋 Finance Executive NCD Series View: ${fe.ncdSeries.view}</div>`;
+                }
+            })
+            .catch(error => {
+                results.innerHTML += `<div class="error">❌ Backend API error: ${error.message}</div>`;
+            });
+        }
+        
+        function checkPermissionState() {
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<h3>🔍 Permission State Check:</h3>';
+            
+            // Check if React context is available
+            if (window.authContext) {
+                const perms = window.authContext.permissions;
+                results.innerHTML += '<div class="success">✅ React AuthContext available</div>';
+                results.innerHTML += `<div class="test-step">📊 Context has ${Object.keys(perms).length} roles</div>`;
+                
+                const fe = perms['Finance Executive'];
+                if (fe && fe.ncdSeries) {
+                    results.innerHTML += `<div class="test-step">📋 Finance Executive NCD Series View: ${fe.ncdSeries.view}</div>`;
+                }
+            } else {
+                results.innerHTML += '<div class="warning">⚠️ React AuthContext not available in window</div>';
+            }
+            
+            // Check localStorage
+            const localPerms = localStorage.getItem('userPermissions');
+            if (localPerms) {
+                const parsed = JSON.parse(localPerms);
+                results.innerHTML += '<div class="success">✅ localStorage permissions available</div>';
+                
+                const fe = parsed['Finance Executive'];
+                if (fe && fe.ncdSeries) {
+                    results.innerHTML += `<div class="test-step">📋 localStorage Finance Executive NCD Series View: ${fe.ncdSeries.view}</div>`;
+                }
+            } else {
+                results.innerHTML += '<div class="error">❌ No localStorage permissions</div>';
+            }
+        }
+        
+        function clearAllData() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userPermissions');
+            localStorage.removeItem('user');
+            
+            const results = document.getElementById('testResults');
+            results.innerHTML = '<div class="success">✅ All data cleared. Please refresh and login again.</div>';
+        }
+        
+        // Auto-run quick test on page load
+        setTimeout(runQuickTest, 1000);
+    </script>
+</body>
+</html>

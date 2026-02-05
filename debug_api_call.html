@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug API Call</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+        
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .success { border-left: 4px solid #059669; }
+        .error { border-left: 4px solid #dc2626; }
+    </style>
+</head>
+<body>
+    <h1>🔍 API Debug Tool</h1>
+    
+    <div class="test-section">
+        <h3>Test Backend API Calls</h3>
+        <button onclick="testHealth()">Test Health</button>
+        <button onclick="testLogin()">Test Login (admin/admin123)</button>
+        <button onclick="testLoginWrong()">Test Wrong Credentials</button>
+        <button onclick="testCORS()">Test CORS</button>
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Frontend API Service Test</h3>
+        <button onclick="testFrontendAPI()">Test Frontend API Service</button>
+        <div id="frontendResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.textContent = content;
+        }
+        
+        function showFrontendResult(content, isError = false) {
+            const resultDiv = document.getElementById('frontendResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = `result ${isError ? 'error' : 'success'}`;
+            resultDiv.textContent = content;
+        }
+        
+        async function testHealth() {
+            try {
+                const response = await fetch('http://localhost:8000/health');
+                const data = await response.json();
+                showResult(`Health Check Success:\n${JSON.stringify(data, null, 2)}`);
+            } catch (error) {
+                showResult(`Health Check Error:\n${error.message}`, true);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`Login Success:\n${JSON.stringify({
+                        success: true,
+                        token: data.access_token ? data.access_token.substring(0, 20) + '...' : null,
+                        user: data.user
+                    }, null, 2)}`);
+                } else {
+                    showResult(`Login Failed:\n${JSON.stringify(data, null, 2)}`, true);
+                }
+            } catch (error) {
+                showResult(`Login Error:\n${error.message}`, true);
+            }
+        }
+        
+        async function testLoginWrong() {
+            try {
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'wrongpassword'
+                    })
+                });
+                
+                const data = await response.json();
+                showResult(`Wrong Credentials Test:\nStatus: ${response.status}\nResponse: ${JSON.stringify(data, null, 2)}`, !response.ok);
+            } catch (error) {
+                showResult(`Wrong Credentials Error:\n${error.message}`, true);
+            }
+        }
+        
+        async function testCORS() {
+            try {
+                const response = await fetch('http://localhost:8000/auth/login', {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Origin': 'http://localhost:5175',
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type'
+                    }
+                });
+                
+                showResult(`CORS Test:\nStatus: ${response.status}\nHeaders: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+            } catch (error) {
+                showResult(`CORS Error:\n${error.message}`, true);
+            }
+        }
+        
+        // Test using the same API service as the frontend
+        async function testFrontendAPI() {
+            try {
+                // Simulate the frontend API service
+                const API_BASE_URL = 'http://localhost:8000';
+                
+                const response = await fetch(`${API_BASE_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (response.status === 401) {
+                    throw new Error('Authentication failed. Please login again.');
+                }
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                showFrontendResult(`Frontend API Service Test Success:\n${JSON.stringify({
+                    success: true,
+                    token: data.access_token ? data.access_token.substring(0, 20) + '...' : null,
+                    user: data.user
+                }, null, 2)}`);
+                
+            } catch (error) {
+                showFrontendResult(`Frontend API Service Error:\n${error.message}`, true);
+            }
+        }
+    </script>
+</body>
+</html>

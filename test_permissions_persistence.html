@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permissions Persistence Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
+        }
+        
+        .success {
+            border-left-color: #059669;
+            background: #ecfdf5;
+        }
+        
+        .error {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        
+        .test-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        .test-button:hover {
+            background: #1d4ed8;
+        }
+        
+        .results {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .instructions {
+            background: #fef3c7;
+            color: #92400e;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Permissions Persistence Test</h1>
+        <p>This test verifies that permission changes are saved and persist after page refresh.</p>
+        
+        <div class="instructions">
+            <strong>📋 Test Instructions:</strong><br>
+            1. Click "Check Current Permissions" to see the current state<br>
+            2. Go to the Administrator page → Permissions tab<br>
+            3. Toggle the "NCD Series View" permission for Finance Executive<br>
+            4. Come back here and click "Check Current Permissions" again<br>
+            5. Refresh this page and check again - it should persist!
+        </div>
+        
+        <div class="test-section">
+            <h3>🧪 Permission Tests</h3>
+            <button class="test-button" onclick="checkCurrentPermissions()">Check Current Permissions</button>
+            <button class="test-button" onclick="checkLocalStorage()">Check localStorage</button>
+            <button class="test-button" onclick="clearPermissions()">Clear Saved Permissions</button>
+            <div id="results" class="results" style="display: none;"></div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 Quick Links</h3>
+            <a href="http://localhost:5175/administrator" target="_blank" style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin: 5px;">
+                👥 Administrator Page
+            </a>
+            <a href="http://localhost:5175" target="_blank" style="display: inline-block; background: #059669; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin: 5px;">
+                🏠 Home Page
+            </a>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Expected Behavior</h3>
+            <ul>
+                <li><strong>Before Fix:</strong> Permission changes reset after page refresh</li>
+                <li><strong>After Fix:</strong> Permission changes persist after page refresh</li>
+                <li><strong>Storage:</strong> Permissions saved in localStorage as 'userPermissions'</li>
+                <li><strong>Loading:</strong> Permissions loaded from localStorage on app startup</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function showResults(content, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.textContent = content;
+            resultsDiv.style.color = isError ? '#dc2626' : '#1e293b';
+        }
+        
+        function checkCurrentPermissions() {
+            try {
+                const savedPermissions = localStorage.getItem('userPermissions');
+                
+                if (savedPermissions) {
+                    const permissions = JSON.parse(savedPermissions);
+                    
+                    // Check Finance Executive NCD Series permissions
+                    const financeExec = permissions['Finance Executive'];
+                    if (financeExec && financeExec.ncdSeries) {
+                        const ncdSeriesPerms = financeExec.ncdSeries;
+                        
+                        const result = `✅ Permissions Found in localStorage:
+
+Finance Executive - NCD Series Permissions:
+- View: ${ncdSeriesPerms.view ? '✅ ENABLED' : '❌ DISABLED'}
+- Create: ${ncdSeriesPerms.create ? '✅ ENABLED' : '❌ DISABLED'}
+- Edit: ${ncdSeriesPerms.edit ? '✅ ENABLED' : '❌ DISABLED'}
+- Delete: ${ncdSeriesPerms.delete ? '✅ ENABLED' : '❌ DISABLED'}
+
+🔍 Test Status:
+- If you toggled NCD Series View to DISABLED and it shows DISABLED above, the fix is working!
+- If it shows ENABLED after you disabled it, there's still an issue.
+
+Last Updated: ${new Date().toLocaleString()}`;
+                        
+                        showResults(result);
+                    } else {
+                        showResults('❌ Finance Executive or NCD Series permissions not found', true);
+                    }
+                } else {
+                    showResults('❌ No permissions found in localStorage', true);
+                }
+            } catch (error) {
+                showResults(`❌ Error checking permissions: ${error.message}`, true);
+            }
+        }
+        
+        function checkLocalStorage() {
+            try {
+                const savedPermissions = localStorage.getItem('userPermissions');
+                
+                if (savedPermissions) {
+                    const permissions = JSON.parse(savedPermissions);
+                    const result = `📂 localStorage Content:
+
+Key: userPermissions
+Size: ${savedPermissions.length} characters
+Roles: ${Object.keys(permissions).join(', ')}
+
+Sample Data (Finance Executive):
+${JSON.stringify(permissions['Finance Executive'], null, 2)}`;
+                    
+                    showResults(result);
+                } else {
+                    showResults('❌ No userPermissions found in localStorage', true);
+                }
+            } catch (error) {
+                showResults(`❌ Error reading localStorage: ${error.message}`, true);
+            }
+        }
+        
+        function clearPermissions() {
+            try {
+                localStorage.removeItem('userPermissions');
+                showResults('✅ Permissions cleared from localStorage. Refresh the app to see default permissions.');
+            } catch (error) {
+                showResults(`❌ Error clearing permissions: ${error.message}`, true);
+            }
+        }
+        
+        // Auto-check permissions on page load
+        window.onload = function() {
+            checkCurrentPermissions();
+        };
+    </script>
+</body>
+</html>

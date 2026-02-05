@@ -12,7 +12,9 @@ import {
 import { 
   MdOutlineFileDownload,
   MdCurrencyRupee,
-  MdAccountBalance
+  MdAccountBalance,
+  MdInfo,
+  MdAdd
 } from 'react-icons/md';
 import { 
   FiUsers,
@@ -198,12 +200,14 @@ const SeriesDetails = () => {
     ]
   };
 
-  // Find series by ID, or use default data
-  let seriesData = defaultSeries;
+  // Find series by ID, or show not found message
+  let seriesData = null;
+  let isRealData = false;
   
   if (series && series.length > 0 && id) {
     const foundSeries = series.find(s => s.id === parseInt(id));
     if (foundSeries) {
+      isRealData = true;
       seriesData = {
         ...foundSeries,
         status: foundSeries.status === 'DRAFT' ? 'Yet to be approved' : 
@@ -213,6 +217,39 @@ const SeriesDetails = () => {
         transactions: [] // Will be populated from actual investments
       };
     }
+  }
+  
+  // If no real data found and no series exist in system, show not found
+  if (!seriesData && series.length === 0) {
+    return (
+      <Layout>
+        <div className="series-details-container">
+          <div className="no-series-message">
+            <div className="no-series-content">
+              <div className="no-series-icon">
+                <MdInfo size={48} />
+              </div>
+              <h2>No Series Available</h2>
+              <p>No NCD series have been created yet. Create a series first to view its details.</p>
+              <div className="no-series-actions">
+                <button 
+                  className="btn-create-series"
+                  onClick={() => navigate('/ncd-series')}
+                >
+                  <MdAdd size={16} />
+                  Go to NCD Series
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  // If no real data found but series exist, use fallback data for demo purposes
+  if (!seriesData) {
+    seriesData = defaultSeries;
   }
 
   // Get actual investors for this series

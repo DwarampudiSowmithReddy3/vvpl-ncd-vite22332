@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear All Hardcoded Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #e74c3c;
+            text-align: center;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+            display: none;
+        }
+        button {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            background-color: #c0392b;
+        }
+        .info {
+            background-color: #e3f2fd;
+            border: 1px solid #bbdefb;
+            color: #0d47a1;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear All Hardcoded Data</h1>
+        
+        <div class="warning">
+            <strong>⚠️ WARNING:</strong> This will permanently delete ALL hardcoded data from localStorage including:
+            <ul>
+                <li>All dummy investors</li>
+                <li>All dummy series</li>
+                <li>All dummy complaints</li>
+                <li>All dummy audit logs</li>
+                <li>User session (you'll need to re-login)</li>
+            </ul>
+        </div>
+
+        <div class="info">
+            <strong>ℹ️ After clearing:</strong>
+            <ul>
+                <li>Application will only load data from backend APIs</li>
+                <li>You'll need to login with: admin/admin123</li>
+                <li>All data will come from MySQL database</li>
+            </ul>
+        </div>
+
+        <button onclick="clearAllData()">
+            🗑️ Clear All Hardcoded Data
+        </button>
+
+        <div id="success" class="success">
+            <strong>✅ Success!</strong> All hardcoded data has been cleared. The page will reload automatically.
+        </div>
+    </div>
+
+    <script>
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear ALL hardcoded data? This cannot be undone.')) {
+                console.log('🧹 Clearing ALL hardcoded data from localStorage...');
+
+                // Clear all data arrays
+                localStorage.removeItem('investors');
+                localStorage.removeItem('series');
+                localStorage.removeItem('complaints');
+                localStorage.removeItem('auditLogs');
+                localStorage.removeItem('satisfactionEvents');
+                localStorage.removeItem('complianceStatus');
+                localStorage.removeItem('payoutStatusUpdates');
+                localStorage.removeItem('payoutMetadata');
+                localStorage.removeItem('dataVersion');
+
+                // Clear user session (force re-login)
+                localStorage.removeItem('user');
+
+                console.log('✅ All hardcoded data cleared from localStorage');
+                console.log('✅ User session cleared - will need to re-login');
+                console.log('✅ Application is now ready for backend-only data');
+
+                // Show success message
+                document.getElementById('success').style.display = 'block';
+
+                // Reload the page after 2 seconds
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 2000);
+            }
+        }
+    </script>
+</body>
+</html>

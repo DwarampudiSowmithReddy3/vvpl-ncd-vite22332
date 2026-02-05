@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import './Dashboard.css';
 import './GrievanceFresh.css';
@@ -15,7 +16,7 @@ import { RiStackLine, RiSecurePaymentLine } from "react-icons/ri";
 import { TfiWallet } from "react-icons/tfi";
 import { IoCalendarOutline } from "react-icons/io5";
 import { TbCalendarTime } from "react-icons/tb";
-import { LuCrown, LuMessageSquare, LuCircleCheckBig, LuBuilding2, LuSmile } from "react-icons/lu";
+import { LuCrown, LuMessageSquare, LuCheckCircle, LuBuilding2, LuSmile } from "react-icons/lu";
 import { IoMdCheckmarkCircleOutline } from "react-icons/io";
 import { IoWarningOutline, IoPeopleOutline } from "react-icons/io5";
 import { MdTrendingDown } from "react-icons/md";
@@ -96,13 +97,29 @@ const Dashboard = () => {
     : '0.0';
 
   useEffect(() => {
-    fetch('https://jsonplaceholder.typicode.com/posts/70')
-      .then(res => res.json())
-      .then(data => {
-        setTotalFunds(Math.abs(parseInt(data.id)) * 10000000);  // Demo: JSONPlaceholder response → 12.5 Cr
-      }).finally(() => setLoading(false))
-      .catch(err => console.error('API Error:', err));
-  }, []);
+    // Calculate total funds from actual series data instead of hardcoded API call
+    const calculatedTotalFunds = series.reduce((sum, s) => sum + (s.fundsRaised || 0), 0);
+    setTotalFunds(calculatedTotalFunds);
+    setLoading(false);
+
+    // Log dashboard metrics viewing for audit trail
+    if (user) {
+      const metricsViewed = [
+        'Total Funds Raised',
+        'Total Investors',
+        'Current Month Payout',
+        'Average Coupon Rate',
+        'KYC Statistics',
+        'Interest Payout Statistics',
+        'Investor Satisfaction Metrics'
+      ];
+      
+      // TEMPORARILY DISABLED - audit logging was causing infinite loop
+      // auditService.logDashboardMetricsView(user).catch(error => {
+      //   console.error('Failed to log dashboard metrics view:', error);
+      // });
+    }
+  }, [series, user]);
 
   // Get top 10 investors by total investment amount across all series
   const getTopInvestorsByInvestment = () => {
@@ -352,43 +369,58 @@ const Dashboard = () => {
                 <h4 className="distribution-title">MATURITY BUCKET</h4>
                 <div className="compact-maturity-table">
                   {(() => {
-                    // REALISTIC LINKED DATA - Maturity and Lock-in should be logically connected
-                    // Series A: Maturing soon (< 3 months) → Lock-in already completed
-                    // Series B: Maturing in 6-12 months → Lock-in completed  
-                    // Series C: Maturing in 12+ months → Lock-in coming up in <3 months
-                    // Series D: Maturing in 12+ months → Lock-in coming up in 3-6 months
-                    // Series E: Maturing in 12+ months → Lock-in coming up in 6-12 months
-                    
-                    const maturityBuckets = [
-                      {
-                        label: '< 3 months',
-                        amount: 35000000, // ₹3.5 Cr (Series A - about to mature)
-                        color: 'blue',
-                        percentage: 15,
-                        seriesCount: 1
-                      },
-                      {
-                        label: '3 to 6 months',
-                        amount: 0, // ₹0.00 Cr (No series in this range)
-                        color: 'teal',
-                        percentage: 0,
-                        seriesCount: 0
-                      },
-                      {
-                        label: '6 to 12 months',
-                        amount: 62000000, // ₹6.2 Cr (Series B - maturing this year)
-                        color: 'orange',
-                        percentage: 27,
-                        seriesCount: 1
-                      },
-                      {
-                        label: '12 months above',
-                        amount: 130000000, // ₹13.0 Cr (Series C+D+E - long term)
-                        color: 'purple',
-                        percentage: 58,
-                        seriesCount: 4
+                    // Calculate maturity buckets dynamically from actual series data
+                    const calculateMaturityBuckets = () => {
+                      if (!series || series.length === 0) {
+                        return [
+                          { label: '< 3 months', amount: 0, color: 'blue', percentage: 0, seriesCount: 0 },
+                          { label: '3 to 6 months', amount: 0, color: 'teal', percentage: 0, seriesCount: 0 },
+                          { label: '6 to 12 months', amount: 0, color: 'orange', percentage: 0, seriesCount: 0 },
+                          { label: '12 months above', amount: 0, color: 'purple', percentage: 0, seriesCount: 0 }
+                        ];
                       }
-                    ];
+
+                      const now = new Date();
+                      const buckets = {
+                        '< 3 months': { amount: 0, seriesCount: 0, color: 'blue' },
+                        '3 to 6 months': { amount: 0, seriesCount: 0, color: 'teal' },
+                        '6 to 12 months': { amount: 0, seriesCount: 0, color: 'orange' },
+                        '12 months above': { amount: 0, seriesCount: 0, color: 'purple' }
+                      };
+
+                      series.forEach(s => {
+                        if (s.maturityDate && s.fundsRaised) {
+                          const maturityDate = new Date(s.maturityDate.split('/').reverse().join('-'));
+                          const monthsToMaturity = (maturityDate - now) / (1000 * 60 * 60 * 24 * 30);
+
+                          if (monthsToMaturity < 3) {
+                            buckets['< 3 months'].amount += s.fundsRaised;
+                            buckets['< 3 months'].seriesCount += 1;
+                          } else if (monthsToMaturity < 6) {
+                            buckets['3 to 6 months'].amount += s.fundsRaised;
+                            buckets['3 to 6 months'].seriesCount += 1;
+                          } else if (monthsToMaturity < 12) {
+                            buckets['6 to 12 months'].amount += s.fundsRaised;
+                            buckets['6 to 12 months'].seriesCount += 1;
+                          } else {
+                            buckets['12 months above'].amount += s.fundsRaised;
+                            buckets['12 months above'].seriesCount += 1;
+                          }
+                        }
+                      });
+
+                      const totalAmount = Object.values(buckets).reduce((sum, bucket) => sum + bucket.amount, 0);
+                      
+                      return Object.entries(buckets).map(([label, data]) => ({
+                        label,
+                        amount: data.amount,
+                        color: data.color,
+                        percentage: totalAmount > 0 ? Math.round((data.amount / totalAmount) * 100) : 0,
+                        seriesCount: data.seriesCount
+                      }));
+                    };
+
+                    const maturityBuckets = calculateMaturityBuckets();
 
                     return maturityBuckets.map((bucket, index) => (
                       <div key={index} className="compact-table-row">
@@ -419,44 +451,58 @@ const Dashboard = () => {
                 <h4 className="distribution-title">LOCK-IN BUCKET</h4>
                 <div className="compact-maturity-table">
                   {(() => {
-                    // REALISTIC LINKED LOCK-IN DATA - Connected to maturity buckets
-                    // Series A (₹3.5 Cr): Maturing <3 months → Lock-in completed
-                    // Series B (₹6.2 Cr): Maturing 6-12 months → Lock-in completed  
-                    // Series C (₹2.8 Cr): Maturing 12+ months → Lock-in <3 months
-                    // Series D (₹4.5 Cr): Maturing 12+ months → Lock-in 3-6 months
-                    // Series E (₹3.2 Cr): Maturing 12+ months → Lock-in 6-12 months
-                    // Series AB (₹2.5 Cr): Maturing 12+ months → Lock-in 6-12 months
-                    
-                    const lockInBuckets = [
-                      {
-                        label: 'Lock-in completed',
-                        amount: 97000000, // ₹9.7 Cr (Series A + B: already free to exit)
-                        color: 'green',
-                        percentage: 43,
-                        seriesCount: 2
-                      },
-                      {
-                        label: 'Lock-in coming up in <3 months',
-                        amount: 28000000, // ₹2.8 Cr (Series C: will be free soon)
-                        color: 'blue',
-                        percentage: 12,
-                        seriesCount: 1
-                      },
-                      {
-                        label: 'Lock-in coming up in 3 to 6 months',
-                        amount: 45000000, // ₹4.5 Cr (Series D: medium term)
-                        color: 'teal',
-                        percentage: 20,
-                        seriesCount: 1
-                      },
-                      {
-                        label: 'Lock-in coming up in 6 to 12 months',
-                        amount: 57000000, // ₹5.7 Cr (Series E + AB: longer term)
-                        color: 'orange',
-                        percentage: 25,
-                        seriesCount: 2
+                    // Calculate lock-in buckets dynamically from actual series data
+                    const calculateLockInBuckets = () => {
+                      if (!series || series.length === 0) {
+                        return [
+                          { label: 'Lock-in completed', amount: 0, color: 'green', percentage: 0, seriesCount: 0 },
+                          { label: 'Lock-in coming up in <3 months', amount: 0, color: 'blue', percentage: 0, seriesCount: 0 },
+                          { label: 'Lock-in coming up in 3 to 6 months', amount: 0, color: 'teal', percentage: 0, seriesCount: 0 },
+                          { label: 'Lock-in coming up in 6 to 12 months', amount: 0, color: 'orange', percentage: 0, seriesCount: 0 }
+                        ];
                       }
-                    ];
+
+                      const now = new Date();
+                      const buckets = {
+                        'Lock-in completed': { amount: 0, seriesCount: 0, color: 'green' },
+                        'Lock-in coming up in <3 months': { amount: 0, seriesCount: 0, color: 'blue' },
+                        'Lock-in coming up in 3 to 6 months': { amount: 0, seriesCount: 0, color: 'teal' },
+                        'Lock-in coming up in 6 to 12 months': { amount: 0, seriesCount: 0, color: 'orange' }
+                      };
+
+                      series.forEach(s => {
+                        if (s.lockInPeriod && s.fundsRaised) {
+                          const lockInDate = new Date(s.lockInPeriod.split('/').reverse().join('-'));
+                          const monthsToLockInEnd = (lockInDate - now) / (1000 * 60 * 60 * 24 * 30);
+
+                          if (monthsToLockInEnd <= 0) {
+                            buckets['Lock-in completed'].amount += s.fundsRaised;
+                            buckets['Lock-in completed'].seriesCount += 1;
+                          } else if (monthsToLockInEnd < 3) {
+                            buckets['Lock-in coming up in <3 months'].amount += s.fundsRaised;
+                            buckets['Lock-in coming up in <3 months'].seriesCount += 1;
+                          } else if (monthsToLockInEnd < 6) {
+                            buckets['Lock-in coming up in 3 to 6 months'].amount += s.fundsRaised;
+                            buckets['Lock-in coming up in 3 to 6 months'].seriesCount += 1;
+                          } else if (monthsToLockInEnd < 12) {
+                            buckets['Lock-in coming up in 6 to 12 months'].amount += s.fundsRaised;
+                            buckets['Lock-in coming up in 6 to 12 months'].seriesCount += 1;
+                          }
+                        }
+                      });
+
+                      const totalAmount = Object.values(buckets).reduce((sum, bucket) => sum + bucket.amount, 0);
+                      
+                      return Object.entries(buckets).map(([label, data]) => ({
+                        label,
+                        amount: data.amount,
+                        color: data.color,
+                        percentage: totalAmount > 0 ? Math.round((data.amount / totalAmount) * 100) : 0,
+                        seriesCount: data.seriesCount
+                      }));
+                    };
+
+                    const lockInBuckets = calculateLockInBuckets();
                     
                     return lockInBuckets.map((bucket, index) => (
                       <div key={index} className="compact-table-row">
@@ -809,7 +855,7 @@ const Dashboard = () => {
                   <span className="fresh-resolution-percentage">{resolutionRate}%</span>
                 </div>
                 <div className="fresh-resolution-icon">
-                  <LuCircleCheckBig size={32} />
+                  <LuCheckCircle size={32} />
                 </div>
               </div>
             </div>

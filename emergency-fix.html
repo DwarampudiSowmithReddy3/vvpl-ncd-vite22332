@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Emergency Fix - White Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .fix-step {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { border-left: 4px solid #28a745; }
+        .error { border-left: 4px solid #dc3545; }
+        .warning { border-left: 4px solid #ffc107; }
+        .info { border-left: 4px solid #17a2b8; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        .code {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            margin: 10px 0;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚨 Emergency Fix for White Page</h1>
+    
+    <div class="fix-step error">
+        <h3>IMMEDIATE ACTION REQUIRED</h3>
+        <p>If you're still seeing a white page, follow these steps in order:</p>
+    </div>
+
+    <div class="fix-step info">
+        <h3>Step 1: Clear Everything</h3>
+        <button onclick="clearEverything()">Clear All Data & Cache</button>
+        <div id="clear-result"></div>
+    </div>
+
+    <div class="fix-step warning">
+        <h3>Step 2: Restart Dev Server</h3>
+        <p>In your terminal:</p>
+        <div class="code">1. Press Ctrl+C to stop the server
+2. Run: npm run dev
+3. Wait for "Local: http://localhost:5173"
+4. Open the URL in browser</div>
+    </div>
+
+    <div class="fix-step info">
+        <h3>Step 3: Check Browser Console</h3>
+        <p>Open DevTools (F12) and check Console tab for errors:</p>
+        <button onclick="checkConsole()">Monitor Console</button>
+        <div id="console-result"></div>
+    </div>
+
+    <div class="fix-step success">
+        <h3>Step 4: Test Minimal App</h3>
+        <p>The app should now show a login page with:</p>
+        <ul>
+            <li>Username field (enter: admin)</li>
+            <li>Password field (enter: admin123)</li>
+            <li>Green success message</li>
+        </ul>
+        <button onclick="testApp()">Test App Now</button>
+        <div id="test-result"></div>
+    </div>
+
+    <div class="fix-step error">
+        <h3>If Still Not Working:</h3>
+        <ol>
+            <li><strong>Check Node.js version:</strong> Run <code>node --version</code> (should be 16+)</li>
+            <li><strong>Reinstall dependencies:</strong> Delete node_modules, run <code>npm install</code></li>
+            <li><strong>Check port:</strong> Make sure port 5173 is not blocked</li>
+            <li><strong>Try different browser:</strong> Test in Chrome/Firefox</li>
+            <li><strong>Check antivirus:</strong> Temporarily disable antivirus</li>
+        </ol>
+    </div>
+
+    <script>
+        function updateResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+            element.innerHTML = `<div class="fix-step ${className}" style="margin: 10px 0; padding: 10px;">${message}</div>`;
+        }
+
+        function clearEverything() {
+            try {
+                // Clear all storage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                // Clear cache (if possible)
+                if ('caches' in window) {
+                    caches.keys().then(names => {
+                        names.forEach(name => {
+                            caches.delete(name);
+                        });
+                    });
+                }
+                
+                updateResult('clear-result', '✅ All data and cache cleared. Now restart the dev server.', 'success');
+                
+            } catch (error) {
+                updateResult('clear-result', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function checkConsole() {
+            updateResult('console-result', '🔄 Monitoring console for errors...', 'info');
+            
+            const originalError = console.error;
+            const errors = [];
+            
+            console.error = function(...args) {
+                errors.push(args.join(' '));
+                originalError.apply(console, args);
+            };
+            
+            setTimeout(() => {
+                console.error = originalError;
+                
+                if (errors.length > 0) {
+                    updateResult('console-result', `❌ Found ${errors.length} errors: ${errors.join(', ')}`, 'error');
+                } else {
+                    updateResult('console-result', '✅ No console errors detected', 'success');
+                }
+            }, 3000);
+        }
+
+        function testApp() {
+            updateResult('test-result', '🔄 Testing app...', 'info');
+            
+            // Try to open the app in a new window
+            const newWindow = window.open('/', '_blank');
+            
+            if (newWindow) {
+                updateResult('test-result', '✅ App opened in new window. Check if it loads properly.', 'success');
+            } else {
+                updateResult('test-result', '⚠️ Popup blocked. Manually go to http://localhost:5173', 'warning');
+            }
+        }
+
+        // Auto-run on page load
+        window.onload = function() {
+            console.log('🚨 Emergency fix page loaded');
+        };
+    </script>
+</body>
+</html>

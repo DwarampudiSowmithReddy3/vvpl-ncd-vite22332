@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import './NCDSeries.css';
 import { HiOutlineEye, HiOutlineTrash } from "react-icons/hi";
@@ -128,7 +129,12 @@ const NCDSeries = () => {
       return; // Don't close form if duplicate name
     }
     
-    // Add audit log for series creation
+    // Add audit log for series creation using auditService
+    auditService.logSeriesCreated(newSeries, user).catch(error => {
+      console.error('Failed to log series creation:', error);
+    });
+    
+    // Also add to local audit log for backward compatibility
     addAuditLog({
       action: 'Created Series',
       adminName: user ? user.name : 'Admin',
@@ -216,6 +222,27 @@ const NCDSeries = () => {
     if (seriesToDelete) {
       const success = deleteSeries(seriesToDelete.id);
       if (success) {
+        // Add audit log for series deletion using auditService
+        auditService.logSeriesDeleted(seriesToDelete, user).catch(error => {
+          console.error('Failed to log series deletion:', error);
+        });
+        
+        // Also add to local audit log for backward compatibility
+        addAuditLog({
+          action: 'Deleted Series',
+          adminName: user ? user.name : 'Admin',
+          adminRole: user ? user.displayRole : 'Admin',
+          details: `Deleted NCD series "${seriesToDelete.name}" (Status: ${seriesToDelete.status})`,
+          entityType: 'Series',
+          entityId: seriesToDelete.name,
+          changes: {
+            seriesId: seriesToDelete.id,
+            seriesName: seriesToDelete.name,
+            status: seriesToDelete.status,
+            targetAmount: seriesToDelete.targetAmount
+          }
+        });
+        
         setShowDeleteConfirm(false);
         setSeriesToDelete(null);
       } else {

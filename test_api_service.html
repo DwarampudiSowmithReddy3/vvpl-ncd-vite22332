@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Service</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; font-size: 12px; }
+        .log { margin: 5px 0; padding: 5px; background: #f9f9f9; border-left: 3px solid #ccc; }
+    </style>
+</head>
+<body>
+    <h1>Test API Service Integration</h1>
+    
+    <div class="test-section">
+        <h3>Test API Service (Frontend Code)</h3>
+        <p>This will test using the exact same API service code as the frontend</p>
+        <button onclick="testApiService()">Test API Service</button>
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        // Copy of the API service from ncd-vite/src/services/api.js
+        const API_BASE_URL = 'http://localhost:8000';
+
+        class ApiService {
+          constructor() {
+            this.token = localStorage.getItem('authToken');
+          }
+
+          setToken(token) {
+            this.token = token;
+            if (token) {
+              localStorage.setItem('authToken', token);
+            } else {
+              localStorage.removeItem('authToken');
+            }
+          }
+
+          getHeaders() {
+            const currentToken = localStorage.getItem('authToken');
+            this.token = currentToken;
+            
+            const headers = {
+              'Content-Type': 'application/json',
+            };
+            
+            if (this.token) {
+              headers['Authorization'] = `Bearer ${this.token}`;
+            }
+            
+            console.log('🔑 Using token:', this.token ? 'Present' : 'None');
+            return headers;
+          }
+
+          async request(endpoint, options = {}) {
+            const url = `${API_BASE_URL}${endpoint}`;
+            const config = {
+              headers: this.getHeaders(),
+              ...options,
+            };
+
+            console.log('🔄 API Request:', url, config);
+
+            try {
+              const response = await fetch(url, config);
+              console.log('📡 API Response status:', response.status, response.statusText);
+              
+              if (response.status === 401) {
+                this.setToken(null);
+                throw new Error('Authentication failed. Please login again.');
+              }
+              
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ API Error response:', errorData);
+                throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+              }
+              
+              const data = await response.json();
+              console.log('✅ API Response data:', data);
+              return data;
+            } catch (error) {
+              console.error(`❌ API Error (${endpoint}):`, error);
+              throw error;
+            }
+          }
+
+          async login(username, password) {
+            console.log('🔄 API Service: Attempting login for', username);
+            
+            try {
+              const response = await this.request('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username, password }),
+              });
+              
+              console.log('✅ API Service: Login response received', response);
+              
+              if (response.access_token) {
+                this.setToken(response.access_token);
+                console.log('✅ API Service: Token set successfully');
+              }
+              
+              return response;
+            } catch (error) {
+              console.error('❌ API Service: Login failed', error);
+              throw error;
+            }
+          }
+
+          async createUser(userData) {
+            return await this.request('/users/', {
+              method: 'POST',
+              body: JSON.stringify(userData),
+            });
+          }
+
+          async createAuditLog(auditData) {
+            return await this.request('/audit/', {
+              method: 'POST',
+              body: JSON.stringify(auditData),
+            });
+          }
+
+          async getAuditLogs(params = {}) {
+            const queryParams = new URLSearchParams();
+            
+            if (params.from_date) queryParams.append('from_date', params.from_date);
+            if (params.to_date) queryParams.append('to_date', params.to_date);
+            if (params.limit) queryParams.append('limit', params.limit);
+            
+            const endpoint = `/audit/${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
+            return await this.request(endpoint);
+          }
+        }
+
+        const apiService = new ApiService();
+        
+        function log(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultDiv.appendChild(logDiv);
+            console.log(message);
+        }
+
+        window.testApiService = async function() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '';
+            
+            try {
+                // Step 1: Login
+                log('🔄 Step 1: Logging in with API service...', 'info');
+                const loginResult = await apiService.login('admin', 'admin123');
+                log(`✅ Login successful. User: ${loginResult.user.full_name}`, 'success');
+                
+                // Step 2: Create audit log using API service
+                log('🔄 Step 2: Creating audit log with API service...', 'info');
+                const auditData = {
+                    action: 'Test API Service',
+                    admin_name: loginResult.user.full_name,
+                    admin_role: loginResult.user.role,
+                    details: 'Testing audit log creation using frontend API service',
+                    entity_type: 'Test',
+                    entity_id: 'api-service-test',
+                    changes: {
+                        test: 'api-service-integration',
+                        timestamp: new Date().toISOString()
+                    }
+                };
+
+                const auditResult = await apiService.createAuditLog(auditData);
+                log(`✅ Audit log created with API service. ID: ${auditResult.id}`, 'success');
+                
+                // Step 3: Get recent audit logs
+                log('🔄 Step 3: Getting recent audit logs...', 'info');
+                const logs = await apiService.getAuditLogs({ limit: 5 });
+                log(`✅ Retrieved ${logs.length} audit logs:`, 'success');
+                
+                logs.forEach((logEntry, index) => {
+                    log(`${index + 1}. ${logEntry.action} by ${logEntry.admin_name} - ${logEntry.details}`, 'info');
+                });
+                
+                log('🎉 API Service test completed successfully!', 'success');
+                
+            } catch (error) {
+                log(`❌ API Service test failed: ${error.message}`, 'error');
+                console.error('Full error:', error);
+            }
+        };
+    </script>
+</body>
+</html>

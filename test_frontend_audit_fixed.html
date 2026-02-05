@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend Audit Logging Fixed</title>
+</head>
+<body>
+    <h1>Test Frontend Audit Logging - Fixed</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testFrontendAuditLogging() {
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                resultsDiv.innerHTML = '<p>🔄 Testing audit logging fixes...</p>';
+                
+                // Test 1: Check if React app loads without errors
+                console.log('🔄 Test 1: Loading React app...');
+                const reactResponse = await fetch('http://localhost:5178/');
+                
+                if (!reactResponse.ok) {
+                    throw new Error(`React app not accessible: ${reactResponse.status}`);
+                }
+                
+                console.log('✅ Test 1: React app is accessible');
+                
+                // Test 2: Check backend health
+                console.log('🔄 Test 2: Checking backend health...');
+                const backendResponse = await fetch('http://localhost:8000/health');
+                
+                if (!backendResponse.ok) {
+                    throw new Error(`Backend not accessible: ${backendResponse.status}`);
+                }
+                
+                console.log('✅ Test 2: Backend is healthy');
+                
+                // Test 3: Test login and audit logging
+                console.log('🔄 Test 3: Testing login and audit logging...');
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                console.log('✅ Test 3: Login successful');
+                
+                // Test 4: Create audit log entry
+                console.log('🔄 Test 4: Creating audit log entry...');
+                const auditResponse = await fetch('http://localhost:8000/audit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${loginData.access_token}`
+                    },
+                    body: JSON.stringify({
+                        action: 'Frontend Test',
+                        admin_name: 'Test User',
+                        admin_role: 'Super Admin',
+                        details: 'Testing audit logging after fixes',
+                        entity_type: 'Test',
+                        entity_id: 'frontend-test',
+                        changes: {
+                            test: 'audit logging fixes',
+                            timestamp: new Date().toISOString()
+                        }
+                    })
+                });
+                
+                if (!auditResponse.ok) {
+                    const errorText = await auditResponse.text();
+                    throw new Error(`Audit logging failed: ${auditResponse.status} - ${errorText}`);
+                }
+                
+                const auditResult = await auditResponse.json();
+                console.log('✅ Test 4: Audit logging successful:', auditResult);
+                
+                // Test 5: Get recent audit logs
+                console.log('🔄 Test 5: Retrieving recent audit logs...');
+                const logsResponse = await fetch('http://localhost:8000/audit/?limit=5', {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.access_token}`
+                    }
+                });
+                
+                if (!logsResponse.ok) {
+                    throw new Error(`Get logs failed: ${logsResponse.status}`);
+                }
+                
+                const logs = await logsResponse.json();
+                console.log('✅ Test 5: Retrieved audit logs:', logs.length);
+                
+                resultsDiv.innerHTML = `
+                    <h2>✅ All Tests Passed!</h2>
+                    <ul>
+                        <li>✅ React app is accessible</li>
+                        <li>✅ Backend is healthy</li>
+                        <li>✅ Login works correctly</li>
+                        <li>✅ Audit logging works without 422 errors</li>
+                        <li>✅ Audit logs can be retrieved</li>
+                    </ul>
+                    
+                    <h3>Recent Audit Logs:</h3>
+                    <ul>
+                        ${logs.map(log => `
+                            <li><strong>${log.timestamp}:</strong> ${log.action} by ${log.admin_name} (${log.admin_role})</li>
+                        `).join('')}
+                    </ul>
+                    
+                    <h3>Latest Audit Entry:</h3>
+                    <pre>${JSON.stringify(auditResult, null, 2)}</pre>
+                    
+                    <p><strong>🎉 Audit logging system is now working correctly!</strong></p>
+                    <p>You can now:</p>
+                    <ul>
+                        <li>Login to the React app at <a href="http://localhost:5178" target="_blank">http://localhost:5178</a></li>
+                        <li>Use admin/admin123 credentials</li>
+                        <li>Navigate between pages without 422 errors</li>
+                        <li>Perform actions that will be properly logged</li>
+                    </ul>
+                `;
+                
+            } catch (error) {
+                console.error('❌ Test failed:', error);
+                resultsDiv.innerHTML = `
+                    <h2>❌ Test Failed!</h2>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>Check the browser console for more details.</p>
+                `;
+            }
+        }
+        
+        window.addEventListener('load', testFrontendAuditLogging);
+    </script>
+</body>
+</html>

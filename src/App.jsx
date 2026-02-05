@@ -20,7 +20,6 @@ import InvestorSeries from './pages/InvestorSeries';
 import InvestorAccount from './pages/InvestorAccount';
 import InvestorDetails from './pages/InvestorDetails';
 import SeriesDetails from './pages/SeriesDetails';
-import TestIcon from './TestIcon'; // <-- Added for testing react-icons
 import './responsive-utilities.css'; // Import responsive utilities
 
 function AuthenticatedRoute({ children, requireAdmin = false }) {
@@ -58,7 +57,12 @@ function App() {
   return (
     <AuthProvider>
       <DataProvider>
-        <Router>
+        <Router
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true
+          }}
+        >
           <Routes>
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />

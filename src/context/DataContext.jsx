@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import apiService from '../services/api';
 
 const DataContext = createContext();
 
@@ -10,629 +11,66 @@ export const useData = () => {
   return context;
 };
 
-// Initial dummy data - Start with some sample complaints for testing metrics
-const initialComplaints = [
-  {
-    id: 1,
-    investorId: 'ABCDE1234F', // Rajesh Kumar
-    investorName: 'Rajesh Kumar',
-    subject: 'Interest payment delay',
-    description: 'Interest payment for Series A was delayed by 3 days',
-    issue: 'Interest payment delay', // Add for compatibility
-    remarks: 'Interest payment for Series A was delayed by 3 days', // Add for compatibility
-    status: 'resolved',
-    grievanceType: 'investor',
-    seriesName: 'Series A', // Specific series for this complaint
-    timestamp: '15/11/2024, 10:30:00 AM',
-    isCompleted: true,
-    resolutionComment: 'Interest payment has been processed and credited to your account. We apologize for the delay.',
-    resolvedAt: '2024-11-16T14:30:00.000Z'
-  },
-  {
-    id: 2,
-    investorId: 'ABCDE1234F', // Rajesh Kumar - 2nd complaint
-    investorName: 'Rajesh Kumar',
-    subject: 'Document verification issue',
-    description: 'KYC documents were not processed on time',
-    issue: 'Document verification issue', // Add for compatibility
-    remarks: 'KYC documents were not processed on time', // Add for compatibility
-    status: 'resolved',
-    grievanceType: 'investor',
-    seriesName: 'Series B', // Different series for this complaint
-    timestamp: '20/11/2024, 02:15:00 PM',
-    isCompleted: true,
-    resolutionComment: 'KYC documents have been verified and approved. Your account is now fully activated.',
-    resolvedAt: '2024-11-21T11:45:00.000Z'
-  },
-  {
-    id: 3,
-    investorId: 'ABCDE1234F', // Rajesh Kumar - 3rd complaint (triggers churn)
-    investorName: 'Rajesh Kumar',
-    subject: 'Series performance concern',
-    description: 'Concerned about Series A performance and want to exit early',
-    issue: 'Series performance concern', // Add for compatibility
-    remarks: 'Concerned about Series A performance and want to exit early', // Add for compatibility
-    status: 'pending',
-    grievanceType: 'investor',
-    seriesName: 'Series A', // Specific series for this complaint
-    timestamp: '22/12/2024, 09:45:00 AM',
-    isCompleted: false,
-    resolutionComment: 'We are reviewing your concern about Series A performance. Our investment team is preparing a detailed report on the series performance metrics.'
-  },
-  {
-    id: 4,
-    investorId: 'BCDEF2345G', // Priya Sharma
-    investorName: 'Priya Sharma',
-    subject: 'Interest calculation query',
-    description: 'Query about interest calculation method',
-    issue: 'Interest calculation query', // Add for compatibility
-    remarks: 'Query about interest calculation method', // Add for compatibility
-    status: 'in-progress',
-    grievanceType: 'investor',
-    seriesName: 'Series B', // Specific series for this complaint
-    timestamp: '10/12/2024, 11:20:00 AM',
-    isCompleted: false,
-    resolutionComment: 'We have forwarded your query to our finance team. They will provide a detailed explanation of the interest calculation methodology within 2 business days.'
-  }
-];
+// Initial data - Empty arrays for clean start
+const initialComplaints = [];
 
-const initialInvestors = [
-  {
-    id: 1,
-    name: 'Rajesh Kumar',
-    investorId: 'ABCDE1234F',
-    email: 'rajesh.kumar@email.com',
-    phone: '+91 98765 43210',
-    series: ['Series A', 'Series B'],
-    investment: 1500000,
-    investments: [
-      { seriesName: 'Series A', amount: 750000, date: '15/6/2023', timestamp: new Date('2023-06-15').toISOString() },
-      { seriesName: 'Series B', amount: 750000, date: '20/9/2023', timestamp: new Date('2023-09-20').toISOString() }
-    ],
-    kycStatus: 'Completed',
-    dateJoined: '15/6/2023',
-    bankAccountNumber: '1234567890123456',
-    ifscCode: 'SBIN0001234',
-    bankName: 'State Bank of India'
-  },
-  {
-    id: 2,
-    name: 'Priya Sharma',
-    investorId: 'BCDEF2345G',
-    email: 'priya.sharma@email.com',
-    phone: '+91 98765 43211',
-    series: ['Series B'],
-    investment: 1000000,
-    investments: [
-      { seriesName: 'Series B', amount: 1000000, date: '20/9/2023', timestamp: new Date('2023-09-20').toISOString() }
-    ],
-    kycStatus: 'Pending',
-    dateJoined: '20/9/2023',
-    bankAccountNumber: '9876543210987654',
-    ifscCode: 'HDFC0001234',
-    bankName: 'HDFC Bank'
-  },
-  {
-    id: 3,
-    name: 'Amit Patel',
-    investorId: 'CDEFG3456H',
-    email: 'amit.patel@email.com',
-    phone: '+91 98765 43212',
-    series: ['Series A'],
-    investment: 750000,
-    investments: [
-      { seriesName: 'Series A', amount: 750000, date: '10/7/2023', timestamp: new Date('2023-07-10').toISOString() }
-    ],
-    kycStatus: 'Completed',
-    dateJoined: '10/7/2023',
-    bankAccountNumber: '5678901234567890',
-    ifscCode: 'ICIC0001234',
-    bankName: 'ICICI Bank'
-  },
-  {
-    id: 4,
-    name: 'Sneha Reddy',
-    investorId: 'DEFGH4567I',
-    email: 'sneha.reddy@email.com',
-    phone: '+91 98765 43213',
-    series: ['Series C'],
-    investment: 1500000,
-    investments: [
-      { seriesName: 'Series C', amount: 1500000, date: '5/1/2024', timestamp: new Date('2024-01-05').toISOString() }
-    ],
-    kycStatus: 'Pending',
-    dateJoined: '5/1/2024',
-    bankAccountNumber: '3456789012345678',
-    ifscCode: 'AXIS0001234',
-    bankName: 'Axis Bank'
-  },
-  {
-    id: 5,
-    name: 'Vikram Singh',
-    investorId: 'EFGHI5678J',
-    email: 'vikram.singh@email.com',
-    phone: '+91 98765 43215',
-    series: ['Series A', 'Series B', 'Series C', 'Series D' , 'Series E'],
-    investment: 3500000,
-    investments: [
-      { seriesName: 'Series A', amount: 700000, date: '1/6/2023', timestamp: new Date('2023-06-01').toISOString() },
-      { seriesName: 'Series B', amount: 700000, date: '15/9/2023', timestamp: new Date('2023-09-15').toISOString() },
-      { seriesName: 'Series C', amount: 700000, date: '1/1/2024', timestamp: new Date('2024-01-01').toISOString() },
-      { seriesName: 'Series D', amount: 700000, date: '1/3/2024', timestamp: new Date('2024-03-01').toISOString() },
-      { seriesName: 'Series E', amount: 700000, date: '15/5/2024', timestamp: new Date('2024-05-15').toISOString() }
-    ],
-    kycStatus: 'Completed',
-    dateJoined: '1/6/2023',
-    bankAccountNumber: '7890123456789012',
-    ifscCode: 'SBIN0005678',
-    bankName: 'State Bank of India'
-  },
-  {
-    id: 6,
-    name: 'Anjali Verma',
-    investorId: 'FGHIJ6789K',
-    email: 'anjali.verma@email.com',
-    phone: '+91 98765 43215',
-    series: ['Series B'],
-    investment: 800000,
-    investments: [
-      { seriesName: 'Series B', amount: 800000, date: '15/10/2023', timestamp: new Date('2023-10-15').toISOString() }
-    ],
-    kycStatus: 'Rejected',
-    dateJoined: '15/10/2023',
-    bankAccountNumber: '2345678901234567',
-    ifscCode: 'HDFC0005678',
-    bankName: 'HDFC Bank'
-  },
-  {
-    id: 7,
-    name: 'Rohit Gupta',
-    investorId: 'GHIJK7890L',
-    email: 'rohit.gupta@email.com',
-    phone: '+91 98765 43216',
-    series: ['Series D'],
-    investment: 2000000,
-    investments: [
-      { seriesName: 'Series D', amount: 2000000, date: '10/3/2024', timestamp: new Date('2024-03-10').toISOString() }
-    ],
-    kycStatus: 'Completed',
-    dateJoined: '10/3/2024',
-    bankAccountNumber: '6789012345678901',
-    ifscCode: 'ICIC0005678',
-    bankName: 'ICICI Bank'
-  },
-  {
-    id: 8,
-    name: 'Kavya Nair',
-    investorId: 'HIJKL8901M',
-    email: 'kavya.nair@email.com',
-    phone: '+91 98765 43217',
-    series: ['Series E'],
-    investment: 1200000,
-    investments: [
-      { seriesName: 'Series E', amount: 1200000, date: '15/11/2024', timestamp: new Date('2024-11-15').toISOString() } // Recent investment for early redemption testing
-    ],
-    kycStatus: 'Pending',
-    dateJoined: '15/11/2024', // Updated to match recent investment
-    bankAccountNumber: '4567890123456789',
-    ifscCode: 'AXIS0005678',
-    bankName: 'Axis Bank'
-  },
-  {
-    id: 9,
-    name: 'Dwarampudi Sowmith Reddy',
-    investorId: 'IJKLM9012N',
-    email: 'dsowmithreddy@gmail.com',
-    phone: '+91 90637 61569',
-    series: ['Series AB'],
-    investment: 500000,
-    investments: [
-      { seriesName: 'Series AB', amount: 500000, date: '1/12/2024', timestamp: new Date('2024-12-01').toISOString() }
-    ],
-    kycStatus: 'Completed',
-    dateJoined: '1/12/2024',
-    bankAccountNumber: '9876543210123456',
-    ifscCode: 'SBIN0001234',
-    bankName: 'State Bank of India'
-  }
-];
+const initialInvestors = [];
 
-const initialSeries = [
-  {
-    id: 1,
-    name: 'Series A',
-    seriesCode: 'NCD-A-2023',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 9.5,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 35000000,
-    targetAmount: 50000000,
-    issueDate: '1/6/2023',
-    maturityDate: '1/8/2026',
-    faceValue: 1000,
-    minInvestment: 10000,
-    releaseDate: '1/6/2023',
-    lockInPeriod: '15/1/2025', // Lock-in ends January 2025 (coming up in <3 months)
-    debentureTrustee: 'IDBI Trusteeship Services Ltd',
-    investorsSize: 500
-  },
-  {
-    id: 2,
-    name: 'Series B',
-    seriesCode: 'NCD-B-2023',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 10,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 62000000,
-    targetAmount: 80000000,
-    issueDate: '15/9/2023',
-    maturityDate: '15/9/2026',
-    faceValue: 1000,
-    minInvestment: 25000,
-    releaseDate: '15/9/2023',
-    lockInPeriod: '15/3/2025', // Lock-in ends March 2025 (coming up in <3 months)
-    debentureTrustee: 'Catalyst Trusteeship Ltd',
-    investorsSize: 800
-  },
-  {
-    id: 3,
-    name: 'Series C',
-    seriesCode: 'NCD-C-2024',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 10.5,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 28000000,
-    targetAmount: 100000000,
-    issueDate: '1/1/2024',
-    maturityDate: '1/2/2026',
-    faceValue: 1000,
-    minInvestment: 50000,
-    releaseDate: '1/1/2024',
-    lockInPeriod: '15/4/2025', // Lock-in ends April 2025 (coming up in 3-6 months)
-    debentureTrustee: 'Axis Trustee Services Ltd',
-    investorsSize: 1000
-  },
-  {
-    id: 4,
-    name: 'Series D',
-    seriesCode: 'NCD-D-2024',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 11,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 45000000,
-    targetAmount: 150000000,
-    issueDate: '1/3/2024',
-    maturityDate: '1/3/2029',
-    faceValue: 1000,
-    minInvestment: 100000,
-    releaseDate: '1/3/2024',
-    lockInPeriod: '15/8/2025', // Lock-in ends August 2025 (coming up in 6-12 months)
-    debentureTrustee: 'SBICAP Trustee Company Ltd',
-    investorsSize: 1500
-  },
-  {
-    id: 5,
-    name: 'Series E',
-    seriesCode: 'NCD-E-2024',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 11.5,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 32000000,
-    targetAmount: 120000000,
-    issueDate: '15/5/2024',
-    maturityDate: '15/5/2029',
-    faceValue: 1000,
-    minInvestment: 75000,
-    releaseDate: '15/5/2024',
-    lockInPeriod: '15/7/2025', // Lock-in ends July 2025 (coming up in 6-12 months)
-    debentureTrustee: 'Vistra ITCL (India) Ltd',
-    investorsSize: 1200
-  },
-  {
-    id: 6,
-    name: 'Series AB',
-    seriesCode: 'NCD-AB-2024',
-    status: 'active',
-    interestFrequency: 'Non-cumulative & Monthly',
-    interestRate: 9.0,
-    investors: 0, // Will be calculated from actual investor data
-    fundsRaised: 25000000,
-    targetAmount: 60000000,
-    issueDate: '1/12/2024',
-    maturityDate: '1/12/2029',
-    faceValue: 1000,
-    minInvestment: 15000,
-    releaseDate: '1/12/2024',
-    lockInPeriod: '15/6/2025', // Lock-in ends June 2025 (coming up in 3-6 months)
-    debentureTrustee: 'IDBI Trusteeship Services Ltd',
-    investorsSize: 600
-  }
-];
+const initialSeries = [];
 
 export const DataProvider = ({ children }) => {
+  // Track if audit logs have been loaded to prevent infinite loop
+  const auditLogsLoadedRef = useRef(false);
+  
   // Data validation and consistency check
-  const validateAndFixData = () => {
-    try {
-      // Check if essential data exists and is valid
-      const savedInvestors = localStorage.getItem('investors');
-      const savedSeries = localStorage.getItem('series');
-      const savedComplaints = localStorage.getItem('complaints');
-      const dataVersion = localStorage.getItem('dataVersion');
-
-      // Only reset if data is corrupted or missing, not on every load
-      if (!savedInvestors || !savedSeries || !savedComplaints) {
-        console.log('🔄 Missing data detected - Initializing with default data');
-        localStorage.setItem('dataVersion', '2.1.0');
-        if (!savedInvestors) localStorage.setItem('investors', JSON.stringify(initialInvestors));
-        if (!savedSeries) localStorage.setItem('series', JSON.stringify(initialSeries));
-        if (!savedComplaints) localStorage.setItem('complaints', JSON.stringify(initialComplaints));
-        console.log('✅ Missing data initialized');
-        return;
-      }
-
-      // Validate data integrity
-      try {
-        const investors = JSON.parse(savedInvestors);
-        const series = JSON.parse(savedSeries);
-        const complaints = JSON.parse(savedComplaints);
-        
-        if (!Array.isArray(investors) || !Array.isArray(series) || !Array.isArray(complaints)) {
-          throw new Error('Data format invalid');
-        }
-        
-        console.log('✅ Data validation passed - Using existing data');
-      } catch (parseError) {
-        console.log('🔄 Data corruption detected - Resetting corrupted data');
-        localStorage.setItem('dataVersion', '2.1.0');
-        localStorage.setItem('investors', JSON.stringify(initialInvestors));
-        localStorage.setItem('series', JSON.stringify(initialSeries));
-        localStorage.setItem('complaints', JSON.stringify(initialComplaints));
-        console.log('✅ Corrupted data reset complete');
-      }
-      
-      let investorsValid = true;
-      let seriesValid = true;
-      
-      // Validate investors data
-      if (savedInvestors) {
-        try {
-          const parsedInvestors = JSON.parse(savedInvestors);
-          if (!Array.isArray(parsedInvestors) || parsedInvestors.length === 0) {
-            investorsValid = false;
-          } else {
-            // Check if essential investors exist
-            const hasRajeshKumar = parsedInvestors.some(inv => inv.investorId === 'ABCDE1234F');
-            const hasSowmithReddy = parsedInvestors.some(inv => inv.name === 'Dwarampudi Sowmith Reddy');
-            if (!hasRajeshKumar || !hasSowmithReddy) {
-              investorsValid = false;
-            }
-          }
-        } catch (e) {
-          investorsValid = false;
-        }
-      } else {
-        investorsValid = false;
-      }
-      
-      // Validate series data
-      if (savedSeries) {
-        try {
-          const parsedSeries = JSON.parse(savedSeries);
-          if (!Array.isArray(parsedSeries) || parsedSeries.length === 0) {
-            seriesValid = false;
-          } else {
-            // Check if essential series exist
-            const hasSeriesAB = parsedSeries.some(s => s.name === 'Series AB');
-            const hasSeriesA = parsedSeries.some(s => s.name === 'Series A');
-            const hasSeriesZ = parsedSeries.some(s => s.name === 'Series Z'); // Should NOT exist
-            if (!hasSeriesAB || !hasSeriesA || hasSeriesZ) {
-              seriesValid = false;
-            }
-          }
-        } catch (e) {
-          seriesValid = false;
-        }
-      } else {
-        seriesValid = false;
-      }
-      
-      // Reset data if validation fails
-      if (!investorsValid) {
-        console.log('🔄 Resetting investors data to ensure consistency');
-        localStorage.setItem('investors', JSON.stringify(initialInvestors));
-      }
-      
-      if (!seriesValid) {
-        console.log('🔄 Resetting series data to ensure consistency');
-        localStorage.setItem('series', JSON.stringify(initialSeries));
-      }
-      
-      // Set data version if not set
-      if (!dataVersion) {
-        localStorage.setItem('dataVersion', '2.1.0');
-      }
-      
-      // Log data validation result
-      if (investorsValid && seriesValid) {
-        console.log('✅ Data validation passed - all essential data is present');
-      } else {
-        console.log('⚠️ Data validation failed - reset to initial state');
-      }
-      
-    } catch (error) {
-      console.error('❌ Data validation error:', error);
-      // Only reset specific data that's corrupted, preserve user session
-      console.log('🔄 Resetting only corrupted data, preserving user session');
-      localStorage.setItem('dataVersion', '2.1.0');
-      localStorage.setItem('investors', JSON.stringify(initialInvestors));
-      localStorage.setItem('series', JSON.stringify(initialSeries));
-      localStorage.setItem('complaints', JSON.stringify(initialComplaints));
-      console.log('✅ Data reset complete - User session preserved');
-    }
+  const clearAllData = () => {
+    // Clear all localStorage data silently
+    localStorage.removeItem('investors');
+    localStorage.removeItem('series');
+    localStorage.removeItem('complaints');
+    localStorage.removeItem('auditLogs');
+    localStorage.removeItem('satisfactionEvents');
+    localStorage.setItem('dataVersion', '3.0.0'); // New version for clean state
   };
 
-  // Run data validation on component mount
-  validateAndFixData();
-
-  // Data consistency ensured - Series AB and essential investors are maintained
+  // Clear all data only once on component mount
+  useEffect(() => {
+    const dataVersion = localStorage.getItem('dataVersion');
+    if (dataVersion !== '3.0.0') {
+      clearAllData();
+    }
+  }, []);
 
   const [investors, setInvestors] = useState(() => {
-    const saved = localStorage.getItem('investors');
-    if (saved) {
-      const parsedInvestors = JSON.parse(saved);
-      
-      console.log('🔍 Loading investors from localStorage:', parsedInvestors.length, 'investors');
-      parsedInvestors.forEach(inv => {
-        console.log(`🔍 Investor ${inv.name}: series =`, inv.series);
-      });
-      
-      // Clean up investor data and migrate 'Verified' to 'Completed'
-      const cleanedInvestors = parsedInvestors.map(inv => {
-        const cleaned = { ...inv };
-        
-        // Migrate KYC status from 'Verified' to 'Completed'
-        if (cleaned.kycStatus === 'Verified') {
-          cleaned.kycStatus = 'Completed';
-        }
-        
-        // Migrate KYC documents status from 'Verified' to 'Completed'
-        if (cleaned.kycDocuments && Array.isArray(cleaned.kycDocuments)) {
-          cleaned.kycDocuments = cleaned.kycDocuments.map(doc => ({
-            ...doc,
-            status: doc.status === 'Verified' ? 'Completed' : doc.status
-          }));
-        }
-        
-        // Ensure series is an array
-        if (!Array.isArray(cleaned.series)) {
-          cleaned.series = [];
-        }
-        
-        // Filter out invalid series entries (emails, non-series strings)
-        const validSeries = cleaned.series.filter(s => 
-          s && typeof s === 'string' && s.startsWith('Series')
-        );
-        cleaned.series = validSeries;
-        
-        // If investor has investment amount but no valid series, reset investment to 0
-        if (cleaned.investment > 0 && cleaned.series.length === 0) {
-          cleaned.investment = 0;
-        }
-        
-        // Migration: Add investments array if it doesn't exist
-        if (!cleaned.investments || !Array.isArray(cleaned.investments)) {
-          // Create investments array from existing data
-          cleaned.investments = cleaned.series.map(seriesName => ({
-            seriesName: seriesName,
-            amount: cleaned.series.length > 0 ? Math.round(cleaned.investment / cleaned.series.length) : 0,
-            date: cleaned.dateJoined || new Date().toLocaleDateString('en-GB'),
-            timestamp: new Date().toISOString()
-          }));
-        }
-        
-        console.log(`🔍 Cleaned investor ${cleaned.name}: series =`, cleaned.series);
-        return cleaned;
-      });
-      
-      // Save the migrated data back to localStorage
-      localStorage.setItem('investors', JSON.stringify(cleanedInvestors));
-      
-      return cleanedInvestors;
-    }
-    console.log('🔍 No saved investors found, using initial data');
-    return initialInvestors;
+    // Always start with empty array - no hardcoded data
+    return [];
   });
 
   const [series, setSeries] = useState(() => {
-    const savedSeries = localStorage.getItem('series');
-    const savedInvestors = localStorage.getItem('investors');
-    
-    // Load all series from localStorage (no filtering)
-    let parsedSeries = savedSeries ? JSON.parse(savedSeries) : initialSeries;
-    
-    // DEBUG: Log the first series to check if fields exist
-    if (parsedSeries.length > 0) {
-      console.log('🔍 DEBUG - First series data:', {
-        name: parsedSeries[0].name,
-        seriesCode: parsedSeries[0].seriesCode,
-        debentureTrustee: parsedSeries[0].debentureTrustee
-      });
-    }
-    
-    // ALWAYS RECALCULATE: Always recalculate series data based on actual investor investments (excluding deleted investors)
-    if (savedInvestors) {
-      const parsedInvestors = JSON.parse(savedInvestors);
-      
-      parsedSeries = parsedSeries.map(s => {
-        // Find all ACTIVE investors in this series (exclude deleted investors)
-        const investorsInSeries = parsedInvestors.filter(inv => 
-          inv.series && Array.isArray(inv.series) && inv.series.includes(s.name) &&
-          inv.status !== 'deleted' // Exclude deleted investors
-        );
-        
-        // Calculate total funds from investments array (per-series tracking, only active investors)
-        const totalFundsFromInvestors = investorsInSeries.reduce((sum, inv) => {
-          if (inv.investments && Array.isArray(inv.investments)) {
-            const seriesInvestment = inv.investments.find(investment => investment.seriesName === s.name);
-            return sum + (seriesInvestment ? seriesInvestment.amount : 0);
-          }
-          // Fallback to old calculation if investments array doesn't exist
-          const investmentPerSeries = inv.series.length > 0 ? inv.investment / inv.series.length : 0;
-          return sum + investmentPerSeries;
-        }, 0);
-        
-        // For initial series (1-5), add the new investments to the base amount
-        const isInitialSeries = s.id <= 5;
-        const baseFunds = isInitialSeries ? (initialSeries.find(init => init.id === s.id)?.fundsRaised || 0) : 0;
-        
-        const calculatedInvestors = investorsInSeries.length;
-        const calculatedFunds = baseFunds + Math.round(totalFundsFromInvestors);
-        
-        // Only log if there's a significant change to avoid spam
-        if (Math.abs(s.investors - calculatedInvestors) > 0 || Math.abs(s.fundsRaised - calculatedFunds) > 1000) {
-          console.log(`📊 ${s.name}: ${calculatedInvestors} investors (was ${s.investors}), ₹${calculatedFunds.toLocaleString()} funds (was ₹${s.fundsRaised.toLocaleString()})`);
-        }
-        
-        return {
-          ...s,
-          investors: calculatedInvestors, // Only count active investors
-          fundsRaised: calculatedFunds, // Only funds from active investors
-          lastUpdated: new Date().toISOString() // Add timestamp for change detection
-        };
-      });
-      
-      // Save the recalculated series back to localStorage
-      localStorage.setItem('series', JSON.stringify(parsedSeries));
-    }
-    
-    return parsedSeries;
+    // Always start with empty array - no hardcoded data  
+    return [];
   });
 
   // Add a series refresh trigger
   const [seriesRefreshTrigger, setSeriesRefreshTrigger] = useState(0);
 
   const [complaints, setComplaints] = useState(() => {
-    const saved = localStorage.getItem('complaints');
-    return saved ? JSON.parse(saved) : initialComplaints;
+    // Always start with empty array - no hardcoded data
+    return [];
   });
 
   // Audit Log State
   const [auditLogs, setAuditLogs] = useState(() => {
-    const saved = localStorage.getItem('auditLogs');
-    return saved ? JSON.parse(saved) : [];
+    // Always start with empty array - no hardcoded data
+    return [];
   });
 
   // Investor Satisfaction Tracking State
   const [satisfactionEvents, setSatisfactionEvents] = useState(() => {
-    const saved = localStorage.getItem('satisfactionEvents');
-    return saved ? JSON.parse(saved) : {
-      churnEvents: [], // Investors who deleted their accounts completely
-      earlyRedemptionEvents: [] // Investors who exited series before maturity
+    // Always start with empty object - no hardcoded data
+    return {
+      churnEvents: [],
+      earlyRedemptionEvents: []
     };
   });
 
@@ -644,9 +82,10 @@ export const DataProvider = ({ children }) => {
     localStorage.setItem('series', JSON.stringify(series));
   }, [series]);
 
-  useEffect(() => {
-    localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
-  }, [auditLogs]);
+  // TEMPORARILY DISABLED - localStorage saving for auditLogs to prevent infinite loop
+  // useEffect(() => {
+  //   localStorage.setItem('auditLogs', JSON.stringify(auditLogs));
+  // }, [auditLogs]);
 
   useEffect(() => {
     localStorage.setItem('satisfactionEvents', JSON.stringify(satisfactionEvents));
@@ -655,6 +94,54 @@ export const DataProvider = ({ children }) => {
   useEffect(() => {
     localStorage.setItem('complaints', JSON.stringify(complaints));
   }, [complaints]);
+
+  // Load audit logs from database on component mount
+  useEffect(() => {
+    const loadInitialAuditLogs = async () => {
+      try {
+        // Only load if we have an auth token (user is logged in)
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          // Import apiService here to avoid circular dependency issues
+          const { default: apiService } = await import('../services/api');
+          
+          console.log('🔄 Loading audit logs from database...');
+          const logs = await apiService.getAuditLogs({ limit: 100 }); // Get latest 100 logs
+          
+          // Transform API response to match frontend format
+          const transformedLogs = logs.map(log => ({
+            id: log.id,
+            timestamp: log.timestamp,
+            action: log.action,
+            adminName: log.admin_name,
+            adminRole: log.admin_role,
+            details: log.details,
+            entityType: log.entity_type,
+            entityId: log.entity_id,
+            changes: log.changes || {}
+          }));
+          
+          setAuditLogs(transformedLogs);
+          auditLogsLoadedRef.current = true; // Mark as loaded
+          console.log('✅ Loaded', transformedLogs.length, 'audit logs from database');
+        } else {
+          console.log('⏳ No auth token found, skipping audit log loading');
+        }
+      } catch (error) {
+        console.error('❌ Failed to load initial audit logs:', error);
+        // Keep existing empty array if loading fails
+      }
+    };
+
+    // FIXED: Use ref to prevent infinite loop - only load once
+    const token = localStorage.getItem('authToken');
+    if (token && !auditLogsLoadedRef.current) {
+      loadInitialAuditLogs();
+    } else {
+      console.log('🔄 Audit logs already loaded or no token, skipping initial load');
+    }
+    
+  }, []); // Empty dependency array - run only once on mount
 
   const addSeries = (newSeries) => {
     // Check for duplicate series name
@@ -1054,14 +541,70 @@ export const DataProvider = ({ children }) => {
     }, 100);
   };
 
-  // Audit Log Function
-  const addAuditLog = (logEntry) => {
+  // Audit Log Functions
+  
+  // Load audit logs from database
+  const loadAuditLogs = async () => {
+    try {
+      console.log('🔄 Loading audit logs from database...');
+      const logs = await apiService.getAuditLogs({ limit: 100 }); // Get latest 100 logs
+      
+      // Transform API response to match frontend format
+      const transformedLogs = logs.map(log => ({
+        id: log.id,
+        timestamp: log.timestamp,
+        action: log.action,
+        adminName: log.admin_name,
+        adminRole: log.admin_role,
+        details: log.details,
+        entityType: log.entity_type,
+        entityId: log.entity_id,
+        changes: log.changes || {}
+      }));
+      
+      setAuditLogs(transformedLogs);
+      console.log('✅ Loaded', transformedLogs.length, 'audit logs from database');
+    } catch (error) {
+      console.error('❌ Failed to load audit logs from database:', error);
+      // Keep existing logs if loading fails
+    }
+  };
+
+  // Save to database
+  const addAuditLog = async (logEntry) => {
+    // DEBUGGING: Log when this function is called
+    console.log('🔍 addAuditLog called with:', logEntry.action);
+    
     const newLog = {
       id: auditLogs.length + 1,
       timestamp: new Date().toISOString(),
       ...logEntry
     };
-    setAuditLogs([newLog, ...auditLogs]); // Add to beginning (newest first)
+    
+    // Add to local state immediately for UI responsiveness
+    setAuditLogs([newLog, ...auditLogs]);
+    console.log('🔍 Added audit log to state, total logs:', auditLogs.length + 1);
+    
+    // FIXED: Save to database via API with proper error handling
+    try {
+      const auditData = {
+        action: logEntry.action,
+        admin_name: logEntry.adminName,
+        admin_role: logEntry.adminRole,
+        details: logEntry.details,
+        entity_type: logEntry.entityType,
+        entity_id: logEntry.entityId,
+        changes: JSON.stringify(logEntry.changes || {})
+      };
+      
+      console.log('🔄 Saving audit log to database:', auditData.action);
+      await apiService.createAuditLog(auditData);
+      console.log('✅ Audit log saved to database successfully');
+      
+    } catch (error) {
+      console.error('❌ Failed to save audit log to database:', error);
+      // Don't remove from local state - keep it for UI even if DB save fails
+    }
   };
 
   // Investor Satisfaction Tracking Functions
@@ -1653,6 +1196,7 @@ export const DataProvider = ({ children }) => {
       addInvestor,
       updateInvestor,
       addAuditLog,
+      loadAuditLogs,
       addComplaint,
       updateComplaint,
       updateComplaintStatus,

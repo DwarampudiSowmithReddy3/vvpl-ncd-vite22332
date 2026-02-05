@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Permissions Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 15px 0; padding: 10px; border: 1px solid #ddd; }
+        .success { background: #d4edda; }
+        .error { background: #f8d7da; }
+        button { padding: 8px 12px; margin: 5px; }
+        pre { background: #f8f9fa; padding: 10px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Frontend Permissions Test</h1>
+    <p>Testing the React app permissions integration</p>
+    
+    <div class="test">
+        <h3>Test 1: Direct API Test</h3>
+        <button onclick="testDirectAPI()">Test Backend API</button>
+        <div id="apiResult"></div>
+    </div>
+    
+    <div class="test">
+        <h3>Test 2: Frontend Integration</h3>
+        <p>Go to: <a href="http://localhost:5178" target="_blank">http://localhost:5178</a></p>
+        <p>Login with: admin / admin123</p>
+        <p>Go to Administrator → Permissions tab</p>
+        <p>Toggle any permission and refresh the page</p>
+    </div>
+    
+    <div class="test">
+        <h3>Test 3: Console Logs</h3>
+        <p>Check browser console for these logs:</p>
+        <pre>
+🔄 AuthContext: Loading permissions from backend...
+✅ AuthContext: Permissions loaded from backend: [object]
+✅ AuthContext: Permissions state updated with backend data
+        </pre>
+    </div>
+
+    <script>
+        async function testDirectAPI() {
+            const resultDiv = document.getElementById('apiResult');
+            try {
+                // Login
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                
+                // Get permissions
+                const permResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const permissions = await permResponse.json();
+                
+                const roleCount = Object.keys(permissions).length;
+                const financeExec = permissions['Finance Executive'];
+                
+                resultDiv.innerHTML = `
+                    <div class="success">
+                        ✅ Backend API working perfectly!<br>
+                        Roles loaded: ${roleCount}<br>
+                        Finance Executive dashboard create: ${financeExec.dashboard.create}
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ API Error: ${error.message}</div>`;
+            }
+        }
+    </script>
+</body>
+</html>

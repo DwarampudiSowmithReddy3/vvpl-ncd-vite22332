@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administrator Button Positioning Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f8fafc;
+        }
+        
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .test-title {
+            color: #1e293b;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .test-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .test-table th {
+            background: #f8fafc;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .test-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .test-table tr:hover {
+            background: #f8fafc;
+        }
+        
+        /* User Actions Container - Buttons side by side */
+        .user-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-direction: row; /* Ensure buttons are horizontally aligned */
+        }
+
+        .view-button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .view-button:hover {
+            background: #1d4ed8;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+
+        /* Delete Button - positioned beside edit button */
+        .delete-button {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            min-width: 40px; /* ensure consistent width */
+        }
+
+        .delete-button:hover {
+            background: #b91c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        
+        .user-id {
+            font-family: 'Courier New', monospace;
+            font-weight: 600;
+            color: #2563eb;
+        }
+        
+        .username {
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            background: #eff6ff;
+            color: #2563eb;
+        }
+        
+        .status-message {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1 class="test-title">Administrator Button Positioning Test</h1>
+        
+        <div class="status-message">
+            ✅ Testing: Delete button should be positioned BESIDE (horizontally next to) the Edit button, not under it.
+        </div>
+        
+        <table class="test-table">
+            <thead>
+                <tr>
+                    <th>User ID</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><span class="user-id">USR001</span></td>
+                    <td><span class="username">john_doe</span></td>
+                    <td><span class="role-badge">Admin</span></td>
+                    <td>
+                        <div class="user-actions">
+                            <button class="view-button">
+                                👁️ Edit
+                            </button>
+                            <button class="delete-button" title="Delete User">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="user-id">USR002</span></td>
+                    <td><span class="username">jane_smith</span></td>
+                    <td><span class="role-badge">Manager</span></td>
+                    <td>
+                        <div class="user-actions">
+                            <button class="view-button">
+                                👁️ Edit
+                            </button>
+                            <button class="delete-button" title="Delete User">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td><span class="user-id">USR003</span></td>
+                    <td><span class="username">mike_wilson</span></td>
+                    <td><span class="role-badge">Executive</span></td>
+                    <td>
+                        <div class="user-actions">
+                            <button class="view-button">
+                                👁️ Edit
+                            </button>
+                            <button class="delete-button" title="Delete User">
+                                🗑️
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 20px; padding: 16px; background: #f0f9ff; border-radius: 6px; border-left: 4px solid #2563eb;">
+            <h3 style="margin: 0 0 8px 0; color: #1e40af;">Expected Result:</h3>
+            <p style="margin: 0; color: #1e40af;">The Edit button and Delete button should be positioned horizontally (side by side) in the Actions column, not vertically (one under the other).</p>
+        </div>
+    </div>
+</body>
+</html>

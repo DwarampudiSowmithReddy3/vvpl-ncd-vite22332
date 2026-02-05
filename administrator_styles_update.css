@@ -1,0 +1,176 @@
+/* Additional styles for Administrator page updates */
+
+/* User Actions */
+.user-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.delete-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s;
+}
+
+.delete-button:hover {
+  background: #c82333;
+}
+
+/* Mobile User Actions */
+.mobile-user-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobile-delete-button {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.mobile-delete-button:hover {
+  background: #c82333;
+}
+
+/* Delete Modal */
+.delete-modal {
+  max-width: 500px;
+}
+
+.delete-icon {
+  color: #dc3545;
+}
+
+.delete-confirmation {
+  text-align: center;
+}
+
+.user-details {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 5px;
+  margin: 15px 0;
+  text-align: left;
+}
+
+.user-details p {
+  margin: 5px 0;
+}
+
+.warning-message {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  padding: 10px;
+  border-radius: 5px;
+  color: #856404;
+  margin-top: 15px;
+}
+
+.warning-message svg {
+  color: #f39c12;
+  flex-shrink: 0;
+}
+
+.btn-delete {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.btn-delete:hover {
+  background: #c82333;
+}
+
+/* Success Message Enhancement */
+.success-popup {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+  padding: 15px 20px;
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Error text styling */
+.error-text {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
+.error {
+  border-color: #dc3545 !important;
+}
+
+/* Form improvements */
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .user-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .delete-button {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+  
+  .mobile-user-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+}

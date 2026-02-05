@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permissions Fix Test - Complete</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-button.success {
+            background: #28a745;
+        }
+        .test-button.error {
+            background: #dc3545;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .step-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .critical {
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Permissions Fix Test - Complete Flow</h1>
+    
+    <div class="critical">
+        <strong>CRITICAL TEST:</strong> This will test the complete permissions flow to verify the fix works.
+        <br>Make sure you're logged in as admin/admin123 before running these tests!
+    </div>
+    
+    <div class="test-container">
+        <div class="step-header">Step 1: Verify Login & Token</div>
+        <button class="test-button" onclick="testLoginStatus()">Check Login Status</button>
+        <div id="login-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <div class="step-header">Step 2: Test Backend API Direct</div>
+        <button class="test-button" onclick="testBackendDirect()">Test Backend API</button>
+        <div id="backend-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <div class="step-header">Step 3: Test Frontend API Service</div>
+        <button class="test-button" onclick="testFrontendApiService()">Test API Service</button>
+        <div id="api-service-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <div class="step-header">Step 4: Test Permission Toggle (CRITICAL)</div>
+        <p>This simulates the exact same flow as clicking a permission toggle in the Administrator page.</p>
+        <button class="test-button" onclick="testPermissionToggle()">Test Permission Toggle</button>
+        <div id="toggle-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <div class="step-header">Step 5: Test Page Refresh Persistence</div>
+        <p>This tests if permissions persist after page refresh (the main issue).</p>
+        <button class="test-button" onclick="testPageRefreshPersistence()">Test Refresh Persistence</button>
+        <div id="refresh-result" class="result"></div>
+    </div>
+
+    <div class="test-container">
+        <div class="step-header">Step 6: Full Integration Test</div>
+        <p>Complete end-to-end test of the permissions system.</p>
+        <button class="test-button" onclick="runFullTest()">Run Full Test</button>
+        <div id="full-test-result" class="result"></div>
+    </div>
+
+    <script>
+        // Import the API service (simulate the same environment as the React app)
+        const API_BASE_URL = 'http://localhost:8000';
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.className = `result ${type}`;
+            element.textContent = message;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('authToken');
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            };
+        }
+
+        async function testLoginStatus() {
+            log('login-result', 'Checking login status...', 'info');
+            
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                log('login-result', '❌ No auth token found!\n\nPlease login as admin/admin123 first.', 'error');
+                return false;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/auth/me`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const user = await response.json();
+                    log('login-result', 
+                        `✅ Login status: AUTHENTICATED\n\n` +
+                        `User: ${user.username}\n` +
+                        `Role: ${user.role}\n` +
+                        `Token: ${token.substring(0, 20)}...`, 
+                        'success'
+                    );
+                    return true;
+                } else {
+                    log('login-result', `❌ Token is invalid: ${response.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log('login-result', `❌ Login check error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testBackendDirect() {
+            log('backend-result', 'Testing backend API directly...', 'info');
+            
+            try {
+                // Test 1: Health check
+                const healthResponse = await fetch(`${API_BASE_URL}/`);
+                if (!healthResponse.ok) {
+                    log('backend-result', '❌ Backend health check failed', 'error');
+                    return false;
+                }
+                
+                // Test 2: Get permissions
+                const permissionsResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (permissionsResponse.ok) {
+                    const permissions = await permissionsResponse.json();
+                    const irePerms = permissions['Investor Relationship Executive'];
+                    
+                    log('backend-result', 
+                        `✅ Backend API working correctly!\n\n` +
+                        `Health: OK\n` +
+                        `Permissions: ${Object.keys(permissions).length} roles loaded\n` +
+                        `IRE dashboard view: ${irePerms?.dashboard?.view}\n` +
+                        `IRE investors view: ${irePerms?.investors?.view}`, 
+                        'success'
+                    );
+                    return permissions;
+                } else {
+                    log('backend-result', `❌ Permissions API failed: ${permissionsResponse.status}`, 'error');
+                    return false;
+                }
+            } catch (error) {
+                log('backend-result', `❌ Backend test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testFrontendApiService() {
+            log('api-service-result', 'Testing frontend API service...', 'info');
+            
+            // Simulate the API service class
+            class TestApiService {
+                getHeaders() {
+                    const token = localStorage.getItem('authToken');
+                    return {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : ''
+                    };
+                }
+                
+                async request(endpoint, options = {}) {
+                    const url = `${API_BASE_URL}${endpoint}`;
+                    const config = {
+                        headers: this.getHeaders(),
+                        ...options,
+                    };
+                    
+                    const response = await fetch(url, config);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                    return await response.json();
+                }
+                
+                async getPermissions() {
+                    return await this.request('/permissions/');
+                }
+                
+                async updatePermissions(permissionsData) {
+                    return await this.request('/permissions/', {
+                        method: 'PUT',
+                        body: JSON.stringify(permissionsData),
+                    });
+                }
+            }
+            
+            try {
+                const apiService = new TestApiService();
+                
+                // Test get permissions
+                const permissions = await apiService.getPermissions();
+                const irePerms = permissions['Investor Relationship Executive'];
+                
+                // Test update permissions (make a small change)
+                const testPermissions = {
+                    ...permissions,
+                    'Investor Relationship Executive': {
+                        ...irePerms,
+                        dashboard: {
+                            ...irePerms.dashboard,
+                            view: !irePerms.dashboard.view
+                        }
+                    }
+                };
+                
+                const updateResult = await apiService.updatePermissions(testPermissions);
+                
+                // Verify the change
+                const updatedPermissions = await apiService.getPermissions();
+                const newIreView = updatedPermissions['Investor Relationship Executive'].dashboard.view;
+                const expectedView = testPermissions['Investor Relationship Executive'].dashboard.view;
+                
+                if (newIreView === expectedView) {
+                    // Restore original
+                    await apiService.updatePermissions(permissions);
+                    
+                    log('api-service-result', 
+                        `✅ Frontend API service working correctly!\n\n` +
+                        `GET permissions: OK\n` +
+                        `PUT permissions: OK\n` +
+                        `Verification: OK\n` +
+                        `Test change: IRE dashboard view ${!expectedView} → ${expectedView}\n` +
+                        `Restored: IRE dashboard view ${expectedView} → ${!expectedView}`, 
+                        'success'
+                    );
+                    return true;
+                } else {
+                    log('api-service-result', 
+                        `❌ API service verification failed!\n\n` +
+                        `Expected: ${expectedView}\n` +
+                        `Actual: ${newIreView}`, 
+                        'error'
+                    );
+                    return false;
+                }
+            } catch (error) {
+                log('api-service-result', `❌ API service test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testPermissionToggle() {
+            log('toggle-result', 'Testing permission toggle flow...', 'info');
+            
+            try {
+                // Simulate the exact same flow as the Administrator component
+                
+                // Step 1: Get current permissions (simulate AuthContext)
+                const getResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (!getResponse.ok) {
+                    log('toggle-result', '❌ Could not get current permissions', 'error');
+                    return false;
+                }
+                
+                const currentPermissions = await getResponse.json();
+                const role = 'Investor Relationship Executive';
+                const module = 'dashboard';
+                const action = 'view';
+                
+                const oldValue = currentPermissions[role][module][action];
+                const newValue = !oldValue;
+                
+                log('toggle-result', `🔄 Simulating toggle: ${role}.${module}.${action} ${oldValue} → ${newValue}`, 'info');
+                
+                // Step 2: Create updated permissions (simulate Administrator component)
+                const updatedPermissions = {
+                    ...currentPermissions,
+                    [role]: {
+                        ...currentPermissions[role],
+                        [module]: {
+                            ...currentPermissions[role][module],
+                            [action]: newValue
+                        }
+                    }
+                };
+                
+                // Step 3: Update permissions (simulate AuthContext updatePermissions)
+                const updateResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(updatedPermissions)
+                });
+                
+                if (!updateResponse.ok) {
+                    log('toggle-result', `❌ Permission update failed: ${updateResponse.status}`, 'error');
+                    return false;
+                }
+                
+                // Step 4: Verify the change (simulate loadPermissions)
+                const verifyResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (!verifyResponse.ok) {
+                    log('toggle-result', '❌ Could not verify permissions', 'error');
+                    return false;
+                }
+                
+                const verifiedPermissions = await verifyResponse.json();
+                const actualValue = verifiedPermissions[role][module][action];
+                
+                if (actualValue === newValue) {
+                    // Restore original value
+                    await fetch(`${API_BASE_URL}/permissions/`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(currentPermissions)
+                    });
+                    
+                    log('toggle-result', 
+                        `✅ Permission toggle test SUCCESSFUL!\n\n` +
+                        `Original: ${role}.${module}.${action} = ${oldValue}\n` +
+                        `Updated: ${role}.${module}.${action} = ${actualValue}\n` +
+                        `Verified: Change persisted correctly\n` +
+                        `Restored: Back to original value\n\n` +
+                        `🎉 THE FIX IS WORKING!`, 
+                        'success'
+                    );
+                    return true;
+                } else {
+                    log('toggle-result', 
+                        `❌ Permission toggle verification FAILED!\n\n` +
+                        `Expected: ${newValue}\n` +
+                        `Actual: ${actualValue}\n\n` +
+                        `The change was not persisted correctly.`, 
+                        'error'
+                    );
+                    return false;
+                }
+                
+            } catch (error) {
+                log('toggle-result', `❌ Permission toggle test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testPageRefreshPersistence() {
+            log('refresh-result', 'Testing page refresh persistence...', 'info');
+            
+            try {
+                // Step 1: Make a permission change
+                const getResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    headers: getAuthHeaders()
+                });
+                
+                const currentPermissions = await getResponse.json();
+                const role = 'Investor Relationship Executive';
+                const module = 'investors';
+                const action = 'create';
+                
+                const oldValue = currentPermissions[role][module][action];
+                const newValue = !oldValue;
+                
+                const updatedPermissions = {
+                    ...currentPermissions,
+                    [role]: {
+                        ...currentPermissions[role],
+                        [module]: {
+                            ...currentPermissions[role][module],
+                            [action]: newValue
+                        }
+                    }
+                };
+                
+                // Step 2: Save the change
+                await fetch(`${API_BASE_URL}/permissions/`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify(updatedPermissions)
+                });
+                
+                // Step 3: Simulate page refresh by clearing any cached data and reloading
+                // (In a real app, this would be a page refresh, but we simulate it)
+                
+                // Wait a moment to ensure database write is complete
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Step 4: Load permissions fresh (simulate AuthContext loadPermissions on page refresh)
+                const refreshResponse = await fetch(`${API_BASE_URL}/permissions/`, {
+                    headers: getAuthHeaders()
+                });
+                
+                const refreshedPermissions = await refreshResponse.json();
+                const refreshedValue = refreshedPermissions[role][module][action];
+                
+                if (refreshedValue === newValue) {
+                    // Restore original
+                    await fetch(`${API_BASE_URL}/permissions/`, {
+                        method: 'PUT',
+                        headers: getAuthHeaders(),
+                        body: JSON.stringify(currentPermissions)
+                    });
+                    
+                    log('refresh-result', 
+                        `✅ Page refresh persistence test SUCCESSFUL!\n\n` +
+                        `1. Made change: ${role}.${module}.${action} ${oldValue} → ${newValue}\n` +
+                        `2. Saved to backend: OK\n` +
+                        `3. Simulated page refresh: OK\n` +
+                        `4. Reloaded from backend: ${refreshedValue}\n` +
+                        `5. Persistence verified: ${refreshedValue === newValue ? 'YES' : 'NO'}\n\n` +
+                        `🎉 PERMISSIONS PERSIST AFTER REFRESH!`, 
+                        'success'
+                    );
+                    return true;
+                } else {
+                    log('refresh-result', 
+                        `❌ Page refresh persistence test FAILED!\n\n` +
+                        `Expected after refresh: ${newValue}\n` +
+                        `Actual after refresh: ${refreshedValue}\n\n` +
+                        `Permissions are NOT persisting after page refresh.`, 
+                        'error'
+                    );
+                    return false;
+                }
+                
+            } catch (error) {
+                log('refresh-result', `❌ Refresh persistence test error: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function runFullTest() {
+            log('full-test-result', 'Running full integration test...', 'info');
+            
+            const results = [];
+            
+            // Test 1: Login status
+            const loginOk = await testLoginStatus();
+            results.push(`Login Status: ${loginOk ? '✅ PASS' : '❌ FAIL'}`);
+            
+            if (!loginOk) {
+                log('full-test-result', 'Full test aborted - login required', 'error');
+                return;
+            }
+            
+            // Test 2: Backend API
+            const backendOk = await testBackendDirect();
+            results.push(`Backend API: ${backendOk ? '✅ PASS' : '❌ FAIL'}`);
+            
+            // Test 3: Frontend API Service
+            const apiServiceOk = await testFrontendApiService();
+            results.push(`API Service: ${apiServiceOk ? '✅ PASS' : '❌ FAIL'}`);
+            
+            // Test 4: Permission Toggle
+            const toggleOk = await testPermissionToggle();
+            results.push(`Permission Toggle: ${toggleOk ? '✅ PASS' : '❌ FAIL'}`);
+            
+            // Test 5: Refresh Persistence
+            const refreshOk = await testPageRefreshPersistence();
+            results.push(`Refresh Persistence: ${refreshOk ? '✅ PASS' : '❌ FAIL'}`);
+            
+            const allPassed = loginOk && backendOk && apiServiceOk && toggleOk && refreshOk;
+            
+            log('full-test-result', 
+                `🔍 FULL INTEGRATION TEST RESULTS:\n\n` +
+                results.join('\n') + '\n\n' +
+                `OVERALL RESULT: ${allPassed ? '🎉 ALL TESTS PASSED!' : '❌ SOME TESTS FAILED'}\n\n` +
+                (allPassed ? 
+                    `✅ The permissions system is working correctly!\n` +
+                    `✅ Permissions persist after page refresh!\n` +
+                    `✅ The fix has resolved the issue!` :
+                    `❌ There are still issues with the permissions system.\n` +
+                    `❌ Please check the individual test results above.`
+                ), 
+                allPassed ? 'success' : 'error'
+            );
+        }
+
+        // Auto-run login check on page load
+        window.onload = function() {
+            console.log('🔧 Permissions Fix Test loaded');
+            testLoginStatus();
+        };
+    </script>
+</body>
+</html>

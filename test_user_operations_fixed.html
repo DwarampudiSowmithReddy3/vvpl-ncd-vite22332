@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test User Operations - Fixed</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { padding: 10px 15px; margin: 5px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; border: none; }
+        .btn-danger { background-color: #dc3545; color: white; border: none; }
+        .btn-success { background-color: #28a745; color: white; border: none; }
+        pre { background-color: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 User Operations Test - Fixed Version</h1>
+    <p>This test verifies that user create, update, and delete operations work correctly after the fixes.</p>
+
+    <div id="results"></div>
+
+    <div class="test-section">
+        <h3>Test Controls</h3>
+        <button class="btn-primary" onclick="runAllTests()">🚀 Run All Tests</button>
+        <button class="btn-success" onclick="testLogin()">🔐 Test Login</button>
+        <button class="btn-success" onclick="testCreateUser()">➕ Test Create User</button>
+        <button class="btn-success" onclick="testUpdateUser()">✏️ Test Update User</button>
+        <button class="btn-danger" onclick="testDeleteUser()">🗑️ Test Delete User</button>
+        <button onclick="clearResults()">🧹 Clear Results</button>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let authToken = null;
+        let testUserId = null;
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `test-section ${type}`;
+            div.innerHTML = `<pre>${new Date().toLocaleTimeString()}: ${message}</pre>`;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const url = `${API_BASE}${endpoint}`;
+            const config = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authToken && { 'Authorization': `Bearer ${authToken}` })
+                },
+                ...options
+            };
+
+            try {
+                const response = await fetch(url, config);
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || data.message || `HTTP ${response.status}`);
+                }
+                
+                return data;
+            } catch (error) {
+                log(`❌ API Error (${endpoint}): ${error.message}`, 'error');
+                throw error;
+            }
+        }
+
+        async function testLogin() {
+            try {
+                log('🔐 Testing login with admin/admin123...');
+                const response = await apiCall('/auth/login', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123'
+                    })
+                });
+                
+                authToken = response.access_token;
+                log(`✅ Login successful! User: ${response.user.username} (${response.user.role})`, 'success');
+                return true;
+            } catch (error) {
+                log(`❌ Login failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testCreateUser() {
+            try {
+                if (!authToken) {
+                    log('⚠️ Please login first', 'error');
+                    return false;
+                }
+
+                log('➕ Testing user creation...');
+                const userData = {
+                    user_id: 'TEST_FIXED_001',
+                    username: 'testfixed',
+                    full_name: 'Test Fixed User',
+                    email: 'testfixed@example.com',
+                    phone: '+91 9876543210',
+                    role: 'Finance Executive',
+                    password: 'testpass123'
+                };
+
+                const response = await apiCall('/users/', {
+                    method: 'POST',
+                    body: JSON.stringify(userData)
+                });
+
+                testUserId = response.id;
+                log(`✅ User created successfully! ID: ${response.id}, Username: ${response.username}`, 'success');
+                return true;
+            } catch (error) {
+                log(`❌ User creation failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testUpdateUser() {
+            try {
+                if (!authToken || !testUserId) {
+                    log('⚠️ Please login and create a user first', 'error');
+                    return false;
+                }
+
+                log(`✏️ Testing user update for ID: ${testUserId}...`);
+                const updateData = {
+                    full_name: 'Updated Test Fixed User',
+                    role: 'Finance Manager'
+                };
+
+                const response = await apiCall(`/users/${testUserId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(updateData)
+                });
+
+                log(`✅ User updated successfully! New name: ${response.full_name}, New role: ${response.role}`, 'success');
+                return true;
+            } catch (error) {
+                log(`❌ User update failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testDeleteUser() {
+            try {
+                if (!authToken || !testUserId) {
+                    log('⚠️ Please login and create a user first', 'error');
+                    return false;
+                }
+
+                log(`🗑️ Testing user deletion for ID: ${testUserId}...`);
+                const response = await apiCall(`/users/${testUserId}`, {
+                    method: 'DELETE'
+                });
+
+                log(`✅ User deleted successfully! Message: ${response.message}`, 'success');
+                testUserId = null; // Reset for next test
+                return true;
+            } catch (error) {
+                log(`❌ User deletion failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function runAllTests() {
+            log('🚀 Starting comprehensive user operations test...', 'info');
+            
+            const loginSuccess = await testLogin();
+            if (!loginSuccess) return;
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+            
+            const createSuccess = await testCreateUser();
+            if (!createSuccess) return;
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+            
+            const updateSuccess = await testUpdateUser();
+            if (!updateSuccess) return;
+
+            await new Promise(resolve => setTimeout(resolve, 500)); // Small delay
+            
+            const deleteSuccess = await testDeleteUser();
+            
+            if (loginSuccess && createSuccess && updateSuccess && deleteSuccess) {
+                log('🎉 ALL TESTS PASSED! User operations are working correctly.', 'success');
+            } else {
+                log('❌ Some tests failed. Please check the errors above.', 'error');
+            }
+        }
+
+        // Auto-run tests on page load
+        window.onload = () => {
+            log('🔧 User Operations Test - Fixed Version Ready', 'info');
+            log('Click "Run All Tests" to verify that user create, update, and delete operations work correctly.', 'info');
+        };
+    </script>
+</body>
+</html>

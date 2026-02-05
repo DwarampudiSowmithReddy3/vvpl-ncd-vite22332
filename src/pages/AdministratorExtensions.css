@@ -1,0 +1,228 @@
+/* Additional styles for Administrator page enhancements */
+
+/* Status display */
+.status-display {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Status toggle button */
+.status-toggle-button {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-toggle-button.deactivate {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.status-toggle-button.deactivate:hover {
+  background-color: #e0a800;
+}
+
+.status-toggle-button.activate {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-toggle-button.activate:hover {
+  background-color: #218838;
+}
+
+/* Delete button */
+.delete-button {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.delete-button:hover {
+  background-color: #c82333;
+  transform: translateY(-1px);
+}
+
+.delete-button:active {
+  transform: translateY(0);
+}
+
+/* Form actions layout */
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.form-actions-left {
+  display: flex;
+  gap: 12px;
+}
+
+.form-actions-right {
+  display: flex;
+  gap: 12px;
+}
+
+/* Field hint */
+.field-hint {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Ensure form groups are visible */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #333;
+  font-size: 14px;
+}
+
+.form-group input {
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-group input.disabled-input {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* User table status indicators */
+.user-row .status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-row .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.user-row .status-dot.active {
+  background-color: #28a745;
+}
+
+.user-row .status-dot.inactive {
+  background-color: #dc3545;
+}
+
+.user-row .status-text {
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .form-actions {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .form-actions-left,
+  .form-actions-right {
+    justify-content: center;
+  }
+  
+  .status-display {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .status-toggle-button {
+    align-self: flex-start;
+  }
+}
+/* Loading Spinner Styles */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-container p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}

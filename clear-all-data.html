@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear All Data - NCD Management</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success { 
+            background-color: #d4edda; 
+            color: #155724; 
+            border: 1px solid #c3e6cb; 
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        .warning { 
+            background-color: #fff3cd; 
+            color: #856404; 
+            border: 1px solid #ffeaa7; 
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+        button { 
+            padding: 12px 24px; 
+            margin: 10px 5px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        .clear-btn { 
+            background: #dc3545; 
+            color: white; 
+        }
+        .clear-btn:hover { 
+            background: #c82333; 
+        }
+        .open-btn { 
+            background: #007bff; 
+            color: white; 
+        }
+        .open-btn:hover { 
+            background: #0056b3; 
+        }
+        .refresh-btn { 
+            background: #28a745; 
+            color: white; 
+        }
+        .refresh-btn:hover { 
+            background: #218838; 
+        }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #666; }
+        ul { line-height: 1.6; }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px; 
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Clear All Hardcoded Data</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Warning:</strong> This will permanently delete all existing data including:
+            <ul>
+                <li>All investors and their information</li>
+                <li>All NCD series data</li>
+                <li>All complaints and grievances</li>
+                <li>All audit logs</li>
+                <li>All satisfaction tracking data</li>
+            </ul>
+            <strong>This action cannot be undone!</strong>
+        </div>
+
+        <h2>🎯 What This Does:</h2>
+        <ul>
+            <li>✅ Removes all hardcoded dummy data</li>
+            <li>✅ Clears browser localStorage completely</li>
+            <li>✅ Gives you a fresh, empty system</li>
+            <li>✅ Ready for real data entry or API integration</li>
+        </ul>
+
+        <div class="status" id="status" style="display: none;"></div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="clear-btn" onclick="clearAllData()">
+                🗑️ Clear All Data
+            </button>
+            <button class="open-btn" onclick="openApp()">
+                🚀 Open App
+            </button>
+            <button class="refresh-btn" onclick="refreshApp()">
+                🔄 Refresh App
+            </button>
+        </div>
+
+        <div style="margin-top: 30px; padding: 20px; background-color: #f8f9fa; border-radius: 5px;">
+            <h3>📋 Current Data Status:</h3>
+            <div id="dataStatus">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        function showStatus(message, type = 'success') {
+            const status = document.getElementById('status');
+            status.style.display = 'block';
+            status.className = 'status ' + type;
+            status.innerHTML = message;
+        }
+
+        function clearAllData() {
+            if (!confirm('Are you absolutely sure you want to delete ALL data? This cannot be undone!')) {
+                return;
+            }
+
+            try {
+                // Clear all localStorage data
+                const keysToRemove = [
+                    'investors',
+                    'series', 
+                    'complaints',
+                    'auditLogs',
+                    'satisfactionEvents',
+                    'user',
+                    'dataVersion'
+                ];
+
+                let clearedCount = 0;
+                keysToRemove.forEach(key => {
+                    if (localStorage.getItem(key)) {
+                        localStorage.removeItem(key);
+                        clearedCount++;
+                    }
+                });
+
+                // Set new clean version
+                localStorage.setItem('dataVersion', '3.0.0');
+
+                showStatus(`✅ Successfully cleared ${clearedCount} data items from localStorage. Your system is now completely clean!`, 'success');
+                
+                // Update data status
+                updateDataStatus();
+                
+                setTimeout(() => {
+                    if (confirm('Data cleared! Would you like to refresh the app to see the clean state?')) {
+                        refreshApp();
+                    }
+                }, 2000);
+
+            } catch (error) {
+                showStatus(`❌ Error clearing data: ${error.message}`, 'warning');
+            }
+        }
+
+        function openApp() {
+            window.open('http://localhost:5174', '_blank');
+        }
+
+        function refreshApp() {
+            window.location.href = 'http://localhost:5174';
+        }
+
+        function updateDataStatus() {
+            const dataStatus = document.getElementById('dataStatus');
+            
+            const investors = JSON.parse(localStorage.getItem('investors') || '[]');
+            const series = JSON.parse(localStorage.getItem('series') || '[]');
+            const complaints = JSON.parse(localStorage.getItem('complaints') || '[]');
+            const auditLogs = JSON.parse(localStorage.getItem('auditLogs') || '[]');
+            const user = localStorage.getItem('user');
+            const dataVersion = localStorage.getItem('dataVersion') || 'Not set';
+
+            dataStatus.innerHTML = `
+                <strong>📊 Data Version:</strong> ${dataVersion}<br>
+                <strong>👥 Investors:</strong> ${investors.length} records<br>
+                <strong>📈 Series:</strong> ${series.length} records<br>
+                <strong>📝 Complaints:</strong> ${complaints.length} records<br>
+                <strong>📋 Audit Logs:</strong> ${auditLogs.length} records<br>
+                <strong>👤 Current User:</strong> ${user ? 'Logged in' : 'Not logged in'}<br>
+                <br>
+                <strong>Status:</strong> ${(investors.length === 0 && series.length === 0 && complaints.length === 0) ? 
+                    '✅ <span style="color: green;">CLEAN - No hardcoded data</span>' : 
+                    '⚠️ <span style="color: orange;">Contains data</span>'}
+            `;
+        }
+
+        // Update status on page load
+        window.onload = function() {
+            updateDataStatus();
+            
+            // Check if frontend is running
+            fetch('http://localhost:5174')
+                .then(() => {
+                    showStatus('✅ Frontend is running on http://localhost:5174', 'success');
+                })
+                .catch(() => {
+                    showStatus('❌ Frontend is not running. Please start it with: npm run dev', 'warning');
+                });
+        };
+    </script>
+</body>
+</html>

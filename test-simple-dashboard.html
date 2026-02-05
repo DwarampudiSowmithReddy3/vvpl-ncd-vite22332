@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dashboard Connection</title>
+</head>
+<body>
+    <h1>Testing Frontend Connection</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        console.log('🔍 Starting basic test...');
+        
+        // Test 1: Check if we can reach the backend
+        fetch('http://localhost:8002/health')
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Backend health check:', data);
+                document.getElementById('test-results').innerHTML += '<p>✅ Backend is running</p>';
+                
+                // Test 2: Try to authenticate
+                return fetch('http://localhost:8002/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123',
+                        user_type: 'admin'
+                    })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Authentication test:', data);
+                document.getElementById('test-results').innerHTML += '<p>✅ Authentication works</p>';
+                
+                // Test 3: Try to get series data
+                return fetch('http://localhost:8002/api/v1/series/', {
+                    headers: { 'Authorization': `Bearer ${data.access_token}` }
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('✅ Series data:', data);
+                document.getElementById('test-results').innerHTML += `<p>✅ Got ${data.length} series from backend</p>`;
+            })
+            .catch(error => {
+                console.error('❌ Test failed:', error);
+                document.getElementById('test-results').innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>

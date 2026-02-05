@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Layout from '../components/Layout';
 import ComplianceTracker from '../components/ComplianceTracker';
 import './Compliance.css';
@@ -135,6 +136,21 @@ const Compliance = () => {
   const handleViewDetails = (series) => {
     setSelectedSeries(series);
     setShowComplianceTracker(true);
+    
+    // Log compliance details view using auditService
+    auditService.logActivity(
+      'Compliance Details Viewed',
+      `Viewed compliance details for series "${series.name}"`,
+      'Compliance',
+      series.name,
+      {
+        seriesName: series.name,
+        complianceStatus: series.complianceStatus,
+        viewedBy: user?.name || user?.full_name
+      }
+    ).catch(error => {
+      console.error('Failed to log compliance view:', error);
+    });
   };
 
   const handleCloseComplianceTracker = () => {
@@ -194,21 +210,26 @@ const Compliance = () => {
           </div>
         </div>
 
-        {/* Show ComplianceTracker by default when no series available */}
+        {/* Show message when no series available instead of hardcoded ComplianceTracker */}
         {complianceSeries.length === 0 && (
-          <ComplianceTracker 
-            onClose={() => {}} // Empty function since we want it always visible when no series
-            seriesData={{
-              seriesName: 'General NCD Compliance',
-              trusteeCompany: 'SBICAP Trustee Co. Ltd.',
-              stats: {
-                totalRequirements: 42,
-                receivedCompleted: 0,
-                pendingActions: 42,
-                notApplicable: 0
-              }
-            }}
-          />
+          <div className="no-series-message">
+            <div className="no-series-content">
+              <div className="no-series-icon">
+                <MdInfo size={48} />
+              </div>
+              <h2>No Series Available for Compliance Tracking</h2>
+              <p>Create and approve NCD series to start tracking compliance requirements.</p>
+              <div className="no-series-actions">
+                <button 
+                  className="btn-create-series"
+                  onClick={() => navigate('/ncd-series')}
+                >
+                  <MdAdd size={16} />
+                  Go to NCD Series
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Yet to be Submitted - Red Theme */}

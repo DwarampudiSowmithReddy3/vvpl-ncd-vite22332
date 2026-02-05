@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Frontend Auth Test</title>
+</head>
+<body>
+    <h1>Frontend Authentication Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testFrontendAuth() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing frontend authentication...</p>';
+            
+            try {
+                // Test 1: Direct API call
+                results.innerHTML += '<h3>Test 1: Direct API Authentication</h3>';
+                
+                const loginResponse = await fetch('http://localhost:8003/api/v1/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123',
+                        user_type: 'admin'
+                    })
+                });
+                
+                if (loginResponse.ok) {
+                    const loginData = await loginResponse.json();
+                    results.innerHTML += '<p>✅ Direct API login successful</p>';
+                    
+                    // Store token like the frontend does
+                    localStorage.setItem('token', loginData.access_token);
+                    localStorage.setItem('user', JSON.stringify({
+                        username: loginData.user_info.username,
+                        role: loginData.user_info.role,
+                        name: loginData.user_info.full_name,
+                        displayRole: loginData.user_info.role,
+                        email: loginData.user_info.email,
+                        id: loginData.user_info.id
+                    }));
+                    
+                    // Test 2: Fetch series data
+                    results.innerHTML += '<h3>Test 2: Fetch Series Data</h3>';
+                    
+                    const seriesResponse = await fetch('http://localhost:8003/api/v1/series/', {
+                        headers: {
+                            'Authorization': `Bearer ${loginData.access_token}`
+                        }
+                    });
+                    
+                    if (seriesResponse.ok) {
+                        const seriesData = await seriesResponse.json();
+                        results.innerHTML += `<p>✅ Series data fetched: ${seriesData.length} series</p>`;
+                        
+                        // Show raw data structure
+                        results.innerHTML += '<h4>Raw Series Data:</h4>';
+                        seriesData.forEach((series, index) => {
+                            results.innerHTML += `
+                                <div style="border: 1px solid #ccc; margin: 5px; padding: 10px;">
+                                    <strong>${index + 1}. ${series.series_name}</strong><br>
+                                    Code: ${series.series_code}<br>
+                                    Status: ${series.status}<br>
+                                    Interest Rate: ${series.interest_rate}%<br>
+                                    Target Amount: ₹${series.issue_size?.toLocaleString()}<br>
+                                    Created: ${series.created_at}
+                                </div>
+                            `;
+                        });
+                        
+                        // Test 3: Check localStorage
+                        results.innerHTML += '<h3>Test 3: LocalStorage Check</h3>';
+                        const storedToken = localStorage.getItem('token');
+                        const storedUser = localStorage.getItem('user');
+                        
+                        if (storedToken && storedUser) {
+                            results.innerHTML += '<p>✅ Token and user data stored in localStorage</p>';
+                            results.innerHTML += `<p>User: ${JSON.parse(storedUser).name}</p>`;
+                        } else {
+                            results.innerHTML += '<p>❌ Missing token or user data in localStorage</p>';
+                        }
+                        
+                    } else {
+                        results.innerHTML += `<p>❌ Failed to fetch series: ${seriesResponse.status}</p>`;
+                    }
+                } else {
+                    results.innerHTML += `<p>❌ Login failed: ${loginResponse.status}</p>`;
+                }
+            } catch (error) {
+                results.innerHTML += `<p>❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Run test on page load
+        testFrontendAuth();
+    </script>
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real Permission Test</title>
+</head>
+<body>
+    <h1>Testing Permission Toggle RIGHT NOW</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testRealPermissions() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Testing...</p>';
+            
+            try {
+                // Test 1: Check if we can login
+                const loginResponse = await fetch('http://localhost:8000/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: 'admin', password: 'admin123' })
+                });
+                
+                if (!loginResponse.ok) {
+                    results.innerHTML += '<p style="color:red">❌ LOGIN FAILED</p>';
+                    return;
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.access_token;
+                results.innerHTML += '<p style="color:green">✅ Login successful</p>';
+                
+                // Test 2: Get current permissions
+                const permResponse = await fetch('http://localhost:8000/permissions/', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!permResponse.ok) {
+                    results.innerHTML += '<p style="color:red">❌ GET PERMISSIONS FAILED</p>';
+                    return;
+                }
+                
+                const permissions = await permResponse.json();
+                results.innerHTML += '<p style="color:green">✅ Got permissions</p>';
+                results.innerHTML += '<pre>' + JSON.stringify(permissions, null, 2) + '</pre>';
+                
+                // Test 3: Toggle Finance Executive Reports View
+                if (permissions['Finance Executive'] && permissions['Finance Executive']['reports']) {
+                    const currentValue = permissions['Finance Executive']['reports']['view'];
+                    const newValue = !currentValue;
+                    
+                    results.innerHTML += `<p>Current Finance Executive Reports View: ${currentValue}</p>`;
+                    results.innerHTML += `<p>Toggling to: ${newValue}</p>`;
+                    
+                    // Update the permission
+                    permissions['Finance Executive']['reports']['view'] = newValue;
+                    
+                    // Test 4: Save to backend
+                    const updateResponse = await fetch('http://localhost:8000/permissions/', {
+                        method: 'PUT',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}` 
+                        },
+                        body: JSON.stringify(permissions)
+                    });
+                    
+                    if (!updateResponse.ok) {
+                        results.innerHTML += '<p style="color:red">❌ UPDATE PERMISSIONS FAILED</p>';
+                        const errorText = await updateResponse.text();
+                        results.innerHTML += '<p>Error: ' + errorText + '</p>';
+                        return;
+                    }
+                    
+                    const updateResult = await updateResponse.json();
+                    results.innerHTML += '<p style="color:green">✅ Permissions updated in backend</p>';
+                    results.innerHTML += '<p>Result: ' + JSON.stringify(updateResult) + '</p>';
+                    
+                    // Test 5: Verify the change persisted
+                    const verifyResponse = await fetch('http://localhost:8000/permissions/', {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    const verifyPermissions = await verifyResponse.json();
+                    const verifyValue = verifyPermissions['Finance Executive']['reports']['view'];
+                    
+                    if (verifyValue === newValue) {
+                        results.innerHTML += '<p style="color:green">✅ PERMISSION TOGGLE WORKS! Value persisted: ' + verifyValue + '</p>';
+                    } else {
+                        results.innerHTML += '<p style="color:red">❌ PERMISSION TOGGLE FAILED! Expected: ' + newValue + ', Got: ' + verifyValue + '</p>';
+                    }
+                    
+                } else {
+                    results.innerHTML += '<p style="color:red">❌ Finance Executive or Reports permissions not found</p>';
+                }
+                
+            } catch (error) {
+                results.innerHTML += '<p style="color:red">❌ ERROR: ' + error.message + '</p>';
+            }
+        }
+        
+        // Run the test immediately
+        testRealPermissions();
+    </script>
+</body>
+</html>

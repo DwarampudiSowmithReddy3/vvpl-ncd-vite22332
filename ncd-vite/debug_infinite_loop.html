@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Infinite Loop - NCD Vite</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .debug-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .console-output {
+            background: #1e1e1e;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        .error { color: #ff6b6b; }
+        .warning { color: #ffa500; }
+        .info { color: #4dabf7; }
+        .success { color: #51cf66; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .status.good {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .status.bad {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-container">
+        <h1>🔍 Debug Infinite Loop - NCD Vite</h1>
+        <p><strong>Purpose:</strong> Identify what's causing the continuous repetition in console</p>
+        
+        <div class="status" id="loopStatus">
+            <span id="statusText">Checking for infinite loops...</span>
+        </div>
+
+        <h3>🎯 Quick Actions:</h3>
+        <button onclick="clearConsole()">Clear Console</button>
+        <button onclick="checkConsoleMessages()">Check Console Messages</button>
+        <button onclick="monitorApiCalls()">Monitor API Calls</button>
+        <button onclick="checkLocalStorage()">Check LocalStorage</button>
+        <button onclick="testBackendConnection()">Test Backend</button>
+
+        <h3>📊 Console Monitor:</h3>
+        <div class="console-output" id="consoleOutput">
+            Console messages will appear here...
+        </div>
+
+        <h3>🔧 Debugging Steps:</h3>
+        <ol>
+            <li><strong>Open Browser Console</strong> (F12)</li>
+            <li><strong>Clear Console</strong> using button above</li>
+            <li><strong>Navigate to Administrator page</strong></li>
+            <li><strong>Watch for repetitive messages</strong></li>
+            <li><strong>Look for patterns</strong> in the messages</li>
+        </ol>
+
+        <h3>🚨 Common Infinite Loop Patterns:</h3>
+        <ul>
+            <li><code>🔄 DataContext: Loading audit logs...</code> (repeating)</li>
+            <li><code>🔄 DataContext: Loading users...</code> (repeating)</li>
+            <li><code>🔄 AuthContext: Loading permissions...</code> (repeating)</li>
+            <li><code>useEffect</code> dependency issues</li>
+            <li><code>setState</code> causing re-renders</li>
+        </ul>
+    </div>
+
+    <script>
+        let consoleMessages = [];
+        let messageCount = {};
+        let isMonitoring = false;
+
+        // Override console.log to capture messages
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function captureConsoleMessage(type, message) {
+            if (!isMonitoring) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const fullMessage = `[${timestamp}] ${type.toUpperCase()}: ${message}`;
+            
+            consoleMessages.push(fullMessage);
+            
+            // Count message frequency
+            const key = message.toString();
+            messageCount[key] = (messageCount[key] || 0) + 1;
+            
+            // Update display
+            updateConsoleDisplay();
+            
+            // Check for infinite loops
+            if (messageCount[key] > 5) {
+                detectInfiniteLoop(key, messageCount[key]);
+            }
+        }
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            captureConsoleMessage('log', args.join(' '));
+        };
+
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            captureConsoleMessage('error', args.join(' '));
+        };
+
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            captureConsoleMessage('warn', args.join(' '));
+        };
+
+        function updateConsoleDisplay() {
+            const output = document.getElementById('consoleOutput');
+            const recent = consoleMessages.slice(-20); // Show last 20 messages
+            output.textContent = recent.join('\n');
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function detectInfiniteLoop(message, count) {
+            const status = document.getElementById('loopStatus');
+            const statusText = document.getElementById('statusText');
+            
+            status.className = 'status bad';
+            statusText.textContent = `🚨 INFINITE LOOP DETECTED: "${message}" repeated ${count} times!`;
+            
+            // Also show in console output
+            const output = document.getElementById('consoleOutput');
+            output.innerHTML += `\n<span class="error">🚨 INFINITE LOOP: "${message}" x${count}</span>`;
+        }
+
+        function clearConsole() {
+            console.clear();
+            consoleMessages = [];
+            messageCount = {};
+            document.getElementById('consoleOutput').textContent = 'Console cleared...';
+            
+            const status = document.getElementById('loopStatus');
+            const statusText = document.getElementById('statusText');
+            status.className = 'status good';
+            statusText.textContent = '✅ Console cleared. Monitoring for new messages...';
+        }
+
+        function checkConsoleMessages() {
+            const output = document.getElementById('consoleOutput');
+            const topMessages = Object.entries(messageCount)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10);
+            
+            let report = '📊 MESSAGE FREQUENCY REPORT:\n\n';
+            topMessages.forEach(([msg, count]) => {
+                const status = count > 5 ? '🚨' : count > 2 ? '⚠️' : '✅';
+                report += `${status} ${count}x: ${msg.substring(0, 80)}...\n`;
+            });
+            
+            output.textContent = report;
+        }
+
+        function monitorApiCalls() {
+            // Monitor fetch calls
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                console.log('🌐 API Call:', args[0]);
+                return originalFetch.apply(this, args);
+            };
+            
+            const status = document.getElementById('loopStatus');
+            const statusText = document.getElementById('statusText');
+            status.className = 'status good';
+            statusText.textContent = '🌐 API monitoring enabled. Check console for API calls.';
+        }
+
+        function checkLocalStorage() {
+            const output = document.getElementById('consoleOutput');
+            let report = '💾 LOCALSTORAGE REPORT:\n\n';
+            
+            const keys = ['authToken', 'user', 'userPermissions', 'auditLogs', 'users'];
+            keys.forEach(key => {
+                const value = localStorage.getItem(key);
+                const status = value ? '✅' : '❌';
+                const size = value ? `(${value.length} chars)` : '';
+                report += `${status} ${key}: ${value ? 'Present' : 'Missing'} ${size}\n`;
+            });
+            
+            output.textContent = report;
+        }
+
+        function testBackendConnection() {
+            const output = document.getElementById('consoleOutput');
+            output.textContent = '🌐 Testing backend connection...\n';
+            
+            fetch('http://localhost:8000/health')
+                .then(response => response.json())
+                .then(data => {
+                    output.textContent += `✅ Backend connected: ${JSON.stringify(data)}\n`;
+                })
+                .catch(error => {
+                    output.textContent += `❌ Backend error: ${error.message}\n`;
+                });
+        }
+
+        // Start monitoring
+        function startMonitoring() {
+            isMonitoring = true;
+            const status = document.getElementById('loopStatus');
+            const statusText = document.getElementById('statusText');
+            status.className = 'status good';
+            statusText.textContent = '👀 Monitoring console messages for infinite loops...';
+        }
+
+        // Auto-start monitoring
+        setTimeout(startMonitoring, 1000);
+
+        // Instructions
+        setTimeout(() => {
+            console.log('🔍 Debug tool loaded. Navigate to Administrator page to test.');
+        }, 2000);
+    </script>
+</body>
+</html>

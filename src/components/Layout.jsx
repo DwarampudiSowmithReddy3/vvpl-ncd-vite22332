@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import auditService from '../services/auditService';
 import Sidebar from './Sidebar';
 import FloatingGreeting from './FloatingGreeting';
 import { HiOutlineDocumentText } from 'react-icons/hi';
@@ -58,6 +59,41 @@ const Layout = ({ children, isInvestor = false }) => {
       setShowFloatingGreeting(true);
     }
   }, [location.pathname, justLoggedIn, user?.name]);
+
+  // Log page access for audit trail
+  useEffect(() => {
+    if (user && location.pathname) {
+      const getPageName = (pathname) => {
+        const pathMap = {
+          '/dashboard': 'Dashboard',
+          '/ncd-series': 'NCD Series',
+          '/investors': 'Investors',
+          '/reports': 'Reports',
+          '/compliance': 'Compliance',
+          '/interest-payout': 'Interest Payout',
+          '/communication': 'Communication',
+          '/administrator': 'Administrator',
+          '/approval': 'Approval',
+          '/grievance-management': 'Grievance Management',
+          '/audit-log': 'Audit Log',
+          '/investor/dashboard': 'Investor Dashboard',
+          '/investor/account': 'Investor Account',
+          '/investor/series': 'Investor Series'
+        };
+        return pathMap[pathname] || pathname.replace('/', '').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      };
+
+      const pageName = getPageName(location.pathname);
+      
+      // TEMPORARILY DISABLED - audit logging was causing 422 errors and infinite loops
+      // Log page access (but don't log login page to avoid spam)
+      // if (location.pathname !== '/login' && location.pathname !== '/') {
+      //   auditService.logPageAccess(user, pageName).catch(error => {
+      //     console.error('Failed to log page access:', error);
+      //   });
+      // }
+    }
+  }, [location.pathname, user]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
