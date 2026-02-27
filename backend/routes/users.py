@@ -39,19 +39,51 @@ def create_audit_log(db, action: str, admin_name: str, admin_role: str, details:
         # Don't fail the main operation if audit logging fails
 
 @router.get("/", response_model=List[UserResponse])
-async def get_all_users(current_user: UserInDB = Depends(get_current_user)):
-    """Get all active users"""
+async def get_all_users(
+    search: str = None,
+    limit: int = None,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Get all active users
+    Supports search and limit (ALL LOGIC IN BACKEND)
+    
+    Parameters:
+    - search: Search term for username, user_id, full_name, role
+    - limit: Maximum number of users to return
+    """
     try:
         db = get_db()
+        
+        # Build query with search filter
         query = """
         SELECT id, user_id, username, full_name, email, phone, role, 
                created_at, updated_at, last_login, is_active
         FROM users 
         WHERE is_active = 1
-        ORDER BY created_at DESC
         """
         
-        result = db.execute_query(query)
+        params = []
+        
+        # Apply search filter
+        if search and search.strip():
+            query += """ AND (
+                username LIKE %s OR
+                user_id LIKE %s OR
+                full_name LIKE %s OR
+                role LIKE %s
+            )"""
+            search_param = f"%{search}%"
+            params.extend([search_param, search_param, search_param, search_param])
+        
+        query += " ORDER BY created_at DESC"
+        
+        # Apply limit
+        if limit and limit > 0:
+            query += " LIMIT %s"
+            params.append(limit)
+        
+        result = db.execute_query(query, tuple(params) if params else None)
         
         users = []
         for user_data in result:
@@ -232,8 +264,7 @@ async def get_user(user_id: int, current_user: UserInDB = Depends(get_current_us
 async def update_user(user_id: int, user_data: UserUpdate, current_user: UserInDB = Depends(get_current_user)):
     """Update a user"""
     try:
-        db = get_db()
-        
+        db = get_db()        
         # Check if user exists
         check_query = "SELECT id FROM users WHERE id = %s AND is_active = 1"
         result = db.execute_query(check_query, (user_id,))

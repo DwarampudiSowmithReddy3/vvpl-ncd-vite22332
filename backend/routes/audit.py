@@ -15,16 +15,17 @@ router = APIRouter(prefix="/audit", tags=["Audit Logs"])
 async def get_audit_logs(
     from_date: Optional[date] = Query(None, description="Filter logs from this date"),
     to_date: Optional[date] = Query(None, description="Filter logs to this date"),
-    limit: Optional[int] = Query(10, description="Number of logs to return"),
+    limit: Optional[int] = Query(None, description="Number of logs to return (default: all)"),
     current_user: UserInDB = Depends(get_current_user)
 ):
     """Get audit logs with optional date filtering"""
     try:
         db = get_db()
         
-        # Build query with optional date filters
+        # Build query with optional date filters - include ip_address and user_agent
         query = """
-        SELECT id, action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp
+        SELECT id, action, admin_name, admin_role, details, entity_type, entity_id, 
+               changes, timestamp, ip_address, user_agent
         FROM audit_logs
         """
         
@@ -54,7 +55,7 @@ async def get_audit_logs(
         for log_data in result:
             # Parse changes JSON if it exists
             changes = None
-            if log_data['changes']:
+            if log_data.get('changes'):
                 try:
                     changes = json.loads(log_data['changes']) if isinstance(log_data['changes'], str) else log_data['changes']
                 except json.JSONDecodeError:
@@ -66,16 +67,19 @@ async def get_audit_logs(
                 admin_name=log_data['admin_name'],
                 admin_role=log_data['admin_role'],
                 details=log_data['details'],
-                entity_type=log_data['entity_type'],
-                entity_id=log_data['entity_id'],
+                entity_type=log_data.get('entity_type'),
+                entity_id=log_data.get('entity_id'),
                 changes=changes,
                 timestamp=log_data['timestamp']
             ))
         
+        logger.info(f"✅ Returning {len(logs)} audit logs")
         return logs
         
     except Exception as e:
         logger.error(f"Error getting audit logs: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrieving audit logs"

@@ -1,9 +1,11 @@
 @echo off
-echo 🌐 Starting NCD Management Frontend...
-echo =====================================
+echo ========================================
+echo Starting NCD Management System - FRONTEND
+echo ========================================
 echo.
-echo 📍 Frontend will start on http://localhost:5174
-echo 🔗 Make sure backend is running on port 8000
+
+cd frontend
+echo Starting Vite development server...
+echo Frontend will be available at: http://localhost:5173
 echo.
 npm run dev
-pause

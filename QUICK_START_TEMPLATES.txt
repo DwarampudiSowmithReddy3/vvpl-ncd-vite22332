@@ -1,0 +1,68 @@
+============================================
+QUICK START - COMMUNICATION TEMPLATES
+============================================
+
+STEP 1: CREATE DATABASE TABLES
+-------------------------------
+Double-click this file:
+>>> CREATE_COMMUNICATION_TEMPLATES.bat
+
+Enter your MySQL credentials:
+- Username: root (or your MySQL username)
+- Password: (your MySQL password)
+
+Wait for "SUCCESS!" message.
+
+STEP 2: RESTART BACKEND
+------------------------
+1. Stop backend (Ctrl+C in backend terminal)
+2. Run: START_BACKEND.bat
+
+STEP 3: TEST IN FRONTEND
+-------------------------
+1. Open application in browser
+2. Go to: Communication Center
+3. Look for "Quick Templates:" dropdown
+4. You should see:
+   ✓ Interest Payment Notification
+   ✓ Payment Confirmation
+   ✓ General Update
+
+STEP 4: VERIFY VARIABLES
+-------------------------
+Scroll down to "Available Variables:"
+You should see clickable tags:
+   ✓ {InvestorName}
+   ✓ {InvestorID}
+   ✓ {SeriesName}
+   ✓ {Amount}
+   ✓ {BankAccountNumber}
+   ✓ {InterestMonth}
+   ✓ {Status}
+
+============================================
+THAT'S IT! Templates are now database-driven.
+============================================
+
+WHAT CHANGED:
+- Templates now come from database (not hardcoded)
+- You can add/edit templates via SQL
+- Variables are also from database
+
+TO ADD NEW TEMPLATE:
+--------------------
+Run this SQL:
+
+INSERT INTO communication_templates 
+(name, type, subject, content, created_by) 
+VALUES (
+    'My New Template',
+    'SMS',
+    NULL,
+    'Dear {InvestorName}, your custom message here...',
+    'Admin'
+);
+
+Then refresh the Communication page!
+
+============================================

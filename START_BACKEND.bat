@@ -1,10 +1,15 @@
 @echo off
-echo 🚀 Starting NCD Management Backend...
-echo =====================================
+echo ========================================
+echo Starting NCD Management System - BACKEND
+echo ========================================
 echo.
-echo 📍 Starting backend on http://localhost:8000
-echo 🔑 Admin credentials: admin/admin123
-echo.
+
 cd backend
-python main.py
-pause
+echo Activating Python virtual environment...
+call ..\.venv\Scripts\activate.bat
+
+echo Starting FastAPI server...
+echo Backend will be available at: http://localhost:8000
+echo API Documentation: http://localhost:8000/docs
+echo.
+python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000

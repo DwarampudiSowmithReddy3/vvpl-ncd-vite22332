@@ -97,24 +97,37 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
     """Get current authenticated user"""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
     
     try:
+        if not credentials:
+            logger.error("❌ No credentials provided")
+            raise credentials_exception
+        
         token = credentials.credentials
+        logger.info(f"🔑 Verifying token: {token[:20]}...")
+        
         token_data = verify_token(token)
         if token_data is None:
+            logger.error("❌ Token verification failed")
             raise credentials_exception
+        
+        logger.info(f"✅ Token verified for user: {token_data.username}")
         
         user = get_user_by_username(token_data.username)
         if user is None:
+            logger.error(f"❌ User not found: {token_data.username}")
             raise credentials_exception
         
+        logger.info(f"✅ User authenticated: {user.username} ({user.role})")
         return user
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error getting current user: {e}")
+        logger.error(f"❌ Error getting current user: {e}")
         raise credentials_exception
 
 def update_last_login(username: str):

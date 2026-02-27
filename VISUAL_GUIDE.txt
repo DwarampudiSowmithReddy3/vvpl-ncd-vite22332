@@ -1,0 +1,152 @@
+============================================
+VISUAL GUIDE - CREATE TABLES IN MYSQL WORKBENCH
+============================================
+
+STEP 1: Open MySQL Workbench
+-----------------------------
+[MySQL Workbench Icon] → Double-click
+
+
+STEP 2: Connect to Database
+----------------------------
+Click on your connection:
+┌─────────────────────────┐
+│  Local instance MySQL   │
+│  root@localhost:3306    │
+└─────────────────────────┘
+
+Enter password: sowmith
+
+
+STEP 3: Open SQL Script
+------------------------
+Menu Bar:
+File → Open SQL Script...
+
+Or use shortcut: Ctrl+Shift+O
+
+
+STEP 4: Navigate to File
+-------------------------
+Location: C:\Users\dwara\OneDrive\Desktop\ncd-vite\
+File: CREATE_TEMPLATES_SIMPLE.sql
+
+Click [Open]
+
+
+STEP 5: Execute Script
+-----------------------
+You'll see the SQL code in the editor.
+
+Click the ⚡ (Lightning bolt) icon
+Or press: Ctrl+Shift+Enter
+
+┌────────────────────────────────┐
+│ ⚡ Execute  ▶ Execute Current  │
+└────────────────────────────────┘
+
+
+STEP 6: Wait for Completion
+----------------------------
+Bottom panel will show:
+
+Action Output:
+✓ Tables created successfully!
+✓ SMS Templates: 3
+✓ Email Templates: 3
+✓ Variables: 7
+
+
+STEP 7: Refresh Schemas
+------------------------
+Left panel (SCHEMAS):
+
+Right-click on "ncd_management"
+→ Select "Refresh All"
+
+Or click the refresh icon: 🔄
+
+
+STEP 8: Verify Tables Created
+------------------------------
+Expand ncd_management:
+  ▼ ncd_management
+    ▼ Tables
+      ▶ audit_logs
+      ▶ communication_history
+      ▶ communication_templates    ← NEW!
+      ▶ communication_variables    ← NEW!
+      ▶ compliance_documents
+      ... (other tables)
+
+
+STEP 9: Check Data
+-------------------
+Right-click on "communication_templates"
+→ Select "Select Rows - Limit 1000"
+
+You should see 6 rows:
+- 3 SMS templates
+- 3 Email templates
+
+
+STEP 10: Restart Backend
+-------------------------
+Go to your backend terminal:
+1. Press Ctrl+C to stop
+2. Run: START_BACKEND.bat
+
+
+STEP 11: Test in Application
+-----------------------------
+1. Open browser: http://localhost:5173
+2. Go to: Communication Center
+3. Look for: "Quick Templates:" dropdown
+4. Click dropdown
+5. You should see:
+   ✓ Interest Payment Notification
+   ✓ Payment Confirmation
+   ✓ General Update
+
+
+============================================
+SUCCESS! Templates are now database-driven!
+============================================
+
+BEFORE:                    AFTER:
+Templates in code    →     Templates in database
+Hard to change       →     Easy to manage
+Need code update     →     Just update SQL
+
+
+============================================
+WHAT YOU CAN DO NOW:
+============================================
+
+✓ Select templates from dropdown
+✓ Templates load from database
+✓ Variables show dynamically
+✓ Add new templates via SQL
+✓ Edit templates without code changes
+
+
+============================================
+TO ADD NEW TEMPLATE:
+============================================
+
+Run this SQL in MySQL Workbench:
+
+INSERT INTO communication_templates 
+(name, type, subject, content, created_by) 
+VALUES (
+    'My Custom Template',
+    'SMS',
+    NULL,
+    'Dear {InvestorName}, custom message here...',
+    'Admin'
+);
+
+Then refresh the Communication page!
+
+
+============================================

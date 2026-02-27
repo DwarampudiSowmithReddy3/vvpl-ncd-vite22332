@@ -1,0 +1,71 @@
+============================================
+FIX MYSQL WORKBENCH DUPLICATE DISPLAY
+============================================
+
+The duplicate tables you see in MySQL Workbench are just
+a DISPLAY GLITCH. The actual database only has 3 tables:
+  - communication_history
+  - communication_templates
+  - communication_variables
+
+HOW TO FIX THE DISPLAY:
+-----------------------
+
+METHOD 1: Refresh Schema (Quick)
+---------------------------------
+1. In MySQL Workbench, look at the left panel (SCHEMAS)
+2. Right-click on "ncd_management"
+3. Select "Refresh All"
+4. The duplicate display should disappear
+
+METHOD 2: Reconnect to Database
+--------------------------------
+1. Close MySQL Workbench completely
+2. Reopen MySQL Workbench
+3. Connect to your database again
+4. The display should be correct now
+
+METHOD 3: Clear Workbench Cache
+--------------------------------
+1. Close MySQL Workbench
+2. Delete cache folder:
+   C:\Users\dwara\AppData\Roaming\MySQL\Workbench\cache\
+3. Reopen MySQL Workbench
+4. Connect to database
+
+VERIFY TABLES ARE CORRECT:
+--------------------------
+Run this query in MySQL Workbench:
+
+SHOW TABLES LIKE 'communication_%';
+
+You should see ONLY 3 tables:
+  ✓ communication_history
+  ✓ communication_templates
+  ✓ communication_variables
+
+VERIFY DATA IS CORRECT:
+-----------------------
+Run this query:
+
+SELECT COUNT(*) as count, type 
+FROM communication_templates 
+GROUP BY type;
+
+You should see:
+  ✓ SMS: 3 templates
+  ✓ Email: 3 templates
+
+============================================
+CONCLUSION:
+============================================
+
+✅ Your database is CORRECT
+✅ Only 3 tables exist (no duplicates)
+✅ The duplicate display is just a Workbench glitch
+✅ Refreshing the schema will fix the display
+
+The application will work perfectly regardless of
+the display issue in MySQL Workbench!
+
+============================================

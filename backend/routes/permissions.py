@@ -26,17 +26,92 @@ async def get_all_permissions(current_user: UserInDB = Depends(get_current_user)
         
         result = db.execute_query(query)
         
+        # Convert backend format to frontend format
+        def convert_to_frontend_format(backend_perms):
+            """Convert backend array to frontend object format"""
+            frontend_perms = {
+                'dashboard': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'ncdSeries': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'investors': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'reports': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'compliance': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'interestPayout': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'communication': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'administrator': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'approval': {'view': False, 'create': False, 'edit': False, 'delete': False},
+                'grievanceManagement': {'view': False, 'create': False, 'edit': False, 'delete': False}
+            }
+            
+            # Map backend permission names to frontend format
+            permission_map = {
+                'view_dashboard': ('dashboard', 'view'),
+                'view_ncd_series': ('ncdSeries', 'view'),
+                'create_ncd_series': ('ncdSeries', 'create'),
+                'edit_ncd_series': ('ncdSeries', 'edit'),
+                'delete_ncd_series': ('ncdSeries', 'delete'),
+                'approve_ncd_series': ('approval', 'create'),
+                'view_investors': ('investors', 'view'),
+                'create_investor': ('investors', 'create'),
+                'edit_investor': ('investors', 'edit'),
+                'delete_investor': ('investors', 'delete'),
+                'view_reports': ('reports', 'view'),
+                'create_report': ('reports', 'create'),
+                'edit_report': ('reports', 'edit'),
+                'delete_report': ('reports', 'delete'),
+                'view_compliance': ('compliance', 'view'),
+                'edit_compliance': ('compliance', 'edit'),
+                'view_users': ('administrator', 'view'),
+                'create_user': ('administrator', 'create'),
+                'edit_user': ('administrator', 'edit'),
+                'delete_user': ('administrator', 'delete'),
+                'view_permissions': ('administrator', 'view'),
+                'edit_permissions': ('administrator', 'edit'),
+                'view_audit_logs': ('administrator', 'view'),
+                'view_communication': ('communication', 'view'),
+                'create_communication': ('communication', 'create'),
+                'edit_communication': ('communication', 'edit'),
+                'view_interest_payout': ('interestPayout', 'view'),
+                'create_interest_payout': ('interestPayout', 'create'),
+                'edit_interest_payout': ('interestPayout', 'edit'),
+                'view_grievance': ('grievanceManagement', 'view'),
+                'create_grievance': ('grievanceManagement', 'create'),
+                'edit_grievance': ('grievanceManagement', 'edit'),
+                'delete_grievance': ('grievanceManagement', 'delete')
+            }
+            
+            # Convert each backend permission to frontend format
+            for perm in backend_perms:
+                if perm in permission_map:
+                    module, action = permission_map[perm]
+                    frontend_perms[module][action] = True
+            
+            return frontend_perms
+        
         # Organize permissions by role
         permissions = {}
         for row in result:
             role = row['role']
-            role_permissions = json.loads(row['permissions'])
-            permissions[role] = role_permissions
+            backend_perms = json.loads(row['permissions'])
+            
+            # Check if permissions are already in object format (dict)
+            if isinstance(backend_perms, dict):
+                # Already in correct format, use as-is
+                permissions[role] = backend_perms
+            elif isinstance(backend_perms, list):
+                # Convert from array format to object format
+                permissions[role] = convert_to_frontend_format(backend_perms)
+            else:
+                # Unknown format, skip
+                logger.warning(f"Unknown permissions format for role {role}: {type(backend_perms)}")
+                continue
         
+        logger.info(f"✅ Returning permissions for {len(permissions)} roles")
         return permissions
         
     except Exception as e:
         logger.error(f"Error getting permissions: {e}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error retrieving permissions"
@@ -47,14 +122,61 @@ async def update_permissions(
     permissions_data: Dict[str, Any],
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Update permissions (Super Admin only)"""
+    """Update permissions (Admin or Super Admin only)"""
     try:
-        # Check if user is Super Admin
-        if current_user.role != "Super Admin":
+        # Check if user is Admin or Super Admin
+        if current_user.role not in ["Admin", "Super Admin"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Super Admin can update permissions"
+                detail="Only Admin or Super Admin can update permissions"
             )
+        
+        # Convert frontend format to backend format
+        def convert_to_backend_format(frontend_perms):
+            """Convert frontend object to backend array format"""
+            backend_perms = []
+            
+            # Map frontend format to backend permission names
+            permission_map = {
+                ('dashboard', 'view'): 'view_dashboard',
+                ('ncdSeries', 'view'): 'view_ncd_series',
+                ('ncdSeries', 'create'): 'create_ncd_series',
+                ('ncdSeries', 'edit'): 'edit_ncd_series',
+                ('ncdSeries', 'delete'): 'delete_ncd_series',
+                ('approval', 'create'): 'approve_ncd_series',
+                ('investors', 'view'): 'view_investors',
+                ('investors', 'create'): 'create_investor',
+                ('investors', 'edit'): 'edit_investor',
+                ('investors', 'delete'): 'delete_investor',
+                ('reports', 'view'): 'view_reports',
+                ('reports', 'create'): 'create_report',
+                ('reports', 'edit'): 'edit_report',
+                ('reports', 'delete'): 'delete_report',
+                ('compliance', 'view'): 'view_compliance',
+                ('compliance', 'edit'): 'edit_compliance',
+                ('administrator', 'view'): 'view_users',
+                ('administrator', 'create'): 'create_user',
+                ('administrator', 'edit'): 'edit_user',
+                ('administrator', 'delete'): 'delete_user',
+                ('communication', 'view'): 'view_communication',
+                ('communication', 'create'): 'create_communication',
+                ('communication', 'edit'): 'edit_communication',
+                ('interestPayout', 'view'): 'view_interest_payout',
+                ('interestPayout', 'create'): 'create_interest_payout',
+                ('interestPayout', 'edit'): 'edit_interest_payout',
+                ('grievanceManagement', 'view'): 'view_grievance',
+                ('grievanceManagement', 'create'): 'create_grievance',
+                ('grievanceManagement', 'edit'): 'edit_grievance',
+                ('grievanceManagement', 'delete'): 'delete_grievance'
+            }
+            
+            # Convert each frontend permission to backend format
+            for module, actions in frontend_perms.items():
+                for action, value in actions.items():
+                    if value and (module, action) in permission_map:
+                        backend_perms.append(permission_map[(module, action)])
+            
+            return backend_perms
         
         db = get_db()
         updated_count = 0
@@ -72,8 +194,11 @@ async def update_permissions(
             if current_result:
                 current_permissions = json.loads(current_result[0]['permissions'])
             
-            # Convert permissions to JSON string
+            # Store permissions in object format (same as frontend)
+            # NO CONVERSION NEEDED - frontend and database use same format
             permissions_json = json.dumps(role_permissions)
+            
+            logger.info(f"Storing permissions for {role_name} in object format")
             
             # Update the role_permissions table
             update_query = """
