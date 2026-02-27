@@ -3,9 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from routes import auth, users, audit, permissions, series, compliance, dashboard, investors, communication, grievances, payouts, reports
 from database import get_db
-from init_database import initialize_database, insert_default_data
+from run_migrations import run_migrations
+from seed_default_data import seed_default_data
 import uvicorn
 import logging
+import sys
 
 # Configure logging
 logging.basicConfig(
@@ -22,53 +24,56 @@ app = FastAPI(
 )
 
 
-# Startup event - Initialize database
+# Startup event - Run Alembic migrations
 @app.on_event("startup")
 async def startup_event():
     """
     Run on application startup
-    Initialize database tables and insert default data
+    Automatically runs Alembic database migrations and seeds default data
     """
     logger.info("=" * 70)
-    logger.info("🚀 NCD Management System - Starting Up")
+    logger.info("🚀 NCD MANAGEMENT SYSTEM - STARTING UP")
     logger.info("=" * 70)
     logger.info("")
     
-    # Initialize database tables (with user confirmation)
-    logger.info("📊 Checking database...")
-    db_init_success = initialize_database(auto_confirm=False)
+    # Run Alembic migrations
+    logger.info("📊 Running database migrations with Alembic...")
+    logger.info("")
     
-    if not db_init_success:
+    migration_success = run_migrations()
+    
+    if not migration_success:
         logger.error("=" * 70)
         logger.error("❌ APPLICATION STARTUP FAILED")
         logger.error("=" * 70)
         logger.error("")
-        logger.error("Database tables were not created.")
-        logger.error("The application cannot start without database tables.")
+        logger.error("Database migrations failed.")
+        logger.error("The application cannot start without successful migrations.")
         logger.error("")
-        logger.error("Please restart the application and confirm table creation.")
+        logger.error("Please check:")
+        logger.error("1. Database connection settings in backend/.env")
+        logger.error("2. MySQL server is running")
+        logger.error("3. Database 'ncd_management' exists")
+        logger.error("")
+        logger.error("Exiting application...")
         logger.error("=" * 70)
         # Exit the application
-        import sys
         sys.exit(1)
     
+    # Seed default data (admin user + templates)
     logger.info("")
-    logger.info("✅ Database tables initialized successfully")
-    logger.info("")
+    logger.info("📝 Seeding default data...")
+    seed_success = seed_default_data()
     
-    # Insert default data
-    logger.info("📝 Checking default data...")
-    data_init_success = insert_default_data()
-    
-    if data_init_success:
-        logger.info("✅ Default data verified/inserted successfully")
+    if seed_success:
+        logger.info("✅ Default data seeded successfully")
     else:
-        logger.warning("⚠️ Failed to insert default data")
+        logger.warning("⚠️  Failed to seed default data (may already exist)")
     
     logger.info("")
     logger.info("=" * 70)
-    logger.info("✅ Application startup complete")
-    logger.info("🌐 API is ready to accept requests")
+    logger.info("✅ APPLICATION STARTUP COMPLETE")
+    logger.info("🌐 API IS READY TO ACCEPT REQUESTS")
     logger.info("=" * 70)
     logger.info("")
 
