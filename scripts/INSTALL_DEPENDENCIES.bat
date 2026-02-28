@@ -4,7 +4,7 @@ echo INSTALLING DEPENDENCIES FOR NCD MANAGEMENT SYSTEM
 echo ============================================
 echo.
 
-cd backend
+cd ..\backend
 
 echo Installing Python packages...
 echo.
@@ -19,7 +19,7 @@ echo.
 echo Next steps:
 echo 1. Create MySQL database: ncd_management
 echo 2. Configure backend/.env with database credentials
-echo 3. Run: START_BACKEND.bat
+echo 3. Run: scripts\START_BACKEND.bat
 echo.
 echo ============================================
 

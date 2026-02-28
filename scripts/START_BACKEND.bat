@@ -4,7 +4,7 @@ echo Starting NCD Management System - BACKEND
 echo ========================================
 echo.
 
-cd backend
+cd ..\backend
 echo Activating Python virtual environment...
 call ..\.venv\Scripts\activate.bat
 
