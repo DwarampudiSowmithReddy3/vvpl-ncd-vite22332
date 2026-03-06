@@ -1,0 +1,131 @@
+.access-denied-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 20px;
+}
+
+.access-denied-card {
+  background: white;
+  border-radius: 16px;
+  padding: 48px 40px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  width: 100%;
+  border: 1px solid #e2e8f0;
+}
+
+.access-denied-icon {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.access-denied-icon svg {
+  width: 80px;
+  height: 80px;
+  opacity: 0.8;
+}
+
+.access-denied-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.access-denied-message {
+  font-size: 16px;
+  color: #64748b;
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+
+.access-denied-details {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 32px;
+  border-left: 4px solid #ef4444;
+}
+
+.access-denied-details p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #374151;
+}
+
+.access-denied-details strong {
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.access-denied-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.back-button,
+.dashboard-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  min-width: 120px;
+}
+
+.back-button {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.back-button:hover {
+  background: #e2e8f0;
+  color: #374151;
+  transform: translateY(-1px);
+}
+
+.dashboard-button {
+  background: #2563eb;
+  color: white;
+}
+
+.dashboard-button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .access-denied-card {
+    padding: 32px 24px;
+    margin: 20px;
+  }
+  
+  .access-denied-title {
+    font-size: 24px;
+  }
+  
+  .access-denied-message {
+    font-size: 15px;
+  }
+  
+  .access-denied-actions {
+    flex-direction: column;
+  }
+  
+  .back-button,
+  .dashboard-button {
+    width: 100%;
+  }
+}
