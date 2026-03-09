@@ -573,14 +573,6 @@ class ApiService {
     return await this.request('/communication/history/stats');
   }
 
-  async getCommunicationTemplates(type = null) {
-    const queryParams = new URLSearchParams();
-    if (type) queryParams.append('type', type);
-    
-    const endpoint = `/communication/templates${queryParams.toString() ? '?' + queryParams.toString() : ''}`;
-    return await this.request(endpoint);
-  }
-
   // ============================================
   // OLD COMMUNICATION ENDPOINTS (DEPRECATED - Keep for backward compatibility)
   // ============================================

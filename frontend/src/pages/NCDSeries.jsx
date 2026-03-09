@@ -7,9 +7,12 @@ import { useToast } from '../components/Toast';
 import auditService from '../services/auditService';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
+import growthChartAnimation from '../assets/animations/growth-chart.json';
 import { getUserFriendlyError } from '../utils/errorHandler';
 import './NCDSeries.css';
-import '../styles/loading.css';
 import { HiOutlineEye, HiOutlineTrash } from "react-icons/hi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 
@@ -28,6 +31,7 @@ const NCDSeries = () => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [seriesToDelete, setSeriesToDelete] = useState(null);
+  const [showCreatingAnimation, setShowCreatingAnimation] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     seriesCode: '',
@@ -125,11 +129,16 @@ const NCDSeries = () => {
       
       if (import.meta.env.DEV) { console.log('✅ Transformed series:', transformedSeries); }
       setSeries(transformedSeries);
+      
+      // CRITICAL FIX: Set loading to false after data is loaded
+      setLoading(false);
+      
     } catch (error) {
       if (import.meta.env.DEV) { console.error('❌ Error fetching series:', error); }
       const friendlyError = getUserFriendlyError(error, 'Failed to load series data. Please refresh the page.');
       toast.error(friendlyError, 'Failed to Load Series');
-    } finally {
+      
+      // CRITICAL FIX: Set loading to false even on error
       setLoading(false);
     }
   };
@@ -137,6 +146,14 @@ const NCDSeries = () => {
   // Load series on component mount
   React.useEffect(() => {
     fetchSeries();
+  }, []);
+
+  // Minimum loading time of 3 seconds
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   // REMOVED: Frontend status calculation - use backend status directly
@@ -212,6 +229,9 @@ const NCDSeries = () => {
       toast.warning('Please upload all required documents (Term Sheet, Offer Document, and Board Resolution)', 'Missing Documents');
       return;
     }
+    
+    // Show creating animation
+    setShowCreatingAnimation(true);
     
     const formatDate = (dateStr) => {
       if (!dateStr) return '';
@@ -313,13 +333,32 @@ const NCDSeries = () => {
         } catch (docError) {
           if (import.meta.env.DEV) { console.error('❌ Error uploading documents:', docError); }
           const friendlyError = getUserFriendlyError(docError, 'Failed to upload documents.');
+          
+          // CRITICAL: Close animation even if document upload fails
+          setShowCreatingAnimation(false);
+          
           toast.warning(`Series created but ${friendlyError}`, 'Partial Success');
+          
+          // Refresh and return early
+          await fetchSeries();
+          setShowCreateForm(false);
+          return;
         }
       } else {
         if (import.meta.env.DEV) { console.log('⚠️ No documents provided for upload'); }
       }
       
-      // Add audit log for series creation
+      // CRITICAL: Close animation IMMEDIATELY after upload completes
+      if (import.meta.env.DEV) { console.log('🔄 Closing animation NOW...'); }
+      setShowCreatingAnimation(false);
+      if (import.meta.env.DEV) { console.log('✅ Animation closed'); }
+      
+      // CRITICAL: Close animation IMMEDIATELY after upload completes
+      if (import.meta.env.DEV) { console.log('🔄 Closing animation NOW...'); }
+      setShowCreatingAnimation(false);
+      if (import.meta.env.DEV) { console.log('✅ Animation closed'); }
+      
+      // Add audit log for series creation (non-blocking)
       try {
         await auditService.logSeriesCreated({
           name: formData.name,
@@ -330,9 +369,7 @@ const NCDSeries = () => {
         }, user);
       } catch (auditError) {
         if (import.meta.env.DEV) {
-
           if (import.meta.env.DEV) { console.error('⚠️ Failed to log audit (non-critical):', auditError); }
-
         }
       }
       
@@ -342,8 +379,14 @@ const NCDSeries = () => {
         'Series Created'
       );
       
-      // Refresh series list to show the new series
-      await fetchSeries();
+      // Refresh series list (non-blocking)
+      if (import.meta.env.DEV) { console.log('🔄 Refreshing series list...'); }
+      try {
+        await fetchSeries();
+        if (import.meta.env.DEV) { console.log('✅ Series list refreshed'); }
+      } catch (fetchError) {
+        if (import.meta.env.DEV) { console.error('⚠️ Error refreshing series list (non-critical):', fetchError); }
+      }
       
       // Close form and reset
       setShowCreateForm(false);
@@ -379,9 +422,16 @@ const NCDSeries = () => {
       });
       
     } catch (error) {
+      // Hide creating animation on error
+      setShowCreatingAnimation(false);
+      
       if (import.meta.env.DEV) { console.error('❌ Error creating series:', error); }
       const friendlyError = getUserFriendlyError(error, 'Failed to create series. Please try again.');
       toast.error(friendlyError, 'Creation Failed');
+    } finally {
+      // CRITICAL: Ensure animation is always closed, even if there's an error
+      if (import.meta.env.DEV) { console.log('🔄 Finally block: Ensuring animation is closed...'); }
+      setShowCreatingAnimation(false);
     }
   };
 
@@ -500,10 +550,24 @@ const NCDSeries = () => {
     <Layout>
       {/* Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}
@@ -1626,6 +1690,120 @@ const NCDSeries = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Growth Chart Animation Overlay for Series Creation */}
+        {showCreatingAnimation && (
+          <>
+            {/* Background Blur Overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 99998
+            }} />
+            
+            {/* Animation Card */}
+            <div style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999,
+              background: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+              border: '1px solid #e2e8f0',
+              width: '550px',
+              overflow: 'hidden',
+              animation: 'greetingEnter 0.5s ease-out'
+            }}>
+              <div style={{
+                padding: '32px 48px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                {/* Lottie Animation */}
+                <div style={{ width: '240px', height: '240px' }}>
+                  <Lottie
+                    animationData={growthChartAnimation}
+                    loop={true}
+                    autoplay={true}
+                    speed={0.5}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%'
+                    }}
+                  />
+                </div>
+                
+                {/* Text Content */}
+                <div style={{
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: 600,
+                    color: '#000000',
+                    margin: 0
+                  }}>
+                    Creating New Series
+                  </h2>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: '#64748b',
+                    margin: 0
+                  }}>
+                    {formData.name}
+                  </p>
+                </div>
+                
+                {/* Loading Dots */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  marginTop: '8px'
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.2s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.4s'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>

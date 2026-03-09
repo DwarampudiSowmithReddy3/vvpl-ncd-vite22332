@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useToast } from '../components/Toast';
 import apiService from '../services/api';
 import auditService from '../services/auditService';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import './Communication.css';
-import '../styles/loading.css';
 import { HiOutlineMail, HiOutlineDeviceMobile, HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
 import { MdSend, MdHistory, MdClose, MdSearch, MdFilterList, MdCheck, MdRemove, MdDragIndicator } from 'react-icons/md';
 import { FaPlus } from 'react-icons/fa';
@@ -17,11 +20,13 @@ const Communication = () => {
   const { showCreateButton, canEdit } = usePermissions();
   const { user } = useAuth();
   const { addAuditLog } = useData();
+  const toast = useToast();
   
   // Backend data state
   const [series, setSeries] = useState([]);
   const [seriesInvestorsMap, setSeriesInvestorsMap] = useState(new Map()); // Map<seriesId, investors[]>
   const [loadingSeries, setLoadingSeries] = useState(true);
+  const [loading, setLoading] = useState(true); // Initial page loading
   const [searchedInvestors, setSearchedInvestors] = useState([]); // For investor search results
   const [historyStats, setHistoryStats] = useState({ total_count: 0, sms_count: 0, email_count: 0 });
   const [smsTemplates, setSmsTemplates] = useState([]); // Templates from backend
@@ -48,6 +53,14 @@ const Communication = () => {
   const [messageContent, setMessageContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
   
+  // Minimum loading time of 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Legacy state for backward compatibility
   const [historyFilter, setHistoryFilter] = useState('all');
   const fileInputRef = useRef(null);
@@ -247,7 +260,18 @@ const Communication = () => {
   };
 
   // Handle individual investor selection from search results
-  const handleIndividualInvestorSelect = async (investor, seriesId) => {
+  const handleIndividualInvestorSelect = async (investor) => {
+    // Investor from search has seriesIds array
+    const investorSeriesIds = investor.seriesIds || [];
+    
+    if (investorSeriesIds.length === 0) {
+      toast.error('No series found for this investor', 'Selection Error');
+      return;
+    }
+    
+    // If investor has multiple series, select the first one (or you can show a dialog to choose)
+    const seriesId = investorSeriesIds[0];
+    
     // Fetch investors for this series if not already fetched
     await fetchInvestorsForSeries(seriesId);
     
@@ -483,13 +507,13 @@ const Communication = () => {
   // Send messages to selected investors - ALL LOGIC IN BACKEND
   const handleSendMessages = async () => {
     if (!messageContent.trim()) {
-      alert('Please enter a message to send.');
+      toast.error('Please enter a message to send.', 'Message Required');
       return;
     }
 
     const selectedInvestorsList = getAllSelectedInvestors();
     if (selectedInvestorsList.length === 0) {
-      alert('Please select at least one investor to send messages to.');
+      toast.error('Please select at least one investor to send messages to.', 'No Recipients Selected');
       return;
     }
 
@@ -498,9 +522,9 @@ const Communication = () => {
     try {
       if (import.meta.env.DEV) { console.log('📤 Sending messages via backend API...'); }
       
-      // Prepare data for backend
+      // Prepare data for backend - Convert type to uppercase
       const messageData = {
-        type: communicationType, // 'sms' or 'email'
+        type: communicationType === 'sms' ? 'SMS' : 'Email', // Backend expects 'SMS' or 'Email'
         subject: `Important Update - NCD Investment`,
         message: messageContent,
         investor_ids: selectedInvestorsList.map(inv => inv.investorId),
@@ -534,8 +558,18 @@ const Communication = () => {
         if (import.meta.env.DEV) { console.error('Failed to log communication:', error); }
       });
       
-      // Show success message
-      alert(`Successfully sent ${response.successful} ${communicationType.toUpperCase()} message(s)! ${response.failed > 0 ? `${response.failed} failed.` : ''}`);
+      // Show success or partial success message
+      if (response.failed === 0) {
+        toast.success(
+          `Successfully sent ${response.successful} ${communicationType.toUpperCase()} message${response.successful > 1 ? 's' : ''} to ${selectedInvestorsList.length} investor${selectedInvestorsList.length > 1 ? 's' : ''}!`,
+          'Messages Sent Successfully'
+        );
+      } else {
+        toast.warning(
+          `Sent ${response.successful} ${communicationType.toUpperCase()} message${response.successful > 1 ? 's' : ''} successfully. ${response.failed} failed to send.`,
+          'Partial Success'
+        );
+      }
       
       // Refresh communication history
       if (activeTab === 'history') {
@@ -550,7 +584,10 @@ const Communication = () => {
       
     } catch (error) {
       if (import.meta.env.DEV) { console.error('❌ Error sending messages:', error); }
-      alert(`Error sending messages: ${error.message}`);
+      toast.error(
+        error.message || 'Failed to send messages. Please try again.',
+        'Send Failed'
+      );
     } finally {
       setIsSending(false);
     }
@@ -573,11 +610,25 @@ const Communication = () => {
   return (
     <Layout>
       {/* Loading Overlay */}
-      {loadingSeries && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+      {loading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}

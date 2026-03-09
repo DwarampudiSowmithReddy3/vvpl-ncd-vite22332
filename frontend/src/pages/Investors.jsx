@@ -6,8 +6,12 @@ import { useToast } from '../components/Toast';
 import apiService from '../services/api';
 import auditService from '../services/auditService';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
+import profileSearchingAnimation from '../assets/animations/profile-searching.json';
+import emptylistFriendsAnimation from '../assets/animations/emptylist-friends.json';
 import './Investors.css';
-import '../styles/loading.css';
 import { MdOutlineFileDownload, MdTrendingUp, MdCurrencyRupee } from "react-icons/md";
 import { FiSearch } from "react-icons/fi";
 import { FaEye, FaUsers, FaCheckCircle, FaClock, FaTimesCircle } from "react-icons/fa";
@@ -25,7 +29,7 @@ const Investors = () => {
   // State management - Data from backend
   const [investors, setInvestors] = useState([]);
   const [series, setSeries] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Always start with loading true
   const [error, setError] = useState(null);
   const [statistics, setStatistics] = useState({
     total_investors: 0,
@@ -51,6 +55,8 @@ const Investors = () => {
   const [investmentDocument, setInvestmentDocument] = useState(null);
   const [availableSeriesForInvestment, setAvailableSeriesForInvestment] = useState([]);
   const [isSubmittingInvestment, setIsSubmittingInvestment] = useState(false); // NEW: Loading state for investment submission
+  const [showProfileSearching, setShowProfileSearching] = useState(false); // NEW: Profile searching animation state
+  const [showCreatingInvestor, setShowCreatingInvestor] = useState(false); // NEW: Creating investor animation state
 
   // Form data for Add Investor
   const [formData, setFormData] = useState({
@@ -160,13 +166,25 @@ const Investors = () => {
       // Set unique series for filters
       setUniqueSeries(uniqueSeriesData.series || []);
 
+      // CRITICAL FIX: Set loading to false after data is loaded
+      setLoading(false);
+
     } catch (err) {
       if (import.meta.env.DEV) { console.error('❌ Error loading data:', err); }
       setError('Failed to load data: ' + (err.message || 'Unknown error'));
-    } finally {
+      
+      // CRITICAL FIX: Set loading to false even on error
       setLoading(false);
     }
   };
+
+  // Minimum loading time of 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Load filtered investors when filters change
   useEffect(() => {
@@ -297,9 +315,13 @@ const Investors = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Show creating investor animation
+    setShowCreatingInvestor(true);
+
     try {
       // Validate Investor ID is provided
       if (!formData.investorId || !formData.investorId.trim()) {
+        setShowCreatingInvestor(false);
         toast.error('Investor ID is required', 'Validation Error');
         return;
       }
@@ -376,6 +398,9 @@ const Investors = () => {
       // Reload data
       await loadData();
 
+      // CRITICAL: Hide creating investor animation
+      setShowCreatingInvestor(false);
+
       // Close modal and reset form
       setShowAddInvestorModal(false);
       setFormData({
@@ -409,8 +434,14 @@ const Investors = () => {
 
       toast.success(`Investor "${formData.fullName}" has been created successfully with ID: ${formData.investorId.trim().toUpperCase()}`, 'Investor Created');
     } catch (error) {
+      // CRITICAL: Hide creating investor animation on error
+      setShowCreatingInvestor(false);
+      
       if (import.meta.env.DEV) { console.error('Error creating investor:', error); }
       toast.error(error.message || 'Failed to create investor. Please try again.', 'Creation Failed');
+    } finally {
+      // CRITICAL: Ensure animation is always closed
+      setShowCreatingInvestor(false);
     }
   };
 
@@ -608,10 +639,24 @@ const Investors = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       </Layout>
@@ -826,7 +871,14 @@ const Investors = () => {
                         <div className="perfect-actions-cell">
                           <button
                             className="perfect-view-btn"
-                            onClick={() => navigate(`/investors/${investor.investorId || investor.investor_id}`)}
+                            onClick={() => {
+                              // Show profile searching animation for 4 seconds
+                              setShowProfileSearching(true);
+                              setTimeout(() => {
+                                setShowProfileSearching(false);
+                                navigate(`/investors/${investor.investorId || investor.investor_id}`);
+                              }, 4000);
+                            }}
                           >
                             <FaEye size={14} /> View
                           </button>
@@ -1768,6 +1820,233 @@ const Investors = () => {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Profile Searching Animation Overlay */}
+        {showProfileSearching && (
+          <>
+            {/* Background Blur Overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 99998
+            }} />
+            
+            {/* Animation Card */}
+            <div style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999,
+              background: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+              border: '1px solid #e2e8f0',
+              width: '550px',
+              overflow: 'hidden',
+              animation: 'greetingEnter 0.5s ease-out'
+            }}>
+              <div style={{
+                padding: '32px 48px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                {/* Lottie Animation */}
+                <div style={{ width: '240px', height: '240px' }}>
+                  <Lottie
+                    animationData={profileSearchingAnimation}
+                    loop={true}
+                    autoplay={true}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%'
+                    }}
+                  />
+                </div>
+                
+                {/* Text Content */}
+                <div style={{
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: 600,
+                    color: '#000000',
+                    margin: 0
+                  }}>
+                    Loading Investor Profile
+                  </h2>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: '#64748b',
+                    margin: 0
+                  }}>
+                    Please wait...
+                  </p>
+                </div>
+                
+                {/* Loading Dots */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  marginTop: '8px'
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.2s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.4s'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Creating Investor Animation Overlay */}
+        {showCreatingInvestor && (
+          <>
+            {/* Background Blur Overlay */}
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 99998
+            }} />
+            
+            {/* Animation Card */}
+            <div style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999,
+              background: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+              border: '1px solid #e2e8f0',
+              width: '550px',
+              overflow: 'hidden',
+              animation: 'greetingEnter 0.5s ease-out'
+            }}>
+              <div style={{
+                padding: '32px 48px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '20px'
+              }}>
+                {/* Lottie Animation */}
+                <div style={{ width: '240px', height: '240px' }}>
+                  <Lottie
+                    animationData={emptylistFriendsAnimation}
+                    loop={true}
+                    autoplay={true}
+                    speed={0.5}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%'
+                    }}
+                  />
+                </div>
+                
+                {/* Text Content */}
+                <div style={{
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: 600,
+                    color: '#000000',
+                    margin: 0
+                  }}>
+                    {formData.fullName}
+                  </h2>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: '#64748b',
+                    margin: 0
+                  }}>
+                    Adding New Investor
+                  </p>
+                </div>
+                
+                {/* Loading Dots */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  marginTop: '8px'
+                }}>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.2s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.4s'
+                  }}></div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </Layout>

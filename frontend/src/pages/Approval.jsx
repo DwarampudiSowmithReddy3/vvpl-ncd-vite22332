@@ -4,9 +4,11 @@ import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import { getUserFriendlyError, SUCCESS_MESSAGES } from '../utils/errorHandler';
 import './Approval.css';
-import '../styles/loading.css';
 import { HiOutlineEye, HiOutlineCheck, HiOutlineX, HiOutlineTrash, HiOutlineLockClosed, HiOutlineDocumentText } from "react-icons/hi";
 
 const Approval = () => {
@@ -21,10 +23,19 @@ const Approval = () => {
   const [seriesToDelete, setSeriesToDelete] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with true for initial page load
+  const [actionLoading, setActionLoading] = useState(false); // Separate loading for actions
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [seriesDocuments, setSeriesDocuments] = useState({});  // Store documents by series_id
+
+  // Minimum loading time of 3 seconds (only on initial mount)
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Only show DRAFT series in approval page
   const draftSeries = series.filter(s => s.status === 'DRAFT');
@@ -103,7 +114,7 @@ const Approval = () => {
     if (!selectedSeries) return;
     
     try {
-      setLoading(true);
+      setActionLoading(true);
       if (import.meta.env.DEV) { console.log('🔄 Saving edits via backend API:', selectedSeries.id); }
       if (import.meta.env.DEV) {
 
@@ -174,14 +185,14 @@ const Approval = () => {
       const friendlyError = getUserFriendlyError(error, 'Failed to update series. Please try again.');
       showError(friendlyError);
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
   const handleApprove = async () => {
     if (selectedSeries) {
       try {
-        setLoading(true);
+        setActionLoading(true);
         if (import.meta.env.DEV) { console.log('🔄 Approving series via backend API:', selectedSeries.id); }
         
         // Call backend API - ALL LOGIC IN BACKEND
@@ -208,7 +219,7 @@ const Approval = () => {
         const friendlyError = getUserFriendlyError(error, 'Failed to approve series. Please try again.');
         showError(friendlyError);
       } finally {
-        setLoading(false);
+        setActionLoading(false);
       }
     }
   };
@@ -220,7 +231,7 @@ const Approval = () => {
   const handleRejectConfirm = async () => {
     if (selectedSeries && rejectionReason.trim()) {
       try {
-        setLoading(true);
+        setActionLoading(true);
         if (import.meta.env.DEV) { console.log('🔄 Rejecting series via backend API:', selectedSeries.id); }
         
         // Call backend API - ALL LOGIC IN BACKEND
@@ -251,7 +262,7 @@ const Approval = () => {
         const friendlyError = getUserFriendlyError(error, 'Failed to reject series. Please try again.');
         showError(friendlyError);
       } finally {
-        setLoading(false);
+        setActionLoading(false);
       }
     }
   };
@@ -1019,12 +1030,50 @@ const Approval = () => {
         </div>
       )}
 
-      {/* Loading Overlay */}
+      {/* Initial Page Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
+          </div>
+        </div>
+      )}
+
+      {/* Action Loading Overlay (for approve/reject/save actions) */}
+      {actionLoading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}

@@ -18,9 +18,109 @@ from permissions_checker import has_permission, log_unauthorized_access
 from datetime import datetime
 import logging
 import json
+import os
+import requests
+from kaleyra_service import kaleyra_service
 
 router = APIRouter(prefix="/communication", tags=["communication"])
 logger = logging.getLogger(__name__)
+
+
+def send_sms_via_kaleyra(phone: str, message: str) -> tuple:
+    """
+    Send SMS via Kaleyra Service
+    Returns: (success: bool, message_id: str, error: str)
+    """
+    return kaleyra_service.send_sms(phone, message)
+
+
+def send_email_via_smtp(email: str, subject: str, message: str) -> tuple:
+    """
+    Send Email via Kaleyra Email API
+    Returns: (success: bool, message_id: str, error: str)
+    
+    Kaleyra Email API Format:
+    POST https://api-alerts.kaleyra.com/v4/?api_key=XXX&method=email.json&json=<data>
+    """
+    try:
+        # Get Kaleyra Email credentials from environment
+        email_api_key = os.getenv('KALEYRA_EMAIL_API_KEY')
+        email_sender = os.getenv('KALEYRA_EMAIL_SENDER')  # From email address
+        email_sender_name = os.getenv('KALEYRA_EMAIL_SENDER_NAME', 'NCD Management')
+        
+        if not all([email_api_key, email_sender]):
+            logger.warning("Email service not configured - missing credentials")
+            return (False, None, "Email service not configured - missing credentials")
+        
+        # Kaleyra Email API endpoint
+        base_url = "https://api-alerts.kaleyra.com/v4/"
+        
+        # Prepare JSON payload for email
+        email_data = {
+            "from": email_sender,
+            "from_name": email_sender_name,
+            "subject": subject,
+            "body": message,
+            "email": [{
+                "to": email,
+                "custom": "1"
+            }]
+        }
+        
+        # URL encode the JSON
+        import urllib.parse
+        json_str = json.dumps(email_data)
+        encoded_json = urllib.parse.quote(json_str)
+        
+        # Complete endpoint with query parameters
+        endpoint = f"{base_url}?api_key={email_api_key}&method=email.json&json={encoded_json}"
+        
+        # Log the request for debugging
+        logger.info(f"📤 Sending email to {email}")
+        logger.info(f"📤 Subject: {subject}")
+        logger.info(f"📤 JSON Data: {json_str}")
+        
+        # Make API call to Kaleyra using GET (as per v4 documentation)
+        response = requests.get(endpoint, timeout=10)
+        
+        logger.info(f"📡 Response Status: {response.status_code}")
+        logger.info(f"📡 Response Body: {response.text}")
+        
+        if response.status_code == 200:
+            try:
+                data = response.json()
+                logger.info(f"📡 Parsed Response: {data}")
+                
+                if data.get('status') == 'OK':
+                    # Extract message ID from response
+                    message_id = data.get('data', [{}])[0].get('id', f"EMAIL_{datetime.now().timestamp()}")
+                    logger.info(f"✅ Email sent successfully! Message ID: {message_id}")
+                    return (True, str(message_id), None)
+                else:
+                    error_msg = data.get('message', 'Unknown error')
+                    logger.error(f"❌ Email API error: {error_msg}")
+                    logger.error(f"❌ Full response: {data}")
+                    return (False, None, f"Email error: {error_msg}")
+            except Exception as e:
+                logger.error(f"❌ Error parsing email response: {e}")
+                logger.error(f"❌ Raw response: {response.text}")
+                return (False, None, f"Response parse error: {str(e)}")
+        else:
+            error_text = response.text
+            logger.error(f"❌ Email API error: {response.status_code} - {error_text}")
+            return (False, None, f"Email API error: {response.status_code}")
+        
+    except requests.exceptions.Timeout:
+        logger.error(f"❌ Email sending timeout for {email}")
+        return (False, None, "Email service timeout")
+    except requests.exceptions.RequestException as e:
+        logger.error(f"❌ Email sending network error: {e}")
+        return (False, None, f"Network error: {str(e)}")
+    except Exception as e:
+        logger.error(f"❌ Email sending error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return (False, None, str(e))
 
 
 def get_client_ip(request: Request) -> str:
@@ -345,6 +445,13 @@ async def send_bulk_messages(
     try:
         db = get_db()
         
+        # DEBUG: Log received data
+        logger.info(f"📥 Received message request:")
+        logger.info(f"   Type: {message_request.type}")
+        logger.info(f"   Investor IDs: {message_request.investor_ids}")
+        logger.info(f"   Series IDs: {message_request.series_ids}")
+        logger.info(f"   Message length: {len(message_request.message)}")
+        
         # CHECK PERMISSION
         if not has_permission(current_user, "create_communication", db):
             log_unauthorized_access(db, current_user, "send_bulk_messages", "create_communication")
@@ -436,10 +543,17 @@ async def send_bulk_messages(
                 failed += 1
                 continue
             
-            # TODO: Integrate with actual SMS/Email service
-            # For now, simulate success (you need to add actual SMS/Email API integration)
-            send_success = True  # Replace with actual API call
-            message_id = f"MSG_{datetime.now().timestamp()}"
+            # ACTUAL SMS/Email sending implementation
+            send_success = False
+            message_id = None
+            error_msg = None
+            
+            if message_request.type == CommunicationType.SMS:
+                # Send SMS via Kaleyra
+                send_success, message_id, error_msg = send_sms_via_kaleyra(contact_info, personalized_message)
+            else:
+                # Send Email via SMTP
+                send_success, message_id, error_msg = send_email_via_smtp(contact_info, message_request.subject, personalized_message)
             
             if send_success:
                 # Save success to database

@@ -9,8 +9,8 @@ import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import auditService from '../services/auditService';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
 import './Communication.css';
-import '../styles/loading.css';
 import { HiOutlineMail, HiOutlineDeviceMobile } from 'react-icons/hi';
 import { MdSend, MdHistory } from 'react-icons/md';
 
@@ -190,14 +190,7 @@ const CommunicationSimple = () => {
 
   return (
     <Layout>
-      {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
-          </div>
-        </div>
-      )}
+      {loading && <LoadingOverlay />}
 
       <div className="communication">
         <div className="communication-header">

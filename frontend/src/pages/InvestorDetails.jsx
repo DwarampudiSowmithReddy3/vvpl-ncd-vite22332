@@ -6,8 +6,8 @@ import { useToast } from '../components/Toast';
 import apiService from '../services/api';
 import auditService from '../services/auditService';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
 import './InvestorDetails.css';
-import '../styles/loading.css';
 import { 
   HiArrowLeft, 
   HiOutlineMail, 
@@ -140,12 +140,7 @@ const InvestorDetails = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
-          </div>
-        </div>
+        <LoadingOverlay />
       </Layout>
     );
   }
@@ -481,18 +476,26 @@ const InvestorDetails = () => {
         digitalSignature: 'digital_signature'
       };
 
+      let documentsToUpload = 0;
+      let documentsUploaded = 0;
+      let documentsFailed = 0;
+      const failedDocuments = [];
+
       const documentUploadPromises = [];
       for (const [formField, documentType] of Object.entries(documentMapping)) {
         if (editFormData[formField]) {
+          documentsToUpload++;
           if (import.meta.env.DEV) { console.log(`📤 Uploading ${documentType}...`); }
           documentUploadPromises.push(
             apiService.updateInvestorDocument(investor.id, documentType, editFormData[formField])
               .then(() => {
+                documentsUploaded++;
                 if (import.meta.env.DEV) { console.log(`✅ ${documentType} uploaded successfully`); }
               })
               .catch((error) => {
+                documentsFailed++;
+                failedDocuments.push(documentType.replace('_', ' '));
                 console.error(`❌ Error uploading ${documentType}:`, error);
-                toast.warning(`Failed to upload ${documentType.replace('_', ' ')}: ${error.message}`, 'Document Upload Warning');
               })
           );
         }
@@ -501,7 +504,15 @@ const InvestorDetails = () => {
       // Wait for all document uploads to complete
       if (documentUploadPromises.length > 0) {
         await Promise.all(documentUploadPromises);
-        toast.success('Investor details and documents updated successfully', 'Update Successful');
+        
+        // Show appropriate message based on results
+        if (documentsFailed === 0) {
+          toast.success('Investor details and documents updated successfully', 'Update Successful');
+        } else if (documentsUploaded > 0) {
+          toast.warning(`Investor details updated. ${documentsUploaded} document(s) uploaded, but ${documentsFailed} failed: ${failedDocuments.join(', ')}`, 'Partial Success');
+        } else {
+          toast.error(`Investor details updated, but all document uploads failed: ${failedDocuments.join(', ')}`, 'Document Upload Failed');
+        }
       } else {
         toast.success('Investor details have been updated successfully', 'Update Successful');
       }

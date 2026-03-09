@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
 import './AuditLog.css';
-import '../styles/loading.css';
 import { FiSearch, FiFilter } from "react-icons/fi";
 import { HiOutlineDocumentText, HiOutlineCalendar, HiOutlineUser } from "react-icons/hi";
 import { MdOutlineFileDownload } from "react-icons/md";
@@ -169,12 +169,7 @@ const AuditLog = () => {
         </div>
 
         {loading ? (
-          <div className="loading-overlay">
-            <div className="loading-spinner-container">
-              <div className="loading-spinner"></div>
-              <p className="loading-text">Loading...</p>
-            </div>
-          </div>
+          <LoadingOverlay />
         ) : error ? (
           <div className="error-message" style={{ padding: '40px', textAlign: 'center', color: 'red' }}>
             <p>Error loading audit logs: {error}</p>

@@ -6,9 +6,11 @@ import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import ComplianceTracker from '../components/ComplianceTracker';
 import './Compliance.css';
-import '../styles/loading.css';
 import { 
   MdSecurity, 
   MdVerifiedUser, 
@@ -40,11 +42,18 @@ const Compliance = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Minimum loading time of 3 seconds (only on initial mount)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Load compliance series from backend
   useEffect(() => {
     const loadComplianceSeries = async () => {
       try {
-        setLoading(true);
         setError(null);
         
         if (import.meta.env.DEV) { console.log('🔄 Loading compliance series from backend...'); }
@@ -99,8 +108,6 @@ const Compliance = () => {
       } catch (err) {
         if (import.meta.env.DEV) { console.error('❌ Failed to load compliance series:', err); }
         setError(err.message || 'Failed to load compliance data');
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -191,10 +198,24 @@ const Compliance = () => {
     <Layout>
       {/* Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}

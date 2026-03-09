@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import apiService from '../services/api';
 import './Administrator.css';
-import '../styles/loading.css';
 import { MdAdminPanelSettings, MdSearch, MdPersonAdd, MdClose, MdSecurity, MdOutlineFileDownload, MdDelete } from "react-icons/md";
 import { FaEye, FaUser, FaUserShield, FaUserTie, FaUserCog, FaUsers } from "react-icons/fa";
 import { HiOutlineDocumentText } from "react-icons/hi";
@@ -85,8 +87,6 @@ const Administrator = () => {
   // Define loadUsers function BEFORE useEffect hooks
   const loadUsers = async (searchQuery = null, limitCount = null) => {
     try {
-      setLoading(true);
-      
       // Add minimum loading time to ensure loader is visible
       const [usersData] = await Promise.all([
         apiService.getUsers(searchQuery, limitCount),
@@ -131,20 +131,20 @@ const Administrator = () => {
         setUsers([]);
         setDisplayedUsers([]);
       }
-    } finally {
-      setLoading(false);
     }
   };
 
-  // Reset loading state and reload data every time component mounts
+  // Minimum loading time of 3 seconds (only on initial mount)
   useEffect(() => {
-    setLoading(true);
-    loadUsers();
-    
-    // Cleanup function
-    return () => {
+    const timer = setTimeout(() => {
       setLoading(false);
-    };
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Load data when component mounts
+  useEffect(() => {
+    loadUsers();
   }, []); // Empty dependency ensures this runs on every mount
 
   // Load audit logs when component mounts or when date filters change
@@ -290,8 +290,6 @@ const Administrator = () => {
     if (!validateForm(formData)) return;
 
     try {
-      setLoading(true);
-      
       // Create user via API
       const userData = {
         user_id: formData.userId,
@@ -330,8 +328,6 @@ const Administrator = () => {
       setErrors({ 
         general: error.message || 'Failed to create user. Please try again.' 
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -373,7 +369,6 @@ const Administrator = () => {
 
       if (changes.length === 0) {
         setErrors({ general: 'No changes detected from previous data' });
-        setLoading(false);
         return;
       }
 
@@ -397,8 +392,6 @@ const Administrator = () => {
       setErrors({ 
         general: error.message || 'Failed to update user. Please try again.' 
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -434,8 +427,6 @@ const Administrator = () => {
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Failed to delete user:', error); }
         showSuccess(`Failed to delete user: ${error.message}`);
-      } finally {
-        setLoading(false);
       }
     }
     setShowDeleteConfirm(false);
@@ -653,10 +644,24 @@ const Administrator = () => {
     <Layout>
       {/* Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}

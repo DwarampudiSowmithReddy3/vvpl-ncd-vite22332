@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
 import Sidebar from './Sidebar';
-import FloatingGreeting from './FloatingGreeting';
+import ColorPickerGreeting from './ColorPickerGreeting';
 import { HiOutlineDocumentText } from 'react-icons/hi';
 import { 
   MdAccountCircle,
@@ -338,7 +338,7 @@ const Layout = ({ children, isInvestor = false }) => {
       </div>
 
       {showFloatingGreeting && (
-        <FloatingGreeting 
+        <ColorPickerGreeting 
           userName={user?.name} 
           onComplete={handleGreetingComplete}
         />

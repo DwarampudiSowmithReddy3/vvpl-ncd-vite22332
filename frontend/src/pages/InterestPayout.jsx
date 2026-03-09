@@ -5,8 +5,10 @@ import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
 import api from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import './InterestPayout.css';
-import '../styles/loading.css';
 import { MdOutlineFileDownload, MdPayment } from "react-icons/md";
 import { FiSearch, FiFilter, FiUpload } from "react-icons/fi";
 import { FaEye, FaRupeeSign } from "react-icons/fa";
@@ -44,12 +46,28 @@ const InterestPayout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  console.log('🔍 InterestPayout render - loading:', loading);
+
   // Fetch payout data from backend on mount
   useEffect(() => {
+    console.log('🚀 Initial mount useEffect running');
     fetchPayoutData();
     fetchSummaryData();
     fetchUniqueSeriesNames();
     fetchUniqueSeriesForExport();
+  }, []);
+
+  // Minimum loading time of 3 seconds (only on initial mount)
+  useEffect(() => {
+    console.log('⏱️ Starting 3-second timer');
+    const timer = setTimeout(() => {
+      console.log('✅ Timer complete - setting loading to false');
+      setLoading(false);
+    }, 3000);
+    return () => {
+      console.log('🧹 Cleaning up timer');
+      clearTimeout(timer);
+    };
   }, []);
 
   // Refetch when search or filter changes
@@ -59,7 +77,6 @@ const InterestPayout = () => {
 
   const fetchPayoutData = async () => {
     try {
-      setLoading(true);
       setError(null);
       
       // Pass search and filter to backend
@@ -71,8 +88,6 @@ const InterestPayout = () => {
     } catch (err) {
       if (import.meta.env.DEV) { console.error('Error fetching payouts:', err); }
       setError(err.message || 'Failed to fetch payouts');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -249,7 +264,12 @@ const InterestPayout = () => {
           setImportStatus('');
         }, 3000);
       } else {
-        setImportStatus(`error:${response.message || 'Import failed'}`);
+        // Show detailed error messages
+        let errorMsg = response.message || 'Import failed';
+        if (response.errors && response.errors.length > 0) {
+          errorMsg += '\n\nDetails:\n' + response.errors.join('\n');
+        }
+        setImportStatus(`error:${errorMsg}`);
       }
     } catch (error) {
       if (import.meta.env.DEV) { console.error('Error importing payouts:', error); }
@@ -260,10 +280,24 @@ const InterestPayout = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       </Layout>
@@ -612,7 +646,9 @@ const InterestPayout = () => {
 
                   {importStatus && (
                     <div className={`import-status ${importStatus.startsWith('success') ? 'success' : 'error'}`}>
-                      {importStatus.split(':')[1]}
+                      <pre style={{ whiteSpace: 'pre-wrap', margin: 0, fontFamily: 'inherit' }}>
+                        {importStatus.split(':')[1]}
+                      </pre>
                     </div>
                   )}
 

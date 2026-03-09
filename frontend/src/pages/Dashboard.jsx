@@ -6,8 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import './Dashboard.css';
-import '../styles/loading.css';
 import { MdCurrencyRupee, MdOutlineWarningAmber, MdTrendingUp } from "react-icons/md";
 import { FiUsers } from "react-icons/fi";
 import { HiOutlineDocumentText, HiTrendingUp } from "react-icons/hi";
@@ -28,7 +30,7 @@ import UpcomingPayoutCalendar from '../components/UpcomingPayoutCalendar';
 const Dashboard = () => {
   const navigate = useNavigate();
   const { canView } = usePermissions();
-  const { user } = useAuth();
+  const { user, justLoggedIn, clearJustLoggedIn } = useAuth();
   const {
     investors,
     series,
@@ -41,11 +43,15 @@ const Dashboard = () => {
 
   const [totalInvestments, setTotalInvestments] = useState(0); // Total investments from backend
   const [pendingKYC, setPendingKYC] = useState(0); // Pending KYC count from backend
-  const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false); // Track if data is loaded
+  const [animationComplete, setAnimationComplete] = useState(false); // Track if animation is complete
+  const [loading, setLoading] = useState(!justLoggedIn); // Skip loading if just logged in
   const [showUpcomingPayouts, setShowUpcomingPayouts] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [complianceData, setComplianceData] = useState({}); // Store compliance data from backend
   const [maturityBuckets, setMaturityBuckets] = useState([]); // Store maturity distribution from backend
+
+  console.log('📊 Dashboard render - loading:', loading, 'dataLoaded:', dataLoaded, 'animationComplete:', animationComplete, 'justLoggedIn:', justLoggedIn);
   const [lockinBuckets, setLockinBuckets] = useState([]); // Store lock-in distribution from backend
   const [calendarData, setCalendarData] = useState(null); // Store calendar data from backend
   const [topInvestors, setTopInvestors] = useState([]); // Store top investors from backend
@@ -114,13 +120,27 @@ const Dashboard = () => {
     // Refresh trigger changed
   }, [refreshTrigger]);
 
+  // Hide loading after 3 seconds (but skip if just logged in)
+  useEffect(() => {
+    if (justLoggedIn) {
+      // User just logged in, skip loading animation
+      setLoading(false);
+      clearJustLoggedIn();
+    } else {
+      // Normal page navigation, show loading for 3 seconds
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justLoggedIn, clearJustLoggedIn]);
+
   // Remove all scrollbar-related useEffect - let dashboard work normally
   // const [refreshTrigger, setRefreshTrigger] = useState(0); // Remove if not needed elsewhere
   
   const totalInvestorsCount = getTotalInvestors();
   const currentMonthPayout = getCurrentMonthPayout();
   // REMOVED: const upcomingPayouts = getUpcomingPayouts(); - Now comes from backend in interestPayoutStats
-
   // Get active series count (still needed for display)
   // IMPORTANT: Only calculate after series is loaded to avoid showing 0 on initial render
   const activeSeries = series.filter(s => s.status === 'active');
@@ -191,14 +211,14 @@ const Dashboard = () => {
         // Set average interest rate from backend
         setAverageInterestRate(metrics.average_interest_rate ? metrics.average_interest_rate.toFixed(1) : '0.0');
         
-        setLoading(false);
+        setDataLoaded(true);
         setLoadingStates(prev => ({ ...prev, metrics: false }));
         
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Error fetching total investments:', error); }
         setTotalInvestments(0);
         setAverageInterestRate('0.0');
-        setLoading(false);
+        setDataLoaded(true);
         setLoadingStates(prev => ({ ...prev, metrics: false }));
       }
     };
@@ -576,10 +596,24 @@ const Dashboard = () => {
     <Layout>
       {/* Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}

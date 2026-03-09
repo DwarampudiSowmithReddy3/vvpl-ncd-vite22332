@@ -5,9 +5,12 @@ import { useData } from '../context/DataContext';
 import auditService from '../services/auditService';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
 import ReportPreview from '../components/ReportPreview';
+import Lottie from 'lottie-react';
+import businessGoalsAnimation from '../assets/animations/business-goals.json';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import './Reports.css';
-import '../styles/loading.css';
 import { TbReportMoney } from "react-icons/tb";
 import { BsFillPersonLinesFill } from "react-icons/bs";
 import { FaFolderTree } from "react-icons/fa6";
@@ -30,6 +33,8 @@ const Reports = () => {
   const { user } = useAuth();
   const { addAuditLog } = useData();
   const [previewReport, setPreviewReport] = useState(null);
+  const [showReportAnimation, setShowReportAnimation] = useState(false);
+  const [pendingReportName, setPendingReportName] = useState(null);
   const [statistics, setStatistics] = useState({
     reports_generated_this_month: 0,
     reports_generated_lifetime: 0,
@@ -44,16 +49,21 @@ const Reports = () => {
     fetchLastGeneratedDates();
   }, []);
 
+  // Minimum loading time of 3 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const fetchStatistics = async () => {
     try {
-      setLoading(true);
       const data = await apiService.getReportStatistics();
       setStatistics(data);
       if (import.meta.env.DEV) { console.log('✅ Report statistics loaded:', data); }
     } catch (error) {
       if (import.meta.env.DEV) { console.error('❌ Error fetching report statistics:', error); }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -456,7 +466,16 @@ const Reports = () => {
   ];
 
   const handlePreview = (reportName) => {
-    setPreviewReport(reportName);
+    // Show animation first
+    setPendingReportName(reportName);
+    setShowReportAnimation(true);
+    
+    // After 5 seconds, hide animation and show report
+    setTimeout(() => {
+      setShowReportAnimation(false);
+      setPreviewReport(reportName);
+      setPendingReportName(null);
+    }, 5000);
   };
 
   const handleClosePreview = () => {
@@ -571,10 +590,24 @@ const Reports = () => {
     <Layout>
       {/* Loading Overlay */}
       {loading && (
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       )}
@@ -690,6 +723,119 @@ const Reports = () => {
             fetchLastGeneratedDates();
           }}
         />
+      )}
+
+      {/* Lottie Animation Overlay for Report Generation */}
+      {showReportAnimation && (
+        <>
+          {/* Background Blur Overlay */}
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 99998
+          }} />
+          
+          {/* Animation Card */}
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 99999,
+            background: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+            border: '1px solid #e2e8f0',
+            width: '550px',
+            overflow: 'hidden',
+            animation: 'greetingEnter 0.5s ease-out'
+          }}>
+            <div style={{
+              padding: '32px 48px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px'
+            }}>
+              {/* Lottie Animation */}
+              <div style={{ width: '240px', height: '240px' }}>
+                <Lottie
+                  animationData={businessGoalsAnimation}
+                  loop={true}
+                  autoplay={true}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%'
+                  }}
+                />
+              </div>
+              
+              {/* Text Content */}
+              <div style={{
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  color: '#000000',
+                  margin: 0
+                }}>
+                  Generating Report
+                </h2>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  color: '#64748b',
+                  margin: 0
+                }}>
+                  {pendingReportName}
+                </p>
+              </div>
+              
+              {/* Loading Dots */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                justifyContent: 'center',
+                marginTop: '8px'
+              }}>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#3b82f6',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                  animationDelay: '0s'
+                }}></div>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#3b82f6',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                  animationDelay: '0.2s'
+                }}></div>
+                <div style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  background: '#3b82f6',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                  animationDelay: '0.4s'
+                }}></div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </Layout>
   );

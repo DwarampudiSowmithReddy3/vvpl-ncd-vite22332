@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Lottie from 'lottie-react';
+import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../components/Toast';
 import apiService from '../services/api';
 import auditService from '../services/auditService';
-import '../styles/loading.css';
 import { 
   MdReportProblem
 } from 'react-icons/md';
@@ -92,7 +94,6 @@ const GrievanceManagement = () => {
   // Fetch grievances from backend
   const fetchGrievances = async () => {
     try {
-      setLoading(true);
       if (import.meta.env.DEV) { console.log('📊 Fetching grievances from backend...'); }
       
       // Build filter params
@@ -141,8 +142,6 @@ const GrievanceManagement = () => {
       if (import.meta.env.DEV) { console.error('❌ Error fetching grievances:', error); }
       toast.error(error.message, 'Failed to Load Grievances');
       setGrievances([]);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -171,6 +170,14 @@ const GrievanceManagement = () => {
       setAvailableSeries([]);
     }
   };
+
+  // Minimum loading time of 3 seconds (only on initial mount)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initial data fetch
   useEffect(() => {
@@ -638,10 +645,24 @@ const GrievanceManagement = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="loading-overlay">
-          <div className="loading-spinner-container">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">Loading...</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          flexDirection: 'column',
+          gap: '1rem'
+        }}>
+          <div style={{ width: '200px', height: '200px' }}>
+            <Lottie animationData={loadingDotsAnimation} loop={true} />
           </div>
         </div>
       </Layout>

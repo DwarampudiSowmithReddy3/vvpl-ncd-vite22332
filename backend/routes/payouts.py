@@ -708,19 +708,25 @@ async def get_all_payouts(
                 logger.info(f"Regular monthly payout for {row['investor_code']}: Rs.{monthly_interest}")
             
             # Check if payout record exists in database
+            # Handle both old format (2026-03) and new format (March 2026)
             payout_query = """
             SELECT id, status, payout_month, payout_date, paid_date, amount
             FROM interest_payouts
             WHERE investor_id = %s 
             AND series_id = %s 
-            AND payout_month = %s
+            AND (payout_month = %s OR payout_month = %s)
             AND is_active = 1
             """
+            
+            # Generate both formats for backward compatibility
+            month_format_new = current_month_str  # "March 2026"
+            month_format_old = f"{interest_year}-{interest_month:02d}"  # "2026-03"
             
             payout_result = db.execute_query(payout_query, (
                 row['investor_id'],
                 row['series_id'],
-                current_month_str
+                month_format_new,
+                month_format_old
             ))
             
             # Always use the current interest_payment_day from series to calculate payout date
@@ -1272,12 +1278,24 @@ async def import_payouts(
                 interest_date = None
                 
                 if 'Interest Month' in df.columns and pd.notna(row['Interest Month']):
-                    interest_month = str(row['Interest Month']).strip()
+                    raw_month = row['Interest Month']
+                    # Handle Excel date serial numbers
+                    if isinstance(raw_month, (int, float)):
+                        # Convert Excel serial date to datetime
+                        interest_month = pd.to_datetime(raw_month, origin='1899-12-30', unit='D').strftime('%B %Y')
+                    else:
+                        interest_month = str(raw_month).strip()
                 
                 if 'Interest Date' in df.columns and pd.notna(row['Interest Date']):
-                    interest_date = str(row['Interest Date']).strip()
+                    raw_date = row['Interest Date']
+                    # Handle Excel date serial numbers
+                    if isinstance(raw_date, (int, float)):
+                        # Convert Excel serial date to datetime
+                        interest_date = pd.to_datetime(raw_date, origin='1899-12-30', unit='D').strftime('%d-%b-%Y')
+                    else:
+                        interest_date = str(raw_date).strip()
                 
-                logger.info(f"Processing row {index + 1}: {investor_code}, {series_name}, {payout_status}")
+                logger.info(f"📋 Row {index + 1}: investor={investor_code}, series={series_name}, status={payout_status}, month={interest_month}, date={interest_date}")
                 
                 # Validate status
                 valid_statuses = ['Paid', 'Pending', 'Scheduled']
@@ -1303,14 +1321,15 @@ async def import_payouts(
                 investor = investor_result[0]
                 investor_db_id = investor['id']
                 
-                # Find series by name
+                # Find series by name (flexible matching - handle hyphens vs spaces)
                 series_query = """
                 SELECT id, name, interest_payment_day
                 FROM ncd_series
-                WHERE name = %s AND is_active = 1
+                WHERE (name = %s OR REPLACE(name, ' ', '-') = %s OR REPLACE(name, '-', ' ') = %s)
+                AND is_active = 1
                 """
                 
-                series_result = db.execute_query(series_query, (series_name,))
+                series_result = db.execute_query(series_query, (series_name, series_name, series_name))
                 
                 if not series_result or len(series_result) == 0:
                     errors.append(f"Row {index + 2}: Series '{series_name}' not found")
@@ -1336,7 +1355,17 @@ async def import_payouts(
                 
                 # Determine payout month
                 if interest_month:
-                    payout_month = interest_month
+                    # Parse various date formats and convert to "Month YYYY" format (e.g., "March 2026")
+                    try:
+                        from dateutil import parser as date_parser
+                        parsed_date = date_parser.parse(interest_month, fuzzy=True)
+                        payout_month = parsed_date.strftime('%B %Y')  # Format: "March 2026"
+                        logger.info(f"✅ Parsed interest month '{interest_month}' to '{payout_month}'")
+                    except Exception as parse_error:
+                        errors.append(f"Row {index + 2}: Invalid Interest Month format '{interest_month}'. Expected formats: 'Mar-26', 'March 2026', or '2026-03'")
+                        error_count += 1
+                        logger.error(f"❌ Failed to parse interest month '{interest_month}': {parse_error}")
+                        continue
                 else:
                     # Use current month as default
                     current_date = datetime.now()
@@ -1344,7 +1373,17 @@ async def import_payouts(
                 
                 # Determine payout date
                 if interest_date:
-                    payout_date = interest_date
+                    # Parse various date formats and convert to DD-MMM-YYYY format
+                    try:
+                        from dateutil import parser as date_parser
+                        parsed_date = date_parser.parse(interest_date, fuzzy=True)
+                        payout_date = parsed_date.strftime('%d-%b-%Y')
+                        logger.info(f"✅ Parsed interest date '{interest_date}' to '{payout_date}'")
+                    except Exception as parse_error:
+                        errors.append(f"Row {index + 2}: Invalid Interest Date format '{interest_date}'. Expected formats: '05-Apr-26', 'April 5, 2026', or '2026-04-05'")
+                        error_count += 1
+                        logger.error(f"❌ Failed to parse interest date '{interest_date}': {parse_error}")
+                        continue
                 else:
                     # Generate default date based on interest_payment_day
                     current_date = datetime.now()
@@ -1415,8 +1454,17 @@ async def import_payouts(
                     series_detail = db.execute_query(series_detail_query, (series_db_id,))
                     interest_rate = float(series_detail[0]['interest_rate'])
                     
-                    # Parse month and year from payout_month (format: "2026-03")
-                    payout_year, payout_month_num = map(int, payout_month.split('-'))
+                    # Parse month and year from payout_month (format: "March 2026")
+                    try:
+                        from dateutil import parser as date_parser
+                        parsed_date = date_parser.parse(payout_month, fuzzy=True)
+                        payout_year = parsed_date.year
+                        payout_month_num = parsed_date.month
+                    except Exception as parse_error:
+                        errors.append(f"Row {index + 2}: Failed to parse payout month '{payout_month}'")
+                        error_count += 1
+                        logger.error(f"❌ Failed to parse payout month '{payout_month}': {parse_error}")
+                        continue
                     
                     # Calculate monthly interest based on actual days
                     monthly_interest = calculate_monthly_interest(
@@ -1470,6 +1518,12 @@ async def import_payouts(
             message += f". {error_count} error(s) encountered."
         
         logger.info(f"✅ Import complete: {updated_count} updated, {error_count} errors")
+        
+        # Log all errors for debugging
+        if errors:
+            logger.error(f"❌ Import errors encountered:")
+            for error in errors[:10]:
+                logger.error(f"   - {error}")
         
         return {
             'success': success,
