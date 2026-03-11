@@ -552,9 +552,9 @@
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  height: 400px;
   display: flex;
   flex-direction: column;
+  height: 400px;
 }
 
 /* Complaints Section - List Format with Fixed Height */
@@ -996,6 +996,7 @@ END OF OLD COMPLAINTS TABLE STYLES */
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
   margin-right: -4px;
@@ -1063,6 +1064,7 @@ END OF OLD COMPLAINTS TABLE STYLES */
   flex-direction: column;
   gap: 12px;
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: 4px;
   margin-right: -4px;

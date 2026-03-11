@@ -17,7 +17,7 @@ A comprehensive system for managing Non-Convertible Debentures (NCDs) with inves
 - **Backend**: FastAPI (Python)
 - **Frontend**: React + Vite
 - **Database**: MySQL
-- **Migrations**: Alembic
+- **Migrations**: Pure SQL files
 
 ## Installation
 
@@ -107,27 +107,29 @@ Frontend will start on http://localhost:5173
 
 ## Database Migrations
 
-The system uses Alembic for database migrations. Migrations run automatically on startup.
+The system uses pure SQL migration files for database schema changes.
 
-### Common Commands
+### Running Migrations
 
 ```bash
 cd backend
+python run_migrations.py
+```
 
-# Check current version
-alembic current
+### Creating New Migrations
 
-# View migration history
-alembic history
+1. Create a new `.sql` file in `backend/migrations/`
+2. Use naming format: `YYYYMMDD_HHMMSS_description.sql`
+3. Write your SQL statements
+4. Run migrations
 
-# Create new migration (after modifying models)
-alembic revision --autogenerate -m "description"
+### Migration Files
 
-# Apply migrations manually
-alembic upgrade head
-
-# Rollback last migration
-alembic downgrade -1
+```
+backend/migrations/
+├── 00000000_000000_create_migrations_table.sql
+├── 20260101_000000_initial_database_schema.sql
+└── 20260309_225006_add_template_id_to_communication_templates.sql
 ```
 
 ## Project Structure
@@ -135,7 +137,7 @@ alembic downgrade -1
 ```
 ncd-vite/
 ├── backend/
-│   ├── alembic/              # Database migrations
+│   ├── migrations/           # SQL migration files
 │   ├── routes/               # API endpoints
 │   ├── models.py             # Pydantic models
 │   ├── models_sqlalchemy.py  # SQLAlchemy ORM models

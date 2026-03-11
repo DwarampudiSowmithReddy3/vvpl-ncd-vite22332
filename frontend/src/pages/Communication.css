@@ -1229,6 +1229,8 @@
 /* History Table - Make specific to history section */
 .communication-section .history-table-container {
   overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
 }

@@ -219,32 +219,12 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, []);
 
-  // Track browser close and page navigation
-  useEffect(() => {
-    if (!isAuthenticated || !user) return;
-
-    const handleBeforeUnload = (event) => {
-      // Track activity when user closes browser or navigates away
-      apiService.trackActivity();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden' && isAuthenticated) {
-        // Track activity when tab becomes hidden
-        apiService.trackActivity();
-      }
-    };
-
-    // Add event listeners
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Cleanup
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [isAuthenticated, user]);
+  // Session tracking is NOT needed because:
+  // 1. React Router navigation doesn't trigger page unload (client-side only)
+  // 2. Page refresh shouldn't log "Session End" (user is still in the app)
+  // 3. Backend should handle session timeout on idle
+  // 4. Logout button explicitly calls logout() endpoint
+  // Removing this to prevent false "Session End" logs on page refresh and navigation
 
   // Production-ready login - ONLY uses backend API
   const login = async (username, password) => {

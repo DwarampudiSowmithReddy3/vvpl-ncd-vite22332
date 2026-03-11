@@ -226,37 +226,37 @@ class ApiService {
     }
   }
 
-  async trackActivity() {
-    try {
-      // Don't track if no token
-      const token = localStorage.getItem('authToken') || this.token;
-      if (!token) return;
-
-      // Use regular fetch with keepalive instead of sendBeacon
-      // sendBeacon doesn't support Authorization headers properly
-      try {
-        await fetch(`${API_BASE_URL}/auth/track-activity`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({}),
-          keepalive: true // This ensures the request completes even if page is closing
-        });
-      } catch (fetchError) {
-        // Silently fail - this is called during page unload
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.log('Activity tracking request sent (may complete after page unload)'); }
-
-        }
-      }
-    } catch (error) {
-      // Don't throw error as this is called during page unload
-      if (import.meta.env.DEV) { console.log('Activity tracking attempted'); }
-    }
-  }
+  // DISABLED: Session tracking removed - was causing false "Session End" logs
+  // Session management should be handled by backend timeout on idle, not frontend page unload
+  // async trackActivity() {
+  //   try {
+  //     // Don't track if no token
+  //     const token = localStorage.getItem('authToken') || this.token;
+  //     if (!token) return;
+  //
+  //     // Use regular fetch with keepalive instead of sendBeacon
+  //     // sendBeacon doesn't support Authorization headers properly
+  //     try {
+  //       await fetch(`${API_BASE_URL}/auth/track-activity`, {
+  //         method: 'POST',
+  //         headers: {
+  //           'Content-Type': 'application/json',
+  //           'Authorization': `Bearer ${token}`
+  //         },
+  //         body: JSON.stringify({}),
+  //         keepalive: true // This ensures the request completes even if page is closing
+  //       });
+  //     } catch (fetchError) {
+  //       // Silently fail - this is called during page unload
+  //       if (import.meta.env.DEV) {
+  //         if (import.meta.env.DEV) { console.log('Activity tracking request sent (may complete after page unload)'); }
+  //       }
+  //     }
+  //   } catch (error) {
+  //     // Don't throw error as this is called during page unload
+  //     if (import.meta.env.DEV) { console.log('Activity tracking attempted'); }
+  //   }
+  // }
 
   // User management endpoints
   async getUsers(search = null, limit = null) {

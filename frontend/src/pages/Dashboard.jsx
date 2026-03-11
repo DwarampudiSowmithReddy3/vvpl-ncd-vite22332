@@ -909,13 +909,12 @@ const Dashboard = () => {
               <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                 <p>No series data available</p>
               </div>
-            ) : series.filter(s => s.status === 'active' || s.status === 'matured').length === 0 ? (
+            ) : series.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                <p>No active or matured series found</p>
+                <p>No series found</p>
               </div>
             ) : (
               series
-                .filter(s => s.status === 'active' || s.status === 'matured')
                 .map((s) => {
                 // Get progress from backend (NOT calculated in frontend)
                 // FIXED: Use progressPercentage (camelCase) not progress_percentage

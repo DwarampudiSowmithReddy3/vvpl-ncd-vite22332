@@ -17,7 +17,7 @@ pandas==2.1.4
 openpyxl==3.1.2
 python-dateutil==2.8.2
 
-# Alembic for database migrations
-alembic==1.13.1
-sqlalchemy==2.0.23
-pymysql==1.1.0
+# Note: Alembic removed - now using pure SQL migrations
+# alembic==1.13.1
+# sqlalchemy==2.0.23
+# pymysql==1.1.0

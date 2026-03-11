@@ -528,7 +528,8 @@ const Communication = () => {
         subject: `Important Update - NCD Investment`,
         message: messageContent,
         investor_ids: selectedInvestorsList.map(inv => inv.investorId),
-        series_ids: [...new Set(selectedSeries)] // Unique series IDs
+        series_ids: [...new Set(selectedSeries)], // Unique series IDs
+        template_id: selectedTemplate ? parseInt(selectedTemplate) : null // Include selected template ID
       };
       
       if (import.meta.env.DEV) { console.log('📦 Message data:', messageData); }

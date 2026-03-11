@@ -54,4 +54,4 @@ ncd-vite/
 
 - Backend: FastAPI + Python
 - Frontend: React + Vite
-- Database: MySQL + Alembic migrations
+- Database: MySQL + Pure SQL migrations

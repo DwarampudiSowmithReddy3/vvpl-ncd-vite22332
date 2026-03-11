@@ -1,8 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routes import auth, users, audit, permissions, series, compliance, compliance_documents, dashboard, investors, communication, grievances, payouts, reports
-from database import get_db
+from app.api.routes import auth, users, audit, permissions, series, compliance, compliance_documents, dashboard, investors, communication, grievances, payouts, reports
+from app.core.database import get_db
+from app.core.config import settings
 import uvicorn
 import logging
 import sys
@@ -45,8 +46,6 @@ async def log_requests(request, call_next):
             status_code=500,
             content={"message": f"Internal server error: {str(e)}", "success": False}
         )
-
-from config import settings
 
 # CORS Configuration - Read from secure environment variables
 app.add_middleware(
@@ -106,7 +105,7 @@ async def health_check():
 async def test_rbi_endpoint():
     """Test RBI compliance endpoint without authentication"""
     try:
-        from database import get_db
+        from app.core.database import get_db
         db = get_db()
         
         # Test the summary query
