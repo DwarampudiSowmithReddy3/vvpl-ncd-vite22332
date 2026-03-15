@@ -6437,3 +6437,407 @@ async def get_last_generated_dates(
 
 
 
+
+
+# ============================================================================
+# REPORT DOWNLOAD ENDPOINTS - Direct file downloads in CSV/Excel/PDF formats
+# ============================================================================
+
+from fastapi.responses import FileResponse, StreamingResponse
+import csv
+import io
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
+
+
+@router.get("/download/monthly-collection")
+async def download_monthly_collection_report(
+    format: str = 'pdf',
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    series_id: Optional[int] = None,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Download Monthly Collection Report in CSV/Excel/PDF format
+    PERMISSION REQUIRED: view_reports
+    """
+    try:
+        db = get_db()
+        
+        # CHECK PERMISSION
+        if not has_permission(current_user, "view_reports", db):
+            log_unauthorized_access(db, current_user, "download_monthly_collection_report", "view_reports")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to download reports"
+            )
+        
+        # Fetch report data
+        report_data = await get_monthly_collection_report(from_date, to_date, series_id, current_user)
+        
+        if format.lower() == 'csv':
+            # Generate CSV
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write header
+            writer.writerow(['Monthly Collection Report'])
+            writer.writerow(['Generated on', datetime.now().strftime('%d/%m/%Y %H:%M:%S')])
+            writer.writerow([])
+            
+            # Write series data
+            writer.writerow(['Series Name', 'Total Collected', 'Number of Investors', 'Average Investment'])
+            for series in report_data.get('series_breakdown', []):
+                writer.writerow([
+                    series['series_name'],
+                    f"₹{series['total_collected']:,.2f}",
+                    series['investor_count'],
+                    f"₹{series['average_investment']:,.2f}"
+                ])
+            
+            writer.writerow([])
+            writer.writerow(['Total', f"₹{report_data.get('total_collected', 0):,.2f}"])
+            
+            # Return CSV file
+            output.seek(0)
+            filename = f"Monthly_Collection_Report_{datetime.now().strftime('%Y%m%d')}.csv"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        elif format.lower() == 'excel':
+            # Generate Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Monthly Collection"
+            
+            # Add header
+            ws['A1'] = 'Monthly Collection Report'
+            ws['A1'].font = Font(bold=True, size=14)
+            ws['A2'] = f"Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            
+            # Add column headers
+            headers = ['Series Name', 'Total Collected', 'Number of Investors', 'Average Investment']
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=4, column=col)
+                cell.value = header
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+            
+            # Add data
+            row = 5
+            for series in report_data.get('series_breakdown', []):
+                ws.cell(row=row, column=1).value = series['series_name']
+                ws.cell(row=row, column=2).value = series['total_collected']
+                ws.cell(row=row, column=3).value = series['investor_count']
+                ws.cell(row=row, column=4).value = series['average_investment']
+                row += 1
+            
+            # Add total
+            ws.cell(row=row, column=1).value = 'TOTAL'
+            ws.cell(row=row, column=1).font = Font(bold=True)
+            ws.cell(row=row, column=2).value = report_data.get('total_collected', 0)
+            ws.cell(row=row, column=2).font = Font(bold=True)
+            
+            # Adjust column widths
+            ws.column_dimensions['A'].width = 25
+            ws.column_dimensions['B'].width = 18
+            ws.column_dimensions['C'].width = 18
+            ws.column_dimensions['D'].width = 20
+            
+            # Save to bytes
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            filename = f"Monthly_Collection_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        else:
+            # PDF format - return JSON data for frontend to generate PDF
+            return {
+                "status": "success",
+                "format": "pdf",
+                "data": report_data,
+                "message": "Use frontend PDF generation for PDF format"
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error downloading monthly collection report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error downloading report: {str(e)}"
+        )
+
+
+@router.get("/download/payout-statement")
+async def download_payout_statement_report(
+    format: str = 'pdf',
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    month: Optional[str] = None,
+    series_id: Optional[int] = None,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Download Payout Statement Report in CSV/Excel/PDF format
+    PERMISSION REQUIRED: view_reports
+    """
+    try:
+        db = get_db()
+        
+        # CHECK PERMISSION
+        if not has_permission(current_user, "view_reports", db):
+            log_unauthorized_access(db, current_user, "download_payout_statement_report", "view_reports")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to download reports"
+            )
+        
+        # Fetch report data
+        report_data = await get_payout_statement_report(from_date, to_date, month, series_id, current_user)
+        
+        if format.lower() == 'csv':
+            # Generate CSV
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write header
+            writer.writerow(['Payout Statement Report'])
+            writer.writerow(['Generated on', datetime.now().strftime('%d/%m/%Y %H:%M:%S')])
+            writer.writerow([])
+            
+            # Write summary
+            writer.writerow(['Summary'])
+            writer.writerow(['Total Payouts', f"₹{report_data.get('total_payouts', 0):,.2f}"])
+            writer.writerow(['Number of Payouts', report_data.get('payout_count', 0)])
+            writer.writerow(['Average Payout', f"₹{report_data.get('average_payout', 0):,.2f}"])
+            writer.writerow([])
+            
+            # Write series breakdown
+            writer.writerow(['Series-wise Breakdown'])
+            writer.writerow(['Series Name', 'Total Payout', 'Number of Payouts', 'Average Payout'])
+            for series in report_data.get('series_breakdown', []):
+                writer.writerow([
+                    series['series_name'],
+                    f"₹{series['total_payout']:,.2f}",
+                    series['payout_count'],
+                    f"₹{series['average_payout']:,.2f}"
+                ])
+            
+            # Return CSV file
+            output.seek(0)
+            filename = f"Payout_Statement_Report_{datetime.now().strftime('%Y%m%d')}.csv"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        elif format.lower() == 'excel':
+            # Generate Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Payout Statement"
+            
+            # Add header
+            ws['A1'] = 'Payout Statement Report'
+            ws['A1'].font = Font(bold=True, size=14)
+            ws['A2'] = f"Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            
+            # Add summary section
+            ws['A4'] = 'Summary'
+            ws['A4'].font = Font(bold=True, size=12)
+            ws['A5'] = 'Total Payouts'
+            ws['B5'] = report_data.get('total_payouts', 0)
+            ws['A6'] = 'Number of Payouts'
+            ws['B6'] = report_data.get('payout_count', 0)
+            ws['A7'] = 'Average Payout'
+            ws['B7'] = report_data.get('average_payout', 0)
+            
+            # Add series breakdown
+            ws['A9'] = 'Series-wise Breakdown'
+            ws['A9'].font = Font(bold=True, size=12)
+            
+            headers = ['Series Name', 'Total Payout', 'Number of Payouts', 'Average Payout']
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=10, column=col)
+                cell.value = header
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+            
+            # Add data
+            row = 11
+            for series in report_data.get('series_breakdown', []):
+                ws.cell(row=row, column=1).value = series['series_name']
+                ws.cell(row=row, column=2).value = series['total_payout']
+                ws.cell(row=row, column=3).value = series['payout_count']
+                ws.cell(row=row, column=4).value = series['average_payout']
+                row += 1
+            
+            # Adjust column widths
+            ws.column_dimensions['A'].width = 25
+            ws.column_dimensions['B'].width = 18
+            ws.column_dimensions['C'].width = 20
+            ws.column_dimensions['D'].width = 18
+            
+            # Save to bytes
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            filename = f"Payout_Statement_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        else:
+            # PDF format - return JSON data for frontend to generate PDF
+            return {
+                "status": "success",
+                "format": "pdf",
+                "data": report_data,
+                "message": "Use frontend PDF generation for PDF format"
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error downloading payout statement report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error downloading report: {str(e)}"
+        )
+
+
+@router.get("/download/series-performance")
+async def download_series_performance_report(
+    format: str = 'pdf',
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Download Series-wise Performance Report in CSV/Excel/PDF format
+    PERMISSION REQUIRED: view_reports
+    """
+    try:
+        db = get_db()
+        
+        # CHECK PERMISSION
+        if not has_permission(current_user, "view_reports", db):
+            log_unauthorized_access(db, current_user, "download_series_performance_report", "view_reports")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to download reports"
+            )
+        
+        # Fetch report data
+        report_data = await get_series_performance_report(current_user)
+        
+        if format.lower() == 'csv':
+            # Generate CSV
+            output = io.StringIO()
+            writer = csv.writer(output)
+            
+            # Write header
+            writer.writerow(['Series-wise Performance Report'])
+            writer.writerow(['Generated on', datetime.now().strftime('%d/%m/%Y %H:%M:%S')])
+            writer.writerow([])
+            
+            # Write series data
+            writer.writerow(['Series Name', 'Status', 'Target Amount', 'Funds Raised', 'Progress %', 'Investors', 'Interest Rate'])
+            for series in report_data.get('series_breakdown', []):
+                writer.writerow([
+                    series['series_name'],
+                    series['status'],
+                    f"₹{series['target_amount']:,.2f}",
+                    f"₹{series['funds_raised']:,.2f}",
+                    f"{series['progress_percentage']}%",
+                    series['investor_count'],
+                    f"{series['interest_rate']}%"
+                ])
+            
+            # Return CSV file
+            output.seek(0)
+            filename = f"Series_Performance_Report_{datetime.now().strftime('%Y%m%d')}.csv"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="text/csv",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        elif format.lower() == 'excel':
+            # Generate Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Series Performance"
+            
+            # Add header
+            ws['A1'] = 'Series-wise Performance Report'
+            ws['A1'].font = Font(bold=True, size=14)
+            ws['A2'] = f"Generated on: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
+            
+            # Add column headers
+            headers = ['Series Name', 'Status', 'Target Amount', 'Funds Raised', 'Progress %', 'Investors', 'Interest Rate']
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=4, column=col)
+                cell.value = header
+                cell.font = Font(bold=True, color="FFFFFF")
+                cell.fill = PatternFill(start_color="2563EB", end_color="2563EB", fill_type="solid")
+            
+            # Add data
+            row = 5
+            for series in report_data.get('series_breakdown', []):
+                ws.cell(row=row, column=1).value = series['series_name']
+                ws.cell(row=row, column=2).value = series['status']
+                ws.cell(row=row, column=3).value = series['target_amount']
+                ws.cell(row=row, column=4).value = series['funds_raised']
+                ws.cell(row=row, column=5).value = f"{series['progress_percentage']}%"
+                ws.cell(row=row, column=6).value = series['investor_count']
+                ws.cell(row=row, column=7).value = f"{series['interest_rate']}%"
+                row += 1
+            
+            # Adjust column widths
+            for col in range(1, 8):
+                ws.column_dimensions[get_column_letter(col)].width = 18
+            
+            # Save to bytes
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+            
+            filename = f"Series_Performance_Report_{datetime.now().strftime('%Y%m%d')}.xlsx"
+            return StreamingResponse(
+                iter([output.getvalue()]),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": f"attachment; filename={filename}"}
+            )
+        
+        else:
+            # PDF format - return JSON data for frontend to generate PDF
+            return {
+                "status": "success",
+                "format": "pdf",
+                "data": report_data,
+                "message": "Use frontend PDF generation for PDF format"
+            }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error downloading series performance report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error downloading report: {str(e)}"
+        )

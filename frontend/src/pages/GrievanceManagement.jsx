@@ -175,7 +175,7 @@ const GrievanceManagement = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
 

@@ -21,9 +21,13 @@ import json
 import os
 import requests
 from app.services.communication.kaleyra_service import send_single_sms, send_bulk_sms
+from app.services.communication.mailchimp_service import MailchimpService
 
 router = APIRouter(prefix="/communication", tags=["communication"])
 logger = logging.getLogger(__name__)
+
+# Initialize Mailchimp service
+mailchimp_service = MailchimpService()
 
 
 def send_sms_via_kaleyra(phone: str, message: str, template_id: str, message_type_code: str = 'TXN') -> tuple:
@@ -39,93 +43,38 @@ def send_sms_via_kaleyra(phone: str, message: str, template_id: str, message_typ
     return send_single_sms(phone, message, template_id, message_type_code)
 
 
-def send_email_via_smtp(email: str, subject: str, message: str) -> tuple:
+def send_email_via_mailchimp(email: str, subject: str, message: str) -> tuple:
     """
-    Send Email via Kaleyra Email API
+    Send Email via Mailchimp
     Returns: (success: bool, message_id: str, error: str)
-    
-    Kaleyra Email API Format:
-    POST https://api-alerts.kaleyra.com/v4/?api_key=XXX&method=email.json&json=<data>
     """
-    try:
-        # Get Kaleyra Email credentials from environment
-        email_api_key = os.getenv('KALEYRA_EMAIL_API_KEY')
-        email_sender = os.getenv('KALEYRA_EMAIL_SENDER')  # From email address
-        email_sender_name = os.getenv('KALEYRA_EMAIL_SENDER_NAME', 'NCD Management')
-        
-        if not all([email_api_key, email_sender]):
-            logger.warning("Email service not configured - missing credentials")
-            return (False, None, "Email service not configured - missing credentials")
-        
-        # Kaleyra Email API endpoint
-        base_url = "https://api-alerts.kaleyra.com/v4/"
-        
-        # Prepare JSON payload for email
-        email_data = {
-            "from": email_sender,
-            "from_name": email_sender_name,
-            "subject": subject,
-            "body": message,
-            "email": [{
-                "to": email,
-                "custom": "1"
-            }]
-        }
-        
-        # URL encode the JSON
-        import urllib.parse
-        json_str = json.dumps(email_data)
-        encoded_json = urllib.parse.quote(json_str)
-        
-        # Complete endpoint with query parameters
-        endpoint = f"{base_url}?api_key={email_api_key}&method=email.json&json={encoded_json}"
-        
-        # Log the request for debugging
-        logger.info(f"📤 Sending email to {email}")
-        logger.info(f"📤 Subject: {subject}")
-        logger.info(f"📤 JSON Data: {json_str}")
-        
-        # Make API call to Kaleyra using GET (as per v4 documentation)
-        response = requests.get(endpoint, timeout=10)
-        
-        logger.info(f"📡 Response Status: {response.status_code}")
-        logger.info(f"📡 Response Body: {response.text}")
-        
-        if response.status_code == 200:
-            try:
-                data = response.json()
-                logger.info(f"📡 Parsed Response: {data}")
-                
-                if data.get('status') == 'OK':
-                    # Extract message ID from response
-                    message_id = data.get('data', [{}])[0].get('id', f"EMAIL_{datetime.now().timestamp()}")
-                    logger.info(f"✅ Email sent successfully! Message ID: {message_id}")
-                    return (True, str(message_id), None)
-                else:
-                    error_msg = data.get('message', 'Unknown error')
-                    logger.error(f"❌ Email API error: {error_msg}")
-                    logger.error(f"❌ Full response: {data}")
-                    return (False, None, f"Email error: {error_msg}")
-            except Exception as e:
-                logger.error(f"❌ Error parsing email response: {e}")
-                logger.error(f"❌ Raw response: {response.text}")
-                return (False, None, f"Response parse error: {str(e)}")
-        else:
-            error_text = response.text
-            logger.error(f"❌ Email API error: {response.status_code} - {error_text}")
-            return (False, None, f"Email API error: {response.status_code}")
-        
-    except requests.exceptions.Timeout:
-        logger.error(f"❌ Email sending timeout for {email}")
-        return (False, None, "Email service timeout")
-    except requests.exceptions.RequestException as e:
-        logger.error(f"❌ Email sending network error: {e}")
-        return (False, None, f"Network error: {str(e)}")
-    except Exception as e:
-        logger.error(f"❌ Email sending error: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        return (False, None, str(e))
+    # try:
+    # Convert plain text to HTML (simple conversion)
+    html_content = f"<p>{message.replace(chr(10), '<br>')}</p>"
+    
+    logger.info(f"📤 Sending email to {email} via Mailchimp")
+    logger.info(f"📤 Subject: {subject}")
+    
+    # Send via Mailchimp
+    success, message_id, error = mailchimp_service.send_email(
+        to_email=email,
+        subject=subject,
+        html_content=html_content,
+        text_content=message
+    )
+    
+    if success:
+        logger.info(f"✅ Email sent successfully! Message ID: {message_id}")
+        return (True, message_id, None)
+    else:
+        logger.error(f"❌ Email failed: {error}")
+        return (False, None, error)
+    
+    # except Exception as e:
+    #     logger.error(f"❌ Error sending email: {e}")
+    #     import traceback
+    #     logger.error(traceback.format_exc())
+    #     return (False, None, str(e))
 
 
 def get_client_ip(request: Request) -> str:
@@ -473,7 +422,7 @@ async def send_bulk_messages(
         
         placeholders = ','.join(['%s'] * len(message_request.investor_ids))
         investor_query = f"""
-        SELECT 
+        SELECT DISTINCT
             i.id,
             i.investor_id,
             i.full_name as name,
@@ -513,199 +462,369 @@ async def send_bulk_messages(
             
             raise HTTPException(status_code=400, detail="No valid investors found")
         
-        # Get template_id and message_type_code from database if SMS type
-        template_id = None
-        message_type_code = 'TXN'  # Default to Transactional
-        if message_request.type == CommunicationType.SMS:
-            # Fetch template_id and message_type_code from communication_templates table
-            # Use the template_id selected by user, or first available if not specified
-            if message_request.template_id:
-                # User selected a specific template - use that one
-                template_query = """
-                SELECT template_id, message_type_code
-                FROM communication_templates 
-                WHERE id = %s AND type = 'SMS' AND is_active = TRUE AND template_id IS NOT NULL
-                """
-                template_result = db.execute_query(template_query, (message_request.template_id,))
-                
-                if template_result:
-                    template_id = template_result[0].get('template_id')
-                    message_type_code = template_result[0].get('message_type_code', 'TXN')
-                    logger.info(f"📋 Using selected template_id: {template_id}")
-                    logger.info(f"📋 Using message_type_code: {message_type_code}")
-                else:
-                    logger.warning(f"⚠️ Selected template ID {message_request.template_id} not found - using first available")
-                    # Fallback to first available template
-                    template_query = """
-                    SELECT template_id, message_type_code
-                    FROM communication_templates 
-                    WHERE type = 'SMS' AND is_active = TRUE AND template_id IS NOT NULL
-                    LIMIT 1
-                    """
-                    template_result = db.execute_query(template_query)
-                    if template_result:
-                        template_id = template_result[0].get('template_id')
-                        message_type_code = template_result[0].get('message_type_code', 'TXN')
-            else:
-                # No template selected - use first available
-                template_query = """
-                SELECT template_id, message_type_code
-                FROM communication_templates 
-                WHERE type = 'SMS' AND is_active = TRUE AND template_id IS NOT NULL
-                LIMIT 1
-                """
-                template_result = db.execute_query(template_query)
-                
-                if template_result:
-                    template_id = template_result[0].get('template_id')
-                    message_type_code = template_result[0].get('message_type_code', 'TXN')
-                    logger.info(f"📋 Using default template_id: {template_id}")
-                    logger.info(f"📋 Using message_type_code: {message_type_code}")
-                else:
-                    logger.warning("⚠️ No template_id found in database - SMS may fail DLT compliance")
-        
         # Send messages and track results
         results = []
         successful = 0
         failed = 0
         
-        for investor in investors:
-            # Personalize message
-            personalized_message = message_request.message
-            personalized_message = personalized_message.replace('{InvestorName}', investor['name'])
-            personalized_message = personalized_message.replace('{InvestorID}', investor['investor_id'])
-            personalized_message = personalized_message.replace('{SeriesName}', investor['series_name'])
-            personalized_message = personalized_message.replace('{Amount}', f"₹{investor['investment_amount']:,.2f}")
-            personalized_message = personalized_message.replace('{BankAccountNumber}', investor['account_number'] or 'N/A')
+        # For EMAIL: Fetch template from DB, personalize per investor, send in batch
+        # For SMS: Fetch template from DB, personalize per investor, send individually (Kaleyra doesn't support batching)
+        
+        if message_request.type == CommunicationType.EMAIL:
+            # EMAIL: Template-based sending (fetch from DB, personalize, send in batch)
             
-            contact_info = investor['email'] if message_request.type == CommunicationType.EMAIL else investor['phone']
+            # Fetch email template from database
+            if not message_request.template_id:
+                raise HTTPException(status_code=400, detail="Email template_id is required")
             
-            if not contact_info:
-                # No contact info - mark as failed
-                error_msg = f"No {'email' if message_request.type == CommunicationType.EMAIL else 'phone'} available"
+            template_query = """
+            SELECT id, name, subject, content
+            FROM communication_templates 
+            WHERE id = %s AND type = 'Email' AND is_active = TRUE
+            """
+            template_result = db.execute_query(template_query, (message_request.template_id,))
+            
+            if not template_result:
+                raise HTTPException(status_code=400, detail="Email template not found")
+            
+            template = template_result[0]
+            template_subject = template['subject']
+            template_content = template['content']
+            
+            logger.info(f"📋 Using email template: {template['name']}")
+            
+            # Build email batch with personalized content per investor
+            email_batch = []
+            email_investor_map = {}  # Map email to investor data for tracking
+            
+            for investor in investors:
+                # Personalize subject
+                personalized_subject = template_subject
+                personalized_subject = personalized_subject.replace('{InvestorName}', investor['name'])
+                personalized_subject = personalized_subject.replace('{InvestorID}', investor['investor_id'])
+                personalized_subject = personalized_subject.replace('{SeriesName}', investor['series_name'])
+                personalized_subject = personalized_subject.replace('{Amount}', f"₹{investor['investment_amount']:,.2f}")
+                personalized_subject = personalized_subject.replace('{BankAccountNumber}', str(investor.get('account_number') or 'N/A'))
                 
-                # Save to database
-                insert_query = """
-                INSERT INTO communication_history 
-                (type, recipient_name, recipient_contact, investor_id, series_name, 
-                 subject, message, status, error_message, sent_by, sent_by_role, sent_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
+                # Personalize content
+                personalized_message = template_content
+                personalized_message = personalized_message.replace('{InvestorName}', investor['name'])
+                personalized_message = personalized_message.replace('{InvestorID}', investor['investor_id'])
+                personalized_message = personalized_message.replace('{SeriesName}', investor['series_name'])
+                personalized_message = personalized_message.replace('{Amount}', f"₹{investor['investment_amount']:,.2f}")
+                personalized_message = personalized_message.replace('{BankAccountNumber}', str(investor.get('account_number') or 'N/A'))
                 
-                db.execute_query(insert_query, (
-                    message_request.type.value,
-                    investor['name'],
-                    contact_info or 'N/A',
-                    investor['investor_id'],
-                    investor['series_name'],
-                    message_request.subject,
-                    personalized_message,
-                    CommunicationStatus.FAILED.value,
-                    error_msg,
-                    current_user.full_name,
-                    current_user.role.value,
-                    datetime.now()
-                ))
+                contact_info = investor['email']
                 
-                results.append({
-                    "investor": investor['name'],
-                    "status": "Failed",
-                    "error": error_msg
+                if not contact_info:
+                    # No email - mark as failed
+                    error_msg = "No email available"
+                    
+                    insert_query = """
+                    INSERT INTO communication_history 
+                    (type, recipient_name, recipient_contact, investor_id, series_name, 
+                     subject, message, status, error_message, sent_by, sent_by_role, sent_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    
+                    db.execute_query(insert_query, (
+                        message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                        investor['name'],
+                        'N/A',
+                        investor['investor_id'],
+                        investor['series_name'],
+                        personalized_subject,
+                        personalized_message,
+                        CommunicationStatus.FAILED.value,
+                        error_msg,
+                        current_user.full_name,
+                        current_user.role,
+                        datetime.now()
+                    ))
+                    
+                    results.append({
+                        "investor": investor['name'],
+                        "status": "Failed",
+                        "error": error_msg
+                    })
+                    failed += 1
+                    continue
+                
+                # Add to batch (simple, no merge_vars - backend already personalized)
+                email_batch.append({
+                    'email': contact_info,
+                    'name': investor['name']
                 })
-                failed += 1
-                continue
+                email_investor_map[contact_info] = {
+                    'investor': investor,
+                    'personalized_subject': personalized_subject,
+                    'personalized_message': personalized_message
+                }
             
-            # ACTUAL SMS/Email sending implementation
-            send_success = False
-            message_id = None
-            error_msg = None
+            # Send all emails in batch (optimized for 1000+ emails)
+            if email_batch:
+                logger.info(f"📤 Sending {len(email_batch)} emails in batch mode")
+                
+                # Send first email to get subject/content format, then send batch
+                # Note: We send each personalized email separately to Mailchimp batch
+                batch_results = {
+                    "successful": 0,
+                    "failed": 0,
+                    "details": []
+                }
+                
+                # Process each email in the batch
+                for email_recipient in email_batch:
+                    email = email_recipient['email']
+                    investor_data = email_investor_map.get(email, {})
+                    investor = investor_data.get('investor', {})
+                    personalized_subject = investor_data.get('personalized_subject', '')
+                    personalized_message = investor_data.get('personalized_message', '')
+                    
+                    # Send email via Mailchimp
+                    send_success, message_id, error_msg = send_email_via_mailchimp(
+                        email,
+                        personalized_subject,
+                        personalized_message
+                    )
+                    
+                    if send_success:
+                        batch_results["successful"] += 1
+                        batch_results["details"].append({
+                            "email": email,
+                            "name": investor.get('name', 'Unknown'),
+                            "status": "success",
+                            "message_id": message_id
+                        })
+                    else:
+                        batch_results["failed"] += 1
+                        batch_results["details"].append({
+                            "email": email,
+                            "name": investor.get('name', 'Unknown'),
+                            "status": "failed",
+                            "error": error_msg
+                        })
+                
+                # Process batch results and save to database
+                for detail in batch_results['details']:
+                    email = detail['email']
+                    investor_data = email_investor_map.get(email, {})
+                    investor = investor_data.get('investor', {})
+                    personalized_subject = investor_data.get('personalized_subject', '')
+                    personalized_message = investor_data.get('personalized_message', '')
+                    
+                    if detail['status'] == 'success':
+                        # Save success to database
+                        insert_query = """
+                        INSERT INTO communication_history 
+                        (type, recipient_name, recipient_contact, investor_id, series_name, 
+                         subject, message, status, message_id, sent_by, sent_by_role, sent_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        
+                        db.execute_query(insert_query, (
+                            message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                            investor.get('name', detail['name']),
+                            email,
+                            investor.get('investor_id', 'N/A'),
+                            investor.get('series_name', 'N/A'),
+                            personalized_subject,
+                            personalized_message,
+                            CommunicationStatus.SUCCESS.value,
+                            detail.get('message_id', 'MAILCHIMP'),
+                            current_user.full_name,
+                            current_user.role,
+                            datetime.now()
+                        ))
+                        
+                        results.append({
+                            "investor": investor.get('name', detail['name']),
+                            "status": "Success",
+                            "messageId": detail.get('message_id')
+                        })
+                        successful += 1
+                    else:
+                        # Save failure to database
+                        error_msg = detail.get('error', 'Failed to send email')
+                        
+                        insert_query = """
+                        INSERT INTO communication_history 
+                        (type, recipient_name, recipient_contact, investor_id, series_name, 
+                         subject, message, status, error_message, sent_by, sent_by_role, sent_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """
+                        
+                        db.execute_query(insert_query, (
+                            message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                            investor.get('name', detail['name']),
+                            email,
+                            investor.get('investor_id', 'N/A'),
+                            investor.get('series_name', 'N/A'),
+                            personalized_subject,
+                            personalized_message,
+                            CommunicationStatus.FAILED.value,
+                            error_msg,
+                            current_user.full_name,
+                            current_user.role,
+                            datetime.now()
+                        ))
+                        
+                        results.append({
+                            "investor": investor.get('name', detail['name']),
+                            "status": "Failed",
+                            "error": error_msg
+                        })
+                        failed += 1
+        
+        else:
+            # SMS: Template-based sending (fetch from DB, personalize, send individually)
             
-            if message_request.type == CommunicationType.SMS:
-                # Check if template_id is available
-                if not template_id:
-                    error_msg = "No template_id configured - DLT compliance required"
-                    send_success = False
+            # Fetch SMS template from database
+            if not message_request.template_id:
+                raise HTTPException(status_code=400, detail="SMS template_id is required")
+            
+            template_query = """
+            SELECT id, name, content, template_id, message_type_code
+            FROM communication_templates 
+            WHERE id = %s AND type = 'SMS' AND is_active = TRUE
+            """
+            template_result = db.execute_query(template_query, (message_request.template_id,))
+            
+            if not template_result:
+                raise HTTPException(status_code=400, detail="SMS template not found")
+            
+            template = template_result[0]
+            template_content = template['content']
+            template_id = template['template_id']
+            message_type_code = template['message_type_code']
+            
+            logger.info(f"📋 Using SMS template: {template['name']}")
+            logger.info(f"📋 Template ID: {template_id}")
+            logger.info(f"📋 Message Type Code: {message_type_code}")
+            
+            # Send SMS individually (Kaleyra doesn't support batching)
+            for investor in investors:
+                # Personalize message from template
+                personalized_message = template_content
+                personalized_message = personalized_message.replace('{InvestorName}', investor['name'])
+                personalized_message = personalized_message.replace('{InvestorID}', investor['investor_id'])
+                personalized_message = personalized_message.replace('{SeriesName}', investor['series_name'])
+                personalized_message = personalized_message.replace('{Amount}', f"₹{investor['investment_amount']:,.2f}")
+                personalized_message = personalized_message.replace('{BankAccountNumber}', str(investor.get('account_number') or 'N/A'))
+                
+                contact_info = investor['phone']
+                
+                if not contact_info:
+                    # No phone - mark as failed
+                    error_msg = "No phone available"
+                    
+                    insert_query = """
+                    INSERT INTO communication_history 
+                    (type, recipient_name, recipient_contact, investor_id, series_name, 
+                     subject, message, status, error_message, sent_by, sent_by_role, sent_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    
+                    db.execute_query(insert_query, (
+                        message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                        investor['name'],
+                        'N/A',
+                        investor['investor_id'],
+                        investor['series_name'],
+                        message_request.subject,
+                        personalized_message,
+                        CommunicationStatus.FAILED.value,
+                        error_msg,
+                        current_user.full_name,
+                        current_user.role,
+                        datetime.now()
+                    ))
+                    
+                    results.append({
+                        "investor": investor['name'],
+                        "status": "Failed",
+                        "error": error_msg
+                    })
+                    failed += 1
+                    continue
+                
+                # Send SMS via Kaleyra with template_id and message_type_code
+                send_success, message_id, error_msg = send_sms_via_kaleyra(contact_info, personalized_message, template_id, message_type_code)
+                
+                if send_success:
+                    # Save success to database
+                    insert_query = """
+                    INSERT INTO communication_history 
+                    (type, recipient_name, recipient_contact, investor_id, series_name, 
+                     subject, message, status, message_id, sent_by, sent_by_role, sent_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    
+                    db.execute_query(insert_query, (
+                        message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                        investor['name'],
+                        contact_info,
+                        investor['investor_id'],
+                        investor['series_name'],
+                        message_request.subject,
+                        personalized_message,
+                        CommunicationStatus.SUCCESS.value,
+                        message_id,
+                        current_user.full_name,
+                        current_user.role,
+                        datetime.now()
+                    ))
+                    
+                    results.append({
+                        "investor": investor['name'],
+                        "status": "Success",
+                        "messageId": message_id
+                    })
+                    successful += 1
                 else:
-                    # Send SMS via Kaleyra with template_id and message_type_code
-                    send_success, message_id, error_msg = send_sms_via_kaleyra(contact_info, personalized_message, template_id, message_type_code)
-            else:
-                # Send Email via SMTP
-                send_success, message_id, error_msg = send_email_via_smtp(contact_info, message_request.subject, personalized_message)
-            
-            if send_success:
-                # Save success to database
-                insert_query = """
-                INSERT INTO communication_history 
-                (type, recipient_name, recipient_contact, investor_id, series_name, 
-                 subject, message, status, message_id, sent_by, sent_by_role, sent_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                
-                db.execute_query(insert_query, (
-                    message_request.type.value,
-                    investor['name'],
-                    contact_info,
-                    investor['investor_id'],
-                    investor['series_name'],
-                    message_request.subject,
-                    personalized_message,
-                    CommunicationStatus.SUCCESS.value,
-                    message_id,
-                    current_user.full_name,
-                    current_user.role.value,
-                    datetime.now()
-                ))
-                
-                results.append({
-                    "investor": investor['name'],
-                    "status": "Success",
-                    "messageId": message_id
-                })
-                successful += 1
-            else:
-                # Save failure to database
-                error_msg = "Failed to send message"
-                
-                insert_query = """
-                INSERT INTO communication_history 
-                (type, recipient_name, recipient_contact, investor_id, series_name, 
-                 subject, message, status, error_message, sent_by, sent_by_role, sent_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """
-                
-                db.execute_query(insert_query, (
-                    message_request.type.value,
-                    investor['name'],
-                    contact_info,
-                    investor['investor_id'],
-                    investor['series_name'],
-                    message_request.subject,
-                    personalized_message,
-                    CommunicationStatus.FAILED.value,
-                    error_msg,
-                    current_user.full_name,
-                    current_user.role.value,
-                    datetime.now()
-                ))
-                
-                results.append({
-                    "investor": investor['name'],
-                    "status": "Failed",
-                    "error": error_msg
-                })
-                failed += 1
+                    # Save failure to database - preserve real error message from Kaleyra
+                    error_msg = error_msg or "Failed to send message"
+                    
+                    insert_query = """
+                    INSERT INTO communication_history 
+                    (type, recipient_name, recipient_contact, investor_id, series_name, 
+                     subject, message, status, error_message, sent_by, sent_by_role, sent_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """
+                    
+                    db.execute_query(insert_query, (
+                        message_request.type if isinstance(message_request.type, str) else message_request.type.value,
+                        investor['name'],
+                        contact_info,
+                        investor['investor_id'],
+                        investor['series_name'],
+                        message_request.subject,
+                        personalized_message,
+                        CommunicationStatus.FAILED.value,
+                        error_msg,
+                        current_user.full_name,
+                        current_user.role,
+                        datetime.now()
+                    ))
+                    
+                    results.append({
+                        "investor": investor['name'],
+                        "status": "Failed",
+                        "error": error_msg
+                    })
+                    failed += 1
         
         # Create audit log
         create_audit_log(
             db=db,
-            action=f"Sent {message_request.type.value}",
+            action=f"Sent {message_request.type.value if hasattr(message_request.type, 'value') else message_request.type}",
             admin_name=current_user.full_name,
-            admin_role=current_user.role.value,
-            details=f"Sent {successful} {message_request.type.value} messages to investors ({failed} failed)",
+            admin_role=current_user.role,  # Already a string, no .value needed
+            details=f"Sent {successful} {message_request.type.value if hasattr(message_request.type, 'value') else message_request.type} messages to investors ({failed} failed)",
             entity_type="Communication",
-            entity_id=f"Bulk_{message_request.type.value}",
+            entity_id=f"Bulk_{message_request.type.value if hasattr(message_request.type, 'value') else message_request.type}",
             changes={
-                "type": message_request.type.value,
+                "type": message_request.type.value if hasattr(message_request.type, 'value') else message_request.type,
                 "total": len(investors),
                 "successful": successful,
                 "failed": failed,

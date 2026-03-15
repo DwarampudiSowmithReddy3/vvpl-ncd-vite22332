@@ -38,6 +38,38 @@ def create_audit_log(db, action: str, admin_name: str, admin_role: str, details:
         logger.error(f"Failed to create audit log: {e}")
         # Don't fail the main operation if audit logging fails
 
+@router.get("/roles/available", response_model=List[str])
+async def get_available_roles(current_user: UserInDB = Depends(get_current_user)):
+    """
+    Get all available roles from role_permissions table
+    Fetches dynamically from database - NO HARDCODING
+    """
+    try:
+        db = get_db()
+        
+        query = """
+        SELECT DISTINCT role FROM role_permissions
+        ORDER BY role ASC
+        """
+        
+        result = db.execute_query(query)
+        
+        if not result:
+            logger.warning("No roles found in role_permissions table")
+            return []
+        
+        roles = [row['role'] for row in result]
+        logger.info(f"Fetched {len(roles)} available roles from database")
+        
+        return roles
+        
+    except Exception as e:
+        logger.error(f"Error fetching available roles: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving available roles"
+        )
+
 @router.get("/", response_model=List[UserResponse])
 async def get_all_users(
     search: str = None,
@@ -156,7 +188,7 @@ async def create_user(user_data: UserCreate, current_user: UserInDB = Depends(ge
             user_data.email,
             user_data.phone,
             password_hash,
-            user_data.role.value,
+            user_data.role,  # Role is now a string, not enum
             now,
             True
         ))
@@ -180,14 +212,14 @@ async def create_user(user_data: UserCreate, current_user: UserInDB = Depends(ge
                 action="Created User",
                 admin_name=current_user.full_name,
                 admin_role=current_user.role,
-                details=f"Created new user \"{user_data.username}\" ({user_data.full_name}) with role \"{user_data.role.value}\"",
+                details=f"Created new user \"{user_data.username}\" ({user_data.full_name}) with role \"{user_data.role}\"",
                 entity_type="User",
                 entity_id=user_data.username,
                 changes={
                     "userId": user_data.user_id,
                     "username": user_data.username,
                     "fullName": user_data.full_name,
-                    "role": user_data.role.value,
+                    "role": user_data.role,
                     "email": user_data.email,
                     "phone": user_data.phone,
                     "action": "user_created"
@@ -296,7 +328,7 @@ async def update_user(user_id: int, user_data: UserUpdate, current_user: UserInD
         
         if user_data.role is not None:
             update_fields.append("role = %s")
-            update_values.append(user_data.role.value)
+            update_values.append(user_data.role)  # Role is now a string, not enum
         
         if user_data.password is not None:
             password_hash = get_password_hash(user_data.password)

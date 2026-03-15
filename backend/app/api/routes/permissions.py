@@ -122,13 +122,14 @@ async def update_permissions(
     permissions_data: Dict[str, Any],
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Update permissions (Admin or Super Admin only)"""
+    """Update permissions (requires view_permissions permission)"""
     try:
-        # Check if user is Admin or Super Admin
-        if current_user.role not in ["Admin", "Super Admin"]:
+        # Check if user has permission to update permissions
+        db = get_db()
+        if not has_permission(current_user, "edit_permissions", db):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Only Admin or Super Admin can update permissions"
+                detail="You don't have permission to update permissions"
             )
         
         # Convert frontend format to backend format
@@ -198,7 +199,9 @@ async def update_permissions(
             # NO CONVERSION NEEDED - frontend and database use same format
             permissions_json = json.dumps(role_permissions)
             
-            logger.info(f"Storing permissions for {role_name} in object format")
+            logger.info(f"🔄 Updating permissions for {role_name}")
+            logger.info(f"   Current permissions: {json.dumps(current_permissions)[:100]}...")
+            logger.info(f"   New permissions: {json.dumps(role_permissions)[:100]}...")
             
             # Update the role_permissions table
             update_query = """
@@ -214,9 +217,11 @@ async def update_permissions(
                 role_name
             ))
             
-            if rows_affected > 0:
+            logger.info(f"   Rows affected: {rows_affected}")
+            
+            if rows_affected is not None and rows_affected >= 0:
                 updated_count += 1
-                logger.info(f"Updated permissions for role: {role_name}")
+                logger.info(f"✅ Updated permissions for role: {role_name}")
                 
                 # Track changes for audit log
                 changes = []
@@ -230,6 +235,7 @@ async def update_permissions(
                     audit_details.append(f"{role_name}: {', '.join(changes)}")
                 
             else:
+                logger.error(f"❌ Failed to update permissions for {role_name}")
                 # If role doesn't exist, create it
                 insert_query = """
                 INSERT INTO role_permissions 
@@ -244,7 +250,7 @@ async def update_permissions(
                     datetime.now()
                 ))
                 updated_count += 1
-                logger.info(f"Created permissions for new role: {role_name}")
+                logger.info(f"✅ Created permissions for new role: {role_name}")
                 audit_details.append(f"{role_name}: Created new role permissions")
         
         # CREATE AUDIT LOG ENTRY - CRITICAL FOR SECURITY

@@ -4,6 +4,9 @@ import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
 import apiService from '../services/api';
+import auditService from '../services/auditService';
+import jsPDF from 'jspdf';
+import { PDFDocument, PDFPage, rgb } from 'pdf-lib';
 import './ComplianceTracker.css';
 import { 
   HiOutlineDownload,
@@ -294,6 +297,21 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       );
       
       if (import.meta.env.DEV) { console.log('✅ Saved to backend'); }
+      
+      // Add audit log for status update
+      auditService.logComplianceStatusUpdated({
+        seriesId: seriesData.seriesId,
+        seriesName: seriesData.seriesName,
+        itemId: itemId,
+        itemTitle: item.title,
+        section: item.section,
+        oldStatus: 'pending',
+        newStatus: 'received',
+        year: year,
+        month: month
+      }, user).catch(error => {
+        if (import.meta.env.DEV) { console.error('Failed to log compliance status update:', error); }
+      });
       
       // Reload data for current view
       const response = await apiService.getSeriesCompliance(
@@ -735,23 +753,527 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
     });
   };
 
-  const handleExportSubmit = () => {
-    // Simulate export process
-    const selectedSections = Object.keys(exportSections).filter(key => exportSections[key]);
-    const seriesName = seriesData?.seriesName || 'Series A NCD';
-    if (import.meta.env.DEV) {
-
-      if (import.meta.env.DEV) { console.log(`Exporting ${exportFormat.toUpperCase()} report for ${seriesName}`); }
-
+  const handleExportSubmit = async () => {
+    try {
+      // Get selected sections
+      const selectedSections = Object.keys(exportSections)
+        .filter(key => exportSections[key])
+        .map(key => {
+          if (key === 'preCompliance') return 'pre';
+          if (key === 'postCompliance') return 'post';
+          if (key === 'recurringCompliances') return 'recurring';
+          if (key === 'statistics') return 'statistics';
+          return key;
+        });
+      
+      const seriesName = seriesData?.seriesName || 'Series A NCD';
+      
+      if (import.meta.env.DEV) {
+        console.log(`🔄 Exporting ${exportFormat.toUpperCase()} report for ${seriesName}`);
+        console.log('Selected sections:', selectedSections);
+      }
+      
+      // Load ALL compliance data for all sections (not just current tab)
+      const allComplianceData = {
+        pre: [],
+        post: [],
+        recurring: []
+      };
+      
+      try {
+        // Load all compliance data in one call
+        const allResponse = await apiService.getSeriesCompliance(seriesData.seriesId, null, null);
+        
+        // Filter by section
+        allComplianceData.pre = allResponse.items.filter(item => item.section === 'pre').map(item => ({
+          id: item.item_id,
+          title: item.title,
+          completed: item.status === 'received' || item.status === 'submitted'
+        }));
+        
+        allComplianceData.post = allResponse.items.filter(item => item.section === 'post').map(item => ({
+          id: item.item_id,
+          title: item.title,
+          completed: item.status === 'received' || item.status === 'submitted'
+        }));
+        
+        allComplianceData.recurring = allResponse.items.filter(item => item.section === 'recurring').map(item => ({
+          id: item.item_id,
+          title: item.title,
+          completed: item.status === 'received' || item.status === 'submitted'
+        }));
+        
+        if (import.meta.env.DEV) {
+          console.log('📊 All compliance data loaded:', allComplianceData);
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('Error loading compliance data:', error); }
+      }
+      
+      if (exportFormat === 'pdf') {
+        try {
+          // Helper function to convert 0-255 RGB to 0-1 range for pdf-lib
+          const rgbNormalized = (r, g, b) => rgb(r / 255, g / 255, b / 255);
+          
+          // Load the template PDF
+          const templateResponse = await fetch('/reports.pdf');
+          const templateArrayBuffer = await templateResponse.arrayBuffer();
+          const pdfDoc = await PDFDocument.load(templateArrayBuffer);
+          
+          // Get the first page to use as template
+          const pages = pdfDoc.getPages();
+          const firstPage = pages[0];
+          const { width, height } = firstPage.getSize();
+          
+          // Add new pages for compliance content
+          let currentPage = firstPage;
+          let yPosition = height - 180; // Start lower to avoid template header
+          const bottomMargin = 100; // Reserve space for footer
+          
+          // Add title
+          currentPage.drawText('COMPLIANCE REPORT', {
+            x: 50,
+            y: yPosition,
+            size: 20,
+            color: rgbNormalized(40, 40, 40),
+          });
+          yPosition -= 35;
+          
+          // Add series info
+          currentPage.drawText(`Series: ${seriesName}`, {
+            x: 50,
+            y: yPosition,
+            size: 11,
+            color: rgbNormalized(100, 100, 100),
+          });
+          yPosition -= 18;
+          
+          currentPage.drawText(`Generated: ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB')}`, {
+            x: 50,
+            y: yPosition,
+            size: 9,
+            color: rgbNormalized(120, 120, 120),
+          });
+          yPosition -= 25;
+          
+          // Statistics section
+          if (selectedSections.includes('statistics')) {
+            currentPage.drawText('Compliance Summary', {
+              x: 50,
+              y: yPosition,
+              size: 13,
+              color: rgbNormalized(40, 40, 40),
+            });
+            yPosition -= 18;
+            
+            const prePercentage = allComplianceData.pre.length > 0 ? Math.round((allComplianceData.pre.filter(i => i.completed).length / allComplianceData.pre.length) * 100) : 0;
+            const postPercentage = allComplianceData.post.length > 0 ? Math.round((allComplianceData.post.filter(i => i.completed).length / allComplianceData.post.length) * 100) : 0;
+            const recurringPercentage = allComplianceData.recurring.length > 0 ? Math.round((allComplianceData.recurring.filter(i => i.completed).length / allComplianceData.recurring.length) * 100) : 0;
+            
+            const statsText = [
+              `Pre-Compliance: ${prePercentage}%`,
+              `Post-Compliance: ${postPercentage}%`,
+              `Recurring Compliance: ${recurringPercentage}%`
+            ];
+            
+            statsText.forEach(text => {
+              currentPage.drawText(text, {
+                x: 50,
+                y: yPosition,
+                size: 9,
+                color: rgbNormalized(60, 60, 60),
+              });
+              yPosition -= 12;
+            });
+            yPosition -= 12;
+          }
+          
+          // Pre-Compliance section
+          if (selectedSections.includes('pre') && allComplianceData.pre.length > 0) {
+            if (yPosition < bottomMargin) {
+              currentPage = pdfDoc.addPage([width, height]);
+              yPosition = height - 50;
+            }
+            
+            currentPage.drawText('Pre-Compliance Documents', {
+              x: 50,
+              y: yPosition,
+              size: 11,
+              color: rgbNormalized(40, 40, 40),
+            });
+            yPosition -= 18;
+            
+            allComplianceData.pre.forEach((item, index) => {
+              if (yPosition < bottomMargin) {
+                currentPage = pdfDoc.addPage([width, height]);
+                yPosition = height - 50;
+              }
+              
+              const statusColor = item.completed ? rgbNormalized(22, 163, 74) : rgbNormalized(180, 83, 9);
+              currentPage.drawText(`${index + 1}. ${item.title}`, {
+                x: 50,
+                y: yPosition,
+                size: 9,
+                color: statusColor,
+              });
+              yPosition -= 12;
+            });
+            yPosition -= 12;
+          }
+          
+          // Post-Compliance section
+          if (selectedSections.includes('post') && allComplianceData.post.length > 0) {
+            if (yPosition < bottomMargin) {
+              currentPage = pdfDoc.addPage([width, height]);
+              yPosition = height - 50;
+            }
+            
+            currentPage.drawText('Post-Compliance Documents', {
+              x: 50,
+              y: yPosition,
+              size: 11,
+              color: rgbNormalized(40, 40, 40),
+            });
+            yPosition -= 18;
+            
+            allComplianceData.post.forEach((item, index) => {
+              if (yPosition < bottomMargin) {
+                currentPage = pdfDoc.addPage([width, height]);
+                yPosition = height - 50;
+              }
+              
+              const statusColor = item.completed ? rgbNormalized(22, 163, 74) : rgbNormalized(180, 83, 9);
+              currentPage.drawText(`${index + 1}. ${item.title}`, {
+                x: 50,
+                y: yPosition,
+                size: 9,
+                color: statusColor,
+              });
+              yPosition -= 12;
+            });
+            yPosition -= 12;
+          }
+          
+          // Recurring Compliance section
+          if (selectedSections.includes('recurring') && allComplianceData.recurring.length > 0) {
+            if (yPosition < bottomMargin) {
+              currentPage = pdfDoc.addPage([width, height]);
+              yPosition = height - 50;
+            }
+            
+            currentPage.drawText('Recurring Compliances', {
+              x: 50,
+              y: yPosition,
+              size: 11,
+              color: rgbNormalized(40, 40, 40),
+            });
+            yPosition -= 18;
+            
+            allComplianceData.recurring.forEach((item, index) => {
+              if (yPosition < bottomMargin) {
+                currentPage = pdfDoc.addPage([width, height]);
+                yPosition = height - 50;
+              }
+              
+              const statusColor = item.completed ? rgbNormalized(22, 163, 74) : rgbNormalized(180, 83, 9);
+              currentPage.drawText(`${index + 1}. ${item.title}`, {
+                x: 50,
+                y: yPosition,
+                size: 9,
+                color: statusColor,
+              });
+              yPosition -= 12;
+            });
+          }
+          
+          // Save the PDF
+          const pdfBytes = await pdfDoc.save();
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          const fileName = `Compliance_Report_${seriesName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(link);
+          
+          if (import.meta.env.DEV) {
+            console.log('✅ PDF generated and downloaded using template:', fileName);
+          }
+        } catch (error) {
+          if (import.meta.env.DEV) { console.error('❌ Error generating PDF from template:', error); }
+          throw error;
+        }
+      } else if (exportFormat === 'excel') {
+        toast.info('Excel export coming soon', 'Feature Coming Soon');
+        return;
+      }
+      
+      // Add audit log for compliance report export
+      auditService.logComplianceReportExported(user, {
+        seriesId: seriesData.seriesId,
+        seriesName: seriesName,
+        format: exportFormat,
+        sections: selectedSections,
+        recordCount: selectedSections.reduce((sum, section) => {
+          if (section === 'pre') return sum + allComplianceData.pre.length;
+          if (section === 'post') return sum + allComplianceData.post.length;
+          if (section === 'recurring') return sum + allComplianceData.recurring.length;
+          return sum;
+        }, 0)
+      }).catch(error => {
+        if (import.meta.env.DEV) { console.error('Failed to log compliance report export:', error); }
+      });
+      
+      toast.success(`${exportFormat.toUpperCase()} report exported successfully!`, 'Export Complete');
+      setShowExportModal(false);
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('❌ Error exporting report:', error); }
+      toast.error('Failed to export compliance report. Please try again.', 'Export Failed');
     }
-    if (import.meta.env.DEV) { console.log('Selected sections:', selectedSections); }
-    
-    // In real implementation, this would trigger actual export
-    toast.success(`Exporting ${exportFormat.toUpperCase()} report for ${seriesName}...`, 'Export Started');
-    setShowExportModal(false);
   };
 
-  const handleDocumentSubmit = async (e) => {
+  const handleTimeSheetExport = async () => {
+    try {
+      if (import.meta.env.DEV) {
+        console.log('🔄 Exporting TimeSheet for year:', selectedYear);
+      }
+
+      // Helper function to convert 0-255 RGB to 0-1 range for pdf-lib
+      const rgbNormalized = (r, g, b) => rgb(r / 255, g / 255, b / 255);
+
+      // Load the template PDF
+      const templateResponse = await fetch('/reports.pdf');
+      const templateArrayBuffer = await templateResponse.arrayBuffer();
+      const pdfDoc = await PDFDocument.load(templateArrayBuffer);
+
+      // Get the first page to use as template
+      const pages = pdfDoc.getPages();
+      const firstPage = pages[0];
+      const { width, height } = firstPage.getSize();
+
+      // Add new pages for timesheet content
+      let currentPage = firstPage;
+      let yPosition = height - 180; // Start lower to avoid template header
+      const bottomMargin = 100; // Reserve space for footer
+
+      // Add title
+      currentPage.drawText('COMPLIANCE TIMESHEET', {
+        x: 50,
+        y: yPosition,
+        size: 20,
+        color: rgbNormalized(40, 40, 40),
+      });
+      yPosition -= 35;
+
+      // Add series and year info
+      const seriesName = seriesData?.seriesName || 'Series A NCD';
+      currentPage.drawText(`Series: ${seriesName}`, {
+        x: 50,
+        y: yPosition,
+        size: 11,
+        color: rgbNormalized(100, 100, 100),
+      });
+      yPosition -= 18;
+
+      currentPage.drawText(`Year: ${selectedYear}`, {
+        x: 50,
+        y: yPosition,
+        size: 11,
+        color: rgbNormalized(100, 100, 100),
+      });
+      yPosition -= 18;
+
+      currentPage.drawText(`Generated: ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB')}`, {
+        x: 50,
+        y: yPosition,
+        size: 9,
+        color: rgbNormalized(120, 120, 120),
+      });
+      yPosition -= 25;
+
+      // Get the current section's items - filter by activeTab section
+      const sectionMap = {
+        'pre': 'pre',
+        'post': 'post',
+        'recurring': 'recurring'
+      };
+      const currentSection = sectionMap[activeTab] || 'post';
+      const sectionItems = complianceItems.filter(item => item.section === currentSection);
+      const months = getValidMonths();
+
+      if (import.meta.env.DEV) {
+        console.log('📊 TimeSheet data:', { activeTab, currentSection, itemCount: sectionItems.length, months });
+      }
+
+      if (sectionItems.length > 0) {
+        // Add section title
+        currentPage.drawText(`${getSectionTitle(activeTab)} - ${selectedYear}`, {
+          x: 50,
+          y: yPosition,
+          size: 13,
+          color: rgbNormalized(40, 40, 40),
+        });
+        yPosition -= 25;
+
+        // Table format with proper borders and layout
+        const tableStartY = yPosition;
+        const leftMargin = 50;
+        const tableWidth = width - 100;
+        const itemColWidth = 180; // Item name column
+        const monthColWidth = (tableWidth - itemColWidth) / 12; // Divide remaining space by 12 months
+        
+        // Draw table header background
+        const headerHeight = 15;
+        currentPage.drawRectangle({
+          x: leftMargin,
+          y: yPosition - headerHeight,
+          width: tableWidth,
+          height: headerHeight,
+          borderColor: rgbNormalized(200, 200, 200),
+          borderWidth: 0.5,
+          color: rgbNormalized(240, 240, 240),
+        });
+
+        // Header - Item column
+        currentPage.drawText('Item', {
+          x: leftMargin + 5,
+          y: yPosition - 12,
+          size: 9,
+          color: rgbNormalized(40, 40, 40),
+        });
+
+        // Header - Month columns with full names
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        monthNames.forEach((monthName, idx) => {
+          const monthX = leftMargin + itemColWidth + (idx * monthColWidth);
+          currentPage.drawText(monthName.substring(0, 3), {
+            x: monthX + (monthColWidth / 2) - 5,
+            y: yPosition - 12,
+            size: 8,
+            color: rgbNormalized(40, 40, 40),
+          });
+        });
+        yPosition -= headerHeight + 5;
+
+        // Add items with month status
+        sectionItems.forEach((item, itemIndex) => {
+          const rowHeight = 12;
+          
+          if (yPosition - rowHeight < bottomMargin) {
+            currentPage = pdfDoc.addPage([width, height]);
+            yPosition = height - 50;
+          }
+
+          // Draw row border
+          currentPage.drawRectangle({
+            x: leftMargin,
+            y: yPosition - rowHeight,
+            width: tableWidth,
+            height: rowHeight,
+            borderColor: rgbNormalized(220, 220, 220),
+            borderWidth: 0.5,
+          });
+
+          // Item name - truncate to fit
+          const itemTitle = item.title.length > 40 ? item.title.substring(0, 37) + '...' : item.title;
+          currentPage.drawText(itemTitle, {
+            x: leftMargin + 5,
+            y: yPosition - 10,
+            size: 7,
+            color: rgbNormalized(60, 60, 60),
+          });
+
+          // Month status indicators
+          months.forEach((month, monthIdx) => {
+            const isCompleted = getTimeSheetValue(itemIndex + 1, month, activeTab);
+            const statusColor = isCompleted ? rgbNormalized(22, 163, 74) : rgbNormalized(180, 83, 9);
+            const monthX = leftMargin + itemColWidth + (monthIdx * monthColWidth);
+            
+            // Draw vertical separator
+            currentPage.drawLine({
+              start: { x: monthX, y: yPosition },
+              end: { x: monthX, y: yPosition - rowHeight },
+              color: rgbNormalized(220, 220, 220),
+              thickness: 0.5,
+            });
+            
+            currentPage.drawText(isCompleted ? 'Y' : 'N', {
+              x: monthX + (monthColWidth / 2) - 3,
+              y: yPosition - 10,
+              size: 8,
+              color: statusColor,
+            });
+          });
+
+          // Draw right border for December column
+          const decemberRightX = leftMargin + itemColWidth + (12 * monthColWidth);
+          currentPage.drawLine({
+            start: { x: decemberRightX, y: yPosition },
+            end: { x: decemberRightX, y: yPosition - rowHeight },
+            color: rgbNormalized(220, 220, 220),
+            thickness: 0.5,
+          });
+
+          yPosition -= rowHeight;
+        });
+
+        // Draw final bottom border
+        currentPage.drawLine({
+          start: { x: leftMargin, y: yPosition },
+          end: { x: leftMargin + tableWidth, y: yPosition },
+          color: rgbNormalized(200, 200, 200),
+          thickness: 1,
+        });
+      } else {
+        // No items message
+        currentPage.drawText('No items to display for this section.', {
+          x: 50,
+          y: yPosition,
+          size: 10,
+          color: rgbNormalized(150, 150, 150),
+        });
+      }
+
+      // Save the PDF
+      const pdfBytes = await pdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = `TimeSheet_${seriesName.replace(/\s+/g, '_')}_${selectedYear}_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      if (import.meta.env.DEV) {
+        console.log('✅ TimeSheet PDF generated and downloaded:', fileName);
+      }
+
+      // Log the export
+      auditService.logComplianceTimeSheetExported(user, {
+        seriesId: seriesData.seriesId,
+        seriesName: seriesName,
+        year: selectedYear,
+        format: 'pdf',
+        recordCount: sectionItems.length
+      }).catch(error => {
+        if (import.meta.env.DEV) { console.error('Failed to log timesheet export:', error); }
+      });
+
+      toast.success('TimeSheet exported successfully!', 'Export Complete');
+      setShowTimeSheetModal(false);
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('❌ Error exporting timesheet:', error); }
+      toast.error('Failed to export timesheet. Please try again.', 'Export Failed');
+    }
+  };
+
+const handleDocumentSubmit = async (e) => {
     e.preventDefault();
     if (!documentForm.title || !documentForm.file) {
       toast.warning('Please fill in all required fields and select a file.', 'Missing Information');
@@ -773,22 +1295,15 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       if (import.meta.env.DEV) { console.log('✅ Document uploaded:', result); }
       
       // Add audit log for compliance document upload
-      addAuditLog({
-        action: 'Uploaded Compliance Document',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Uploaded ${documentForm.category} document "${documentForm.title}" for series "${seriesData?.seriesName || 'Series A NCD'}"`,
-        entityType: 'Compliance Document',
-        entityId: seriesData?.seriesName || 'Series A NCD',
-        changes: {
-          documentTitle: documentForm.title,
-          category: documentForm.category,
-          fileName: documentForm.file?.name,
-          fileSize: documentForm.file?.size,
-          description: documentForm.description,
-          seriesName: seriesData?.seriesName || 'Series A NCD',
-          seriesId: seriesData?.seriesId
-        }
+      auditService.logComplianceDocumentAdded({
+        seriesId: seriesData?.seriesId,
+        seriesName: seriesData?.seriesName,
+        documentTitle: documentForm.title,
+        category: documentForm.category,
+        fileName: documentForm.file.name,
+        fileSize: documentForm.file.size
+      }, user).catch(error => {
+        if (import.meta.env.DEV) { console.error('Failed to log document upload:', error); }
       });
       
       toast.success(`Document "${documentForm.title}" uploaded successfully!`, 'Document Uploaded');
@@ -1090,40 +1605,50 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
 
                 <div className="form-group">
                   <label>Include Sections</label>
-                  <div className="checkbox-group">
-                    <label className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={exportSections.statistics}
-                        onChange={(e) => setExportSections({...exportSections, statistics: e.target.checked})}
-                      />
-                      <span>Statistics Summary</span>
-                    </label>
-                    <label className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={exportSections.preCompliance}
-                        onChange={(e) => setExportSections({...exportSections, preCompliance: e.target.checked})}
-                      />
-                      <span>Pre-Compliance Phase</span>
-                    </label>
-                    <label className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={exportSections.postCompliance}
-                        onChange={(e) => setExportSections({...exportSections, postCompliance: e.target.checked})}
-                      />
-                      <span>Post-Compliance Phase</span>
-                    </label>
-                    <label className="checkbox-item">
-                      <input
-                        type="checkbox"
-                        checked={exportSections.recurringCompliances}
-                        onChange={(e) => setExportSections({...exportSections, recurringCompliances: e.target.checked})}
-                      />
-                      <span>Recurring Compliances</span>
-                    </label>
-                  </div>
+                  <table className="export-sections-table">
+                    <tbody>
+                      <tr>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={exportSections.statistics}
+                            onChange={(e) => setExportSections({...exportSections, statistics: e.target.checked})}
+                          />
+                        </td>
+                        <td>Statistics Summary</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={exportSections.preCompliance}
+                            onChange={(e) => setExportSections({...exportSections, preCompliance: e.target.checked})}
+                          />
+                        </td>
+                        <td>Pre-Compliance Phase</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={exportSections.postCompliance}
+                            onChange={(e) => setExportSections({...exportSections, postCompliance: e.target.checked})}
+                          />
+                        </td>
+                        <td>Post-Compliance Phase</td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={exportSections.recurringCompliances}
+                            onChange={(e) => setExportSections({...exportSections, recurringCompliances: e.target.checked})}
+                          />
+                        </td>
+                        <td>Recurring Compliances</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 <div className="export-info">
@@ -1317,7 +1842,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
                 <button className="btn-cancel" onClick={() => setShowTimeSheetModal(false)}>
                   Close
                 </button>
-                <button className="btn-primary">
+                <button className="btn-primary" onClick={handleTimeSheetExport}>
                   <HiOutlineDownload size={16} />
                   Export Time Sheet
                 </button>

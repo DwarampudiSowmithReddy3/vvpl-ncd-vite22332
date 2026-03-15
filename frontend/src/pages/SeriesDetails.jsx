@@ -986,7 +986,38 @@ const SeriesDetails = () => {
                       <td>
                         <button 
                           className="view-button"
-                          onClick={() => window.open(doc.download_url, '_blank')}
+                          onClick={async () => {
+                            try {
+                              // Log document view to audit log
+                              await apiService.createAuditLog({
+                                action: 'Document Viewed',
+                                admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+                                admin_role: user?.role || user?.displayRole || 'Unknown Role',
+                                details: `User viewed series document: ${doc.document_type.replace('_', ' ').toUpperCase()} for series "${seriesData?.name || 'Unknown Series'}"`,
+                                entity_type: 'Series Document',
+                                entity_id: `${seriesData?.id || 'unknown'}_${doc.document_type}`,
+                                changes: {
+                                  document_type: doc.document_type,
+                                  file_name: doc.file_name,
+                                  file_size: doc.file_size,
+                                  series_id: seriesData?.id,
+                                  series_name: seriesData?.name,
+                                  action: 'document_view',
+                                  timestamp: new Date().toISOString(),
+                                  username: user?.username,
+                                  user_role: user?.role || user?.displayRole
+                                }
+                              });
+                              
+                              if (import.meta.env.DEV) { console.log('✅ Document view logged to audit trail'); }
+                            } catch (error) {
+                              if (import.meta.env.DEV) { console.error('❌ Failed to log document view:', error); }
+                              // Don't prevent document viewing if logging fails
+                            }
+                            
+                            // Proceed with opening document
+                            window.open(doc.download_url, '_blank');
+                          }}
                           title="View Document (Link expires in 5 minutes)"
                         >
                           <MdOutlineFileDownload /> View

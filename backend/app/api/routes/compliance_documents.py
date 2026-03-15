@@ -163,7 +163,8 @@ async def upload_compliance_document(
                 "document_title": document_title,
                 "category": category,
                 "file_name": file.filename,
-                "file_size": file_size
+                "file_size": file_size,
+                "action": "compliance_document_added"
             }
         )
 
@@ -334,7 +335,8 @@ async def delete_compliance_document(
                 "document_id": document_id,
                 "document_title": doc['document_title'],
                 "category": doc['category'],
-                "file_name": doc['file_name']
+                "file_name": doc['file_name'],
+                "action": "compliance_document_deleted"
             }
         )
 

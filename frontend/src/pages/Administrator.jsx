@@ -50,20 +50,8 @@ const Administrator = () => {
 
   }
 
-  // Define all available roles
-  const ALL_ROLES = [
-    'Finance Executive',
-    'Finance Manager', 
-    'Compliance Base',
-    'Compliance Officer',
-    'Investor Relationship Executive',
-    'Investor Relationship Manager',
-    'Board Member Base',
-    'Board Member Head',
-    'Admin',
-    'Super Admin',
-    'Investor'
-  ];
+  // Fetch available roles from database (NO HARDCODING)
+  const [ALL_ROLES, setALL_ROLES] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
@@ -138,13 +126,25 @@ const Administrator = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
 
   // Load data when component mounts
   useEffect(() => {
     loadUsers();
+    // Fetch available roles from database
+    const fetchRoles = async () => {
+      try {
+        const rolesData = await apiService.getAvailableRoles();
+        if (import.meta.env.DEV) { console.log('✅ Available roles fetched from database:', rolesData); }
+        setALL_ROLES(rolesData);
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('❌ Failed to fetch roles:', error); }
+        setALL_ROLES([]);
+      }
+    };
+    fetchRoles();
   }, []); // Empty dependency ensures this runs on every mount
 
   // Load audit logs when component mounts or when date filters change

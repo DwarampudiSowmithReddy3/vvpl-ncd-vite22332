@@ -12,7 +12,7 @@ import './Approval.css';
 import { HiOutlineEye, HiOutlineCheck, HiOutlineX, HiOutlineTrash, HiOutlineLockClosed, HiOutlineDocumentText } from "react-icons/hi";
 
 const Approval = () => {
-  const { series, deleteSeries } = useData();  // Removed updateSeries and addAuditLog - using backend API now
+  const { series, seriesLoading, deleteSeries, forceSeriesRefresh } = useData();  // Get forceSeriesRefresh
   const { canEdit, canDelete } = usePermissions();
   const { user } = useAuth();
   const [selectedSeries, setSelectedSeries] = useState(null);
@@ -28,14 +28,24 @@ const Approval = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [seriesDocuments, setSeriesDocuments] = useState({});  // Store documents by series_id
+  const [minLoadTimeComplete, setMinLoadTimeComplete] = useState(false); // Track minimum load time
 
-  // Minimum loading time of 3 seconds (only on initial mount)
+  // Minimum loading time of 1401ms (only on initial mount)
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+      setMinLoadTimeComplete(true);
+    }, 1401); // 1401ms minimum load time
     return () => clearTimeout(timer);
   }, []);
+
+  // Hide loader only when BOTH conditions are met:
+  // 1. Minimum 1401ms has passed
+  // 2. Series data has been fetched
+  React.useEffect(() => {
+    if (minLoadTimeComplete && !seriesLoading) {
+      setLoading(false);
+    }
+  }, [minLoadTimeComplete, seriesLoading]);
 
   // Only show DRAFT series in approval page
   const draftSeries = series.filter(s => s.status === 'DRAFT');
@@ -175,10 +185,10 @@ const Approval = () => {
       setSelectedSeries({ ...selectedSeries, ...editData });
       setIsEditing(false);
       
-      // Reload series from backend to get updated data
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
+      // Refresh DataContext series data so other pages see the updated series
+      if (forceSeriesRefresh) {
+        forceSeriesRefresh();
+      }
       
     } catch (error) {
       if (import.meta.env.DEV) { console.error('❌ Failed to update series:', error); }
@@ -211,8 +221,10 @@ const Approval = () => {
         setShowDetailsModal(false);
         setSelectedSeries(null);
         
-        // Reload series from backend to get updated data
-        window.location.reload(); // Simple reload to refresh data
+        // Refresh DataContext series data so other pages see the approved series
+        if (forceSeriesRefresh) {
+          forceSeriesRefresh();
+        }
         
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Failed to approve series:', error); }
@@ -254,8 +266,10 @@ const Approval = () => {
         setSelectedSeries(null);
         setRejectionReason('');
         
-        // Reload series from backend to get updated data
-        window.location.reload(); // Simple reload to refresh data
+        // Refresh DataContext series data so other pages see the rejected series
+        if (forceSeriesRefresh) {
+          forceSeriesRefresh();
+        }
         
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Failed to reject series:', error); }
@@ -293,6 +307,11 @@ const Approval = () => {
             status: { old: seriesToDelete.status, new: 'DELETED' }
           }
         });
+        
+        // Refresh DataContext series data
+        if (forceSeriesRefresh) {
+          forceSeriesRefresh();
+        }
         
         setShowDeleteConfirm(false);
         setSeriesToDelete(null);

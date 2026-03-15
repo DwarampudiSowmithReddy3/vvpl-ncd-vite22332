@@ -9,6 +9,7 @@ import Layout from '../components/Layout';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Lottie from 'lottie-react';
 import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
+import emailSentAnimation from '../assets/animations/email-sent.json';
 import './Communication.css';
 import { HiOutlineMail, HiOutlineDeviceMobile, HiOutlineDownload, HiOutlineUpload } from 'react-icons/hi';
 import { MdSend, MdHistory, MdClose, MdSearch, MdFilterList, MdCheck, MdRemove, MdDragIndicator } from 'react-icons/md';
@@ -37,6 +38,7 @@ const Communication = () => {
   const [communicationType, setCommunicationType] = useState('sms'); // 'sms' or 'email'
   const [isSending, setIsSending] = useState(false);
   const [communicationHistory, setCommunicationHistory] = useState([]);
+  const [showAllCommunicationLogs, setShowAllCommunicationLogs] = useState(false);
   
   // Search and filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,12 +54,13 @@ const Communication = () => {
   // Message composition state
   const [messageContent, setMessageContent] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [showEmailSentAnimation, setShowEmailSentAnimation] = useState(false); // Show email sent animation
   
   // Minimum loading time of 3 seconds
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
 
@@ -518,6 +521,7 @@ const Communication = () => {
     }
 
     setIsSending(true);
+    setShowEmailSentAnimation(true); // Show animation immediately
 
     try {
       if (import.meta.env.DEV) { console.log('📤 Sending messages via backend API...'); }
@@ -538,6 +542,9 @@ const Communication = () => {
       const response = await apiService.sendBulkMessages(messageData);
       
       if (import.meta.env.DEV) { console.log('✅ Backend response:', response); }
+      
+      // Close animation when response comes
+      setShowEmailSentAnimation(false);
       
       // Add audit log for communication sent
       await auditService.logDataOperation(
@@ -585,6 +592,10 @@ const Communication = () => {
       
     } catch (error) {
       if (import.meta.env.DEV) { console.error('❌ Error sending messages:', error); }
+      
+      // Close animation on error
+      setShowEmailSentAnimation(false);
+      
       toast.error(
         error.message || 'Failed to send messages. Please try again.',
         'Send Failed'
@@ -630,6 +641,70 @@ const Communication = () => {
         }}>
           <div style={{ width: '200px', height: '200px' }}>
             <Lottie animationData={loadingDotsAnimation} loop={true} />
+          </div>
+        </div>
+      )}
+      
+      {/* Email Sent Animation Card */}
+      {showEmailSentAnimation && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 99999,
+          background: 'white',
+          borderRadius: '20px',
+          boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+          border: '1px solid #e2e8f0',
+          width: '550px',
+          overflow: 'hidden',
+          animation: 'greetingEnter 0.5s ease-out'
+        }}>
+          <div style={{
+            padding: '32px 48px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '20px'
+          }}>
+            {/* Lottie Animation */}
+            <div style={{ width: '240px', height: '240px' }}>
+              <Lottie
+                animationData={emailSentAnimation}
+                loop={false}
+                autoplay={true}
+                style={{ 
+                  width: '100%', 
+                  height: '100%'
+                }}
+              />
+            </div>
+            
+            {/* Text Content */}
+            <div style={{
+              textAlign: 'center',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px'
+            }}>
+              <h2 style={{
+                fontSize: '24px',
+                fontWeight: 600,
+                color: '#000000',
+                margin: 0
+              }}>
+                Sending Messages
+              </h2>
+              <p style={{
+                fontSize: '16px',
+                fontWeight: 400,
+                color: '#64748b',
+                margin: 0
+              }}>
+                Please wait while we send your messages...
+              </p>
+            </div>
           </div>
         </div>
       )}
@@ -1006,97 +1081,156 @@ const Communication = () => {
           )}
 
           {activeTab === 'history' && (
-            <div className="communication-section">
-              <div className="section-card">
-                <div className="card-header">
-                  <MdHistory size={24} />
-                  <h3>Communication History</h3>
-                </div>
-                <div className="card-content">
-                  {/* Filter Buttons */}
-                  <div className="history-filters">
-                    <button
-                      className={`filter-btn ${historyFilter === 'all' ? 'active' : ''}`}
-                      onClick={() => setHistoryFilter('all')}
-                    >
-                      All ({historyStats.total_count})
-                    </button>
-                    <button
-                      className={`filter-btn ${historyFilter === 'SMS' ? 'active' : ''}`}
-                      onClick={() => setHistoryFilter('SMS')}
-                    >
-                      SMS ({historyStats.sms_count})
-                    </button>
-                    <button
-                      className={`filter-btn ${historyFilter === 'Email' ? 'active' : ''}`}
-                      onClick={() => setHistoryFilter('Email')}
-                    >
-                      Email ({historyStats.email_count})
-                    </button>
-                  </div>
-
-                  {/* History Table */}
-                  {communicationHistory.length === 0 ? (
-                    <div className="empty-history">
-                      <p>No communication history yet. Messages sent will appear here.</p>
-                    </div>
-                  ) : (
-                    <div className="history-table-container">
-                      <table className="history-table">
-                        <thead>
-                          <tr>
-                            <th>Date & Time</th>
-                            <th>Type</th>
-                            <th>Recipient</th>
-                            <th>Contact</th>
-                            <th>Series</th>
-                            <th>Status</th>
-                            <th>Message</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {communicationHistory.map((entry) => (
-                              <tr key={entry.id}>
-                                <td className="timestamp-cell">
-                                  {new Date(entry.sent_at).toLocaleString()}
-                                </td>
-                                <td>
-                                  <span className={`type-badge ${entry.type.toLowerCase()}`}>
-                                    {entry.type === 'SMS' ? <HiOutlineDeviceMobile size={16} /> : <HiOutlineMail size={16} />}
-                                    {entry.type}
-                                  </span>
-                                </td>
-                                <td className="recipient-cell">
-                                  <div className="recipient-name">{entry.recipient_name}</div>
-                                  {entry.investor_id && (
-                                    <div className="recipient-id">ID: {entry.investor_id}</div>
-                                  )}
-                                </td>
-                                <td className="contact-cell">{entry.recipient_contact}</td>
-                                <td>{entry.series_name || '-'}</td>
-                                <td>
-                                  <span className={`status-badge ${entry.status.toLowerCase()}`}>
-                                    {entry.status}
-                                  </span>
-                                </td>
-                                <td className="message-cell">
-                                  <div className="message-preview" title={entry.message}>
-                                    {entry.message.length > 50 
-                                      ? `${entry.message.substring(0, 50)}...` 
-                                      : entry.message}
-                                  </div>
-                                  {entry.error_message && (
-                                    <div className="error-message">{entry.error_message}</div>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+            <div className="communication-history-section">
+              <div className="history-header">
+                <h3 className="section-title">Communication History</h3>
+                <div className="history-filters">
+                  <button
+                    className={`filter-btn ${historyFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setHistoryFilter('all')}
+                  >
+                    All ({historyStats.total_count})
+                  </button>
+                  <button
+                    className={`filter-btn ${historyFilter === 'SMS' ? 'active' : ''}`}
+                    onClick={() => setHistoryFilter('SMS')}
+                  >
+                    SMS ({historyStats.sms_count})
+                  </button>
+                  <button
+                    className={`filter-btn ${historyFilter === 'Email' ? 'active' : ''}`}
+                    onClick={() => setHistoryFilter('Email')}
+                  >
+                    Email ({historyStats.email_count})
+                  </button>
                 </div>
               </div>
+
+              {/* History Table - Desktop */}
+              <div className="table-container">
+                {communicationHistory.length === 0 ? (
+                  <div className="empty-history">
+                    <p>No communication history yet. Messages sent will appear here.</p>
+                  </div>
+                ) : (
+                  <table className="history-table communication-history-table">
+                    <thead>
+                      <tr>
+                        <th>Date<br/><span className="time-label">Time</span></th>
+                        <th>Type</th>
+                        <th>Recipient</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Message</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(showAllCommunicationLogs ? communicationHistory : communicationHistory.slice(0, 10)).map((entry) => {
+                        const sentDate = new Date(entry.sent_at);
+                        const dateStr = sentDate.toLocaleDateString();
+                        const timeStr = sentDate.toLocaleTimeString();
+                        
+                        return (
+                        <tr key={entry.id}>
+                          <td className="timestamp-cell">
+                            <div className="date-time-wrapper">
+                              <div className="date-part">{dateStr}</div>
+                              <div className="time-part">{timeStr}</div>
+                            </div>
+                          </td>
+                          <td className="type-cell">
+                            <span className={`type-badge ${entry.type.toLowerCase()}`}>
+                              {entry.type === 'SMS' ? <HiOutlineDeviceMobile size={14} /> : <HiOutlineMail size={14} />}
+                              {entry.type}
+                            </span>
+                          </td>
+                          <td className="recipient-cell">
+                            <span className="recipient-name">{entry.recipient_name}</span>
+                            {entry.investor_id && (
+                              <span className="recipient-id">({entry.investor_id})</span>
+                            )}
+                          </td>
+                          <td className="contact-cell">{entry.recipient_contact}</td>
+                          <td className="status-cell">
+                            <span className={`status-badge status-${entry.status ? entry.status.toLowerCase() : 'pending'}`}>
+                              {entry.status || 'Pending'}
+                            </span>
+                          </td>
+                          <td className="message-cell">
+                            <span className="message-preview" title={entry.message}>
+                              {entry.message.length > 50 
+                                ? `${entry.message.substring(0, 50)}...` 
+                                : entry.message}
+                            </span>
+                            {entry.error_message && (
+                              <span className="error-message">{entry.error_message}</span>
+                            )}
+                          </td>
+                        </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* History Cards - Mobile */}
+              <div className="mobile-history-list">
+                {communicationHistory.length === 0 ? (
+                  <div className="empty-history">
+                    <p>No communication history yet. Messages sent will appear here.</p>
+                  </div>
+                ) : (
+                  (showAllCommunicationLogs ? communicationHistory : communicationHistory.slice(0, 10)).map((entry) => (
+                    <div key={entry.id} className="mobile-history-card">
+                      <div className="mobile-history-header">
+                        <span className={`type-badge ${entry.type.toLowerCase()}`}>
+                          {entry.type === 'SMS' ? <HiOutlineDeviceMobile size={14} /> : <HiOutlineMail size={14} />}
+                          {entry.type}
+                        </span>
+                        <span className="mobile-history-time">
+                          {new Date(entry.sent_at).toLocaleString()}
+                        </span>
+                      </div>
+                      
+                      <div className="mobile-history-details">
+                        <span className="mobile-history-recipient">{entry.recipient_name}</span>
+                        {entry.investor_id && (
+                          <span className="mobile-history-id">({entry.investor_id})</span>
+                        )}
+                        <span className="mobile-history-contact">{entry.recipient_contact}</span>
+                        <span className="mobile-history-message">{entry.message}</span>
+                        {entry.error_message && (
+                          <span className="mobile-history-error">{entry.error_message}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* See All Logs Button */}
+              {!showAllCommunicationLogs && communicationHistory.length > 10 && (
+                <div className="see-all-logs-container">
+                  <button 
+                    className="see-all-logs-button"
+                    onClick={() => setShowAllCommunicationLogs(true)}
+                  >
+                    See All Logs ({communicationHistory.length} total)
+                  </button>
+                </div>
+              )}
+              
+              {showAllCommunicationLogs && communicationHistory.length > 10 && (
+                <div className="see-all-logs-container">
+                  <button 
+                    className="see-all-logs-button"
+                    onClick={() => setShowAllCommunicationLogs(false)}
+                  >
+                    Show Less (Latest 10 only)
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

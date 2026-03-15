@@ -5,27 +5,13 @@ from enum import Enum
 
 
 # User Models
-class UserRole(str, Enum):
-    FINANCE_EXECUTIVE = "Finance Executive"
-    FINANCE_MANAGER = "Finance Manager"
-    COMPLIANCE_BASE = "Compliance Base"
-    COMPLIANCE_OFFICER = "Compliance Officer"
-    INVESTOR_RELATIONSHIP_EXECUTIVE = "Investor Relationship Executive"
-    INVESTOR_RELATIONSHIP_MANAGER = "Investor Relationship Manager"
-    BOARD_MEMBER_BASE = "Board Member Base"
-    BOARD_MEMBER_HEAD = "Board Member Head"
-    ADMIN = "Admin"
-    SUPER_ADMIN = "Super Admin"
-    INVESTOR = "Investor"
-
-
 class UserBase(BaseModel):
     user_id: str
     username: str
     full_name: str
     email: EmailStr
     phone: str
-    role: UserRole
+    role: str  # Changed from UserRole enum to string - roles fetched from database
 
 
 class UserCreate(UserBase):
@@ -36,7 +22,7 @@ class UserUpdate(BaseModel):
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
-    role: Optional[UserRole] = None
+    role: Optional[str] = None  # Changed from UserRole enum to string
     password: Optional[str] = None
 
 

@@ -61,6 +61,7 @@ def get_user_permissions(user_role: str, db) -> List[str]:
     """
     Get permissions for a user's role from database
     Handles both old list format and new dict format
+    Converts dict format to list format for permission checking
     """
     try:
         query = """
@@ -74,7 +75,11 @@ def get_user_permissions(user_role: str, db) -> List[str]:
             
             # Parse JSON if string
             if isinstance(permissions, str):
-                permissions = json.loads(permissions)
+                try:
+                    permissions = json.loads(permissions)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse permissions JSON for role {user_role}")
+                    return []
             
             # Handle old list format: ['view_compliance', 'edit_compliance']
             if isinstance(permissions, list):
@@ -91,32 +96,40 @@ def get_user_permissions(user_role: str, db) -> List[str]:
                                 # Convert to permission string format
                                 # e.g., {'compliance': {'view': True}} -> 'view_compliance'
                                 permission_list.append(f"{action}_{module}")
+                logger.debug(f"Converted permissions for {user_role}: {permission_list}")
                 return permission_list
         
+        logger.debug(f"No permissions found for role {user_role}")
         return []
         
     except Exception as e:
         logger.error(f"Error getting permissions for role {user_role}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return []
 
 
 def has_permission(user: UserInDB, required_permission: str, db) -> bool:
     """
     Check if user has a specific permission
+    Handles both old list format and new dict format from database
     """
     try:
-        # CRITICAL: Super Admin has all permissions
-        if user.role == "Super Admin":
-            return True
-        
-        # Get user's permissions from database
+        # Get user's permissions from database (no hardcoded bypasses)
         user_permissions = get_user_permissions(user.role, db)
         
         # Check if user has the required permission
-        return required_permission in user_permissions
+        has_access = required_permission in user_permissions
+        
+        if not has_access:
+            logger.debug(f"User {user.username} ({user.role}) denied permission: {required_permission}")
+        
+        return has_access
         
     except Exception as e:
-        logger.error(f"Error checking permission: {e}")
+        logger.error(f"Error checking permission for user {user.username}: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 

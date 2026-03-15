@@ -22,7 +22,7 @@ const NCDSeries = () => {
   const navigate = useNavigate();
   const { showCreateButton, canEdit, canDelete } = usePermissions();
   const { user } = useAuth();
-  const { addAuditLog } = useData(); // Only keep addAuditLog for backward compatibility
+  const { addAuditLog, forceSeriesRefresh } = useData(); // Get forceSeriesRefresh to refresh DataContext
   const toast = useToast();
   
   // Local state for series data (fetched from backend)
@@ -85,7 +85,6 @@ const NCDSeries = () => {
   // Fetch series from backend API
   const fetchSeries = async () => {
     try {
-      setLoading(true);
       if (import.meta.env.DEV) { console.log('🔄 Fetching series from backend...'); }
       const seriesData = await apiService.getSeries();
       if (import.meta.env.DEV) { console.log('✅ Fetched', seriesData.length, 'series from backend'); }
@@ -130,7 +129,7 @@ const NCDSeries = () => {
       if (import.meta.env.DEV) { console.log('✅ Transformed series:', transformedSeries); }
       setSeries(transformedSeries);
       
-      // CRITICAL FIX: Set loading to false after data is loaded
+      // Set loading to false after data is loaded
       setLoading(false);
       
     } catch (error) {
@@ -138,23 +137,36 @@ const NCDSeries = () => {
       const friendlyError = getUserFriendlyError(error, 'Failed to load series data. Please refresh the page.');
       toast.error(friendlyError, 'Failed to Load Series');
       
-      // CRITICAL FIX: Set loading to false even on error
+      // Set loading to false even on error
       setLoading(false);
     }
   };
+
+  // Track minimum load time
+  const [minLoadTimeComplete, setMinLoadTimeComplete] = React.useState(false);
 
   // Load series on component mount
   React.useEffect(() => {
     fetchSeries();
   }, []);
 
-  // Minimum loading time of 3 seconds
+  // Minimum loading time of 1401ms
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+      setMinLoadTimeComplete(true);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
+
+  // Hide loader only when BOTH conditions are met:
+  // 1. Minimum 1401ms has passed
+  // 2. Series data has been fetched
+  React.useEffect(() => {
+    if (minLoadTimeComplete && !loading) {
+      // Data is already loaded (fetchSeries sets loading to false)
+      // Just ensure loader is hidden
+    }
+  }, [minLoadTimeComplete, loading]);
 
   // REMOVED: Frontend status calculation - use backend status directly
   // Backend automatically updates status based on dates
@@ -379,13 +391,20 @@ const NCDSeries = () => {
         'Series Created'
       );
       
-      // Refresh series list (non-blocking)
-      if (import.meta.env.DEV) { console.log('🔄 Refreshing series list...'); }
+      // Refresh series list in this page (non-blocking)
+      if (import.meta.env.DEV) { console.log('🔄 Refreshing series list in NCDSeries page...'); }
       try {
         await fetchSeries();
-        if (import.meta.env.DEV) { console.log('✅ Series list refreshed'); }
+        if (import.meta.env.DEV) { console.log('✅ Series list refreshed in NCDSeries page'); }
       } catch (fetchError) {
         if (import.meta.env.DEV) { console.error('⚠️ Error refreshing series list (non-critical):', fetchError); }
+      }
+      
+      // CRITICAL: Refresh DataContext series data so other pages (Approval, Dashboard) see the new series
+      if (import.meta.env.DEV) { console.log('🔄 Triggering DataContext series refresh...'); }
+      if (forceSeriesRefresh) {
+        forceSeriesRefresh();
+        if (import.meta.env.DEV) { console.log('✅ DataContext series refresh triggered'); }
       }
       
       // Close form and reset

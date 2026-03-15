@@ -399,21 +399,31 @@ const InvestorDetails = () => {
       const fileName = investor.name.replace(/\s+/g, '_') + '_Profile_' + new Date().toISOString().split('T')[0] + '.pdf';
       doc.save(fileName);
       
-      // Add audit log for investor profile download
-      await auditService.logDataOperation(
-        user,
-        'Downloaded Report',
-        'Investor',
-        investor.investorId,
-        `Downloaded investor profile for "${investor.name}" (ID: ${investor.investorId}, PDF format)`,
-        {
-          documentType: 'Investor Profile',
-          fileName: fileName,
-          format: 'PDF',
-          investorName: investor.name,
-          action: 'report_download'
-        }
-      );
+      // Add audit log for investor profile download directly to backend
+      try {
+        await apiService.createAuditLog({
+          action: 'Report Downloaded',
+          admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+          admin_role: user?.role || user?.displayRole || 'Unknown Role',
+          details: `Downloaded investor profile for "${investor.name}" (ID: ${investor.investorId}, PDF format)`,
+          entity_type: 'Report',
+          entity_id: investor.investorId,
+          changes: {
+            document_type: 'Investor Profile',
+            file_name: fileName,
+            format: 'PDF',
+            investor_name: investor.name,
+            investor_id: investor.investorId,
+            action: 'report_download',
+            timestamp: new Date().toISOString(),
+            username: user?.username,
+            user_role: user?.role || user?.displayRole
+          }
+        });
+        if (import.meta.env.DEV) { console.log('✅ Investor profile download logged'); }
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('❌ Failed to log investor profile download:', error); }
+      }
       
       if (import.meta.env.DEV) { console.log('PDF generated successfully:', fileName); }
     } catch (error) {
@@ -517,14 +527,28 @@ const InvestorDetails = () => {
         toast.success('Investor details have been updated successfully', 'Update Successful');
       }
 
-      // Log audit event
-      await auditService.logInvestorUpdate(
-        user,
-        investor.investorId,
-        editFormData.fullName,
-        investor,
-        editFormData
-      );
+      // Log audit event directly to backend
+      try {
+        await apiService.createAuditLog({
+          action: 'Investor Updated',
+          admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+          admin_role: user?.role || user?.displayRole || 'Unknown Role',
+          details: `Updated investor details for "${investor.name}" (ID: ${investor.investorId})`,
+          entity_type: 'Investor',
+          entity_id: investor.investorId,
+          changes: {
+            investor_id: investor.investorId,
+            investor_name: editFormData.fullName,
+            action: 'investor_update',
+            timestamp: new Date().toISOString(),
+            username: user?.username,
+            user_role: user?.role || user?.displayRole
+          }
+        });
+        if (import.meta.env.DEV) { console.log('✅ Investor update logged'); }
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('❌ Failed to log investor update:', error); }
+      }
 
       if (import.meta.env.DEV) { console.log('Update completed, closing modal'); }
       setShowEditModal(false);
@@ -1234,19 +1258,30 @@ The original file data was not stored in this demo version.`;
                             rel="noopener noreferrer"
                             className="download-doc-btn"
                             onClick={async () => {
-                              // Log download action
-                              await auditService.logDataOperation(
-                                user,
-                                'Downloaded Document',
-                                'Document',
-                                investor.investorId,
-                                `Downloaded ${doc.name} for investor "${investor.name}" (ID: ${investor.investorId})`,
-                                {
-                                  documentType: doc.name,
-                                  fileName: doc.fileName,
-                                  action: 'document_download'
-                                }
-                              );
+                              // Log download action directly to backend
+                              try {
+                                await apiService.createAuditLog({
+                                  action: 'Document Downloaded',
+                                  admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+                                  admin_role: user?.role || user?.displayRole || 'Unknown Role',
+                                  details: `Downloaded KYC document "${doc.name}" for investor "${investor.name}" (ID: ${investor.investorId})`,
+                                  entity_type: 'KYC Document',
+                                  entity_id: `${investor.investorId}_${doc.name}`,
+                                  changes: {
+                                    document_type: doc.name,
+                                    file_name: doc.fileName,
+                                    investor_id: investor.investorId,
+                                    investor_name: investor.name,
+                                    action: 'kyc_document_download',
+                                    timestamp: new Date().toISOString(),
+                                    username: user?.username,
+                                    user_role: user?.role || user?.displayRole
+                                  }
+                                });
+                                if (import.meta.env.DEV) { console.log('✅ KYC document download logged'); }
+                              } catch (error) {
+                                if (import.meta.env.DEV) { console.error('❌ Failed to log KYC document download:', error); }
+                              }
                             }}
                           >
                             Download
@@ -1295,20 +1330,31 @@ The original file data was not stored in this demo version.`;
                             rel="noopener noreferrer"
                             className="download-doc-btn"
                             onClick={async () => {
-                              // Log download action
-                              await auditService.logDataOperation(
-                                user,
-                                'Downloaded Investment Document',
-                                'Investment Document',
-                                investor.investorId,
-                                `Downloaded payment document for ${doc.series_name} investment (Amount: ₹${doc.investment_amount})`,
-                                {
-                                  seriesName: doc.series_name,
-                                  investmentAmount: doc.investment_amount,
-                                  fileName: doc.file_name,
-                                  action: 'investment_document_download'
-                                }
-                              );
+                              // Log download action directly to backend
+                              try {
+                                await apiService.createAuditLog({
+                                  action: 'Document Downloaded',
+                                  admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+                                  admin_role: user?.role || user?.displayRole || 'Unknown Role',
+                                  details: `Downloaded investment document for ${doc.series_name} investment (Amount: ₹${doc.investment_amount}) for investor "${investor.name}" (ID: ${investor.investorId})`,
+                                  entity_type: 'Investment Document',
+                                  entity_id: `${investor.investorId}_${doc.series_name}`,
+                                  changes: {
+                                    series_name: doc.series_name,
+                                    investment_amount: doc.investment_amount,
+                                    file_name: doc.file_name,
+                                    investor_id: investor.investorId,
+                                    investor_name: investor.name,
+                                    action: 'investment_document_download',
+                                    timestamp: new Date().toISOString(),
+                                    username: user?.username,
+                                    user_role: user?.role || user?.displayRole
+                                  }
+                                });
+                                if (import.meta.env.DEV) { console.log('✅ Investment document download logged'); }
+                              } catch (error) {
+                                if (import.meta.env.DEV) { console.error('❌ Failed to log investment document download:', error); }
+                              }
                             }}
                           >
                             Download

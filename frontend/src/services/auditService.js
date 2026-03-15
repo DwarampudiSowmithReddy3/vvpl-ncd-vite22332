@@ -4,18 +4,20 @@ class AuditService {
   // Log user activities to database
   async logActivity(activityData) {
     try {
-      // TEMPORARILY DISABLED - audit logging was causing infinite loop and 422 errors
-      if (import.meta.env.DEV) { console.log('🔄 AuditService: Audit logging temporarily disabled to prevent infinite loop'); }
-      return;
-      
+      // Validate required fields
+      if (!activityData.action || !activityData.adminName && !activityData.userName) {
+        if (import.meta.env.DEV) { console.warn('⚠️ Missing required audit fields:', activityData); }
+        return; // Skip if required fields are missing
+      }
+
       const auditData = {
         action: activityData.action,
-        admin_name: activityData.adminName || activityData.userName,
-        admin_role: activityData.adminRole || activityData.userRole,
-        details: activityData.details,
+        admin_name: activityData.adminName || activityData.userName || 'Unknown User',
+        admin_role: activityData.adminRole || activityData.userRole || 'Unknown Role',
+        details: activityData.details || 'No details provided',
         entity_type: activityData.entityType || 'System',
         entity_id: activityData.entityId || 'N/A',
-        changes: JSON.stringify(activityData.changes || {})
+        changes: activityData.changes || {}
       };
       
       await apiService.createAuditLog(auditData);
@@ -326,6 +328,124 @@ class AuditService {
     );
   }
 
+  async logPayoutImportFailed(importData, userData) {
+    await this.logDataOperation(
+      userData,
+      'Payout Data Import Failed',
+      'Interest Payout',
+      'Import Operation',
+      `Failed to import payout data from file "${importData.fileName}" - ${importData.errorCount} error(s), ${importData.successCount} record(s) processed`,
+      {
+        fileName: importData.fileName,
+        successCount: importData.successCount,
+        errorCount: importData.errorCount,
+        errors: importData.errors,
+        action: 'payout_import_failed'
+      }
+    );
+  }
+
+  async logPayoutStatusUpdated(userData, payoutData) {
+    await this.logDataOperation(
+      userData,
+      'Payout Status Updated',
+      'Interest Payout',
+      `${payoutData.investorId}-${payoutData.seriesName}-${payoutData.month}`,
+      `Updated payout status for investor "${payoutData.investorName}" in series "${payoutData.seriesName}" for ${payoutData.month} from "${payoutData.oldStatus}" to "${payoutData.newStatus}"`,
+      {
+        payoutId: payoutData.payoutId,
+        investorId: payoutData.investorId,
+        investorName: payoutData.investorName,
+        seriesName: payoutData.seriesName,
+        month: payoutData.month,
+        amount: payoutData.amount,
+        oldStatus: payoutData.oldStatus,
+        newStatus: payoutData.newStatus,
+        paidDate: payoutData.paidDate,
+        action: 'payout_status_updated'
+      }
+    );
+  }
+
+  // Compliance specific logging
+  async logComplianceDocumentAdded(userData, documentData) {
+    await this.logDataOperation(
+      userData,
+      'Compliance Document Added',
+      'Compliance',
+      `${documentData.seriesName}-${documentData.documentTitle}`,
+      `Added compliance document "${documentData.documentTitle}" (${documentData.category}) for series "${documentData.seriesName}"`,
+      {
+        seriesId: documentData.seriesId,
+        seriesName: documentData.seriesName,
+        documentTitle: documentData.documentTitle,
+        category: documentData.category,
+        fileName: documentData.fileName,
+        fileSize: documentData.fileSize,
+        action: 'compliance_document_added'
+      }
+    );
+  }
+
+  async logComplianceStatusUpdated(userData, complianceData) {
+    await this.logDataOperation(
+      userData,
+      'Compliance Status Updated',
+      'Compliance',
+      `${complianceData.seriesName}-${complianceData.itemTitle}`,
+      `Updated compliance status for "${complianceData.itemTitle}" in series "${complianceData.seriesName}" from "${complianceData.oldStatus}" to "${complianceData.newStatus}"`,
+      {
+        seriesId: complianceData.seriesId,
+        seriesName: complianceData.seriesName,
+        itemId: complianceData.itemId,
+        itemTitle: complianceData.itemTitle,
+        section: complianceData.section,
+        oldStatus: complianceData.oldStatus,
+        newStatus: complianceData.newStatus,
+        year: complianceData.year,
+        month: complianceData.month,
+        action: 'compliance_status_updated'
+      }
+    );
+  }
+
+  async logComplianceTimeSheetExported(userData, timesheetData) {
+    await this.logDataOperation(
+      userData,
+      'Compliance TimeSheet Exported',
+      'Compliance',
+      `${timesheetData.seriesName}-${timesheetData.year}`,
+      `Exported compliance timesheet for series "${timesheetData.seriesName}" for year ${timesheetData.year}`,
+      {
+        seriesId: timesheetData.seriesId,
+        seriesName: timesheetData.seriesName,
+        year: timesheetData.year,
+        format: timesheetData.format,
+        recordCount: timesheetData.recordCount,
+        action: 'compliance_timesheet_export'
+      }
+    );
+  }
+
+  async logComplianceReportExported(userData, reportData) {
+    const sectionsText = Array.isArray(reportData.sections) ? reportData.sections.join(', ') : 'all sections';
+    await this.logDataOperation(
+      userData,
+      'Compliance Report Exported',
+      'Compliance',
+      `${reportData.seriesName}-Report`,
+      `Exported compliance report for series "${reportData.seriesName}" with sections: ${sectionsText}`,
+      {
+        seriesId: reportData.seriesId,
+        seriesName: reportData.seriesName,
+        format: reportData.format,
+        sections: Array.isArray(reportData.sections) ? reportData.sections : [],
+        recordCount: reportData.recordCount,
+        action: 'compliance_report_export'
+      }
+    );
+  }
+
   async logDocumentDownloaded(documentData, userData) {
     await this.logDataOperation(
       userData,
@@ -471,16 +591,22 @@ class AuditService {
   }
 
   async logDataOperation(userData, operation, entityType, entityId, details, changes = {}) {
+    // Handle missing or incomplete user data
+    if (!userData) {
+      if (import.meta.env.DEV) { console.warn('⚠️ User data missing for audit log'); }
+      return; // Skip audit logging if user data is not available
+    }
+
     await this.logActivity({
       action: operation,
-      userName: userData.name || userData.full_name,
-      userRole: userData.role || userData.displayRole,
+      userName: userData.name || userData.full_name || userData.username || 'Unknown User',
+      userRole: userData.role || userData.displayRole || 'Unknown Role',
       details: details,
       entityType: entityType,
       entityId: entityId,
       changes: {
-        username: userData.username,
-        role: userData.role,
+        username: userData.username || 'unknown',
+        role: userData.role || userData.displayRole || 'unknown',
         operation: operation,
         timestamp: new Date().toISOString(),
         ...changes

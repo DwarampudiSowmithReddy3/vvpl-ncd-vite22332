@@ -17,6 +17,11 @@ pandas==2.1.4
 openpyxl==3.1.2
 python-dateutil==2.8.2
 
+# Mailchimp Transactional Email Integration (Mandrill)
+# CRITICAL: Use mailchimp-transactional for sending emails, NOT mailchimp-marketing
+# mailchimp-marketing is for lists/campaigns/audiences only
+mailchimp-transactional==1.3.3
+
 # Note: Alembic removed - now using pure SQL migrations
 # alembic==1.13.1
 # sqlalchemy==2.0.23

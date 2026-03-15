@@ -34,6 +34,8 @@ const Dashboard = () => {
   const {
     investors,
     series,
+    seriesLoading,
+    seriesRefreshTrigger,
     getTotalInvestors,
     getCurrentMonthPayout,
     getInterestPayoutStats,
@@ -42,10 +44,12 @@ const Dashboard = () => {
   } = useData();
 
   const [totalInvestments, setTotalInvestments] = useState(0); // Total investments from backend
+  const [activeSeriesCount, setActiveSeriesCount] = useState(0); // Active series count from backend
   const [pendingKYC, setPendingKYC] = useState(0); // Pending KYC count from backend
   const [dataLoaded, setDataLoaded] = useState(false); // Track if data is loaded
   const [animationComplete, setAnimationComplete] = useState(false); // Track if animation is complete
   const [loading, setLoading] = useState(!justLoggedIn); // Skip loading if just logged in
+  const [minLoadTimeComplete, setMinLoadTimeComplete] = useState(false); // Track minimum load time
   const [showUpcomingPayouts, setShowUpcomingPayouts] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [complianceData, setComplianceData] = useState({}); // Store compliance data from backend
@@ -120,20 +124,29 @@ const Dashboard = () => {
     // Refresh trigger changed
   }, [refreshTrigger]);
 
-  // Hide loading after 3 seconds (but skip if just logged in)
+  // Minimum loading time of 1401ms (only on initial mount)
   useEffect(() => {
     if (justLoggedIn) {
       // User just logged in, skip loading animation
-      setLoading(false);
+      setMinLoadTimeComplete(true);
       clearJustLoggedIn();
     } else {
-      // Normal page navigation, show loading for 3 seconds
+      // Normal page navigation, show loading for minimum 1401ms
       const timer = setTimeout(() => {
-        setLoading(false);
-      }, 3000);
+        setMinLoadTimeComplete(true);
+      }, 1401);
       return () => clearTimeout(timer);
     }
   }, [justLoggedIn, clearJustLoggedIn]);
+
+  // Hide loader only when BOTH conditions are met:
+  // 1. Minimum 1401ms has passed
+  // 2. Series data has been fetched
+  useEffect(() => {
+    if (minLoadTimeComplete && !seriesLoading) {
+      setLoading(false);
+    }
+  }, [minLoadTimeComplete, seriesLoading]);
 
   // Remove all scrollbar-related useEffect - let dashboard work normally
   // const [refreshTrigger, setRefreshTrigger] = useState(0); // Remove if not needed elsewhere
@@ -141,19 +154,18 @@ const Dashboard = () => {
   const totalInvestorsCount = getTotalInvestors();
   const currentMonthPayout = getCurrentMonthPayout();
   // REMOVED: const upcomingPayouts = getUpcomingPayouts(); - Now comes from backend in interestPayoutStats
-  // Get active series count (still needed for display)
-  // IMPORTANT: Only calculate after series is loaded to avoid showing 0 on initial render
-  const activeSeries = series.filter(s => s.status === 'active');
+  // REMOVED: Frontend calculation of active series
+  // Active series count now comes from backend getDashboardMetrics() in activeSeriesCount state
   
   // Debug: Log when series changes
   useEffect(() => {
-    if (import.meta.env.DEV) { console.log('📊 Dashboard: Series updated, count:', series.length, 'active:', activeSeries.length); }
+    if (import.meta.env.DEV) { console.log('📊 Dashboard: Series updated, count:', series.length); }
     
     // If series just loaded (went from 0 to > 0), trigger a refresh of dependent data
-    if (series.length > 0 && activeSeries.length > 0) {
-      if (import.meta.env.DEV) { console.log('✅ Series loaded, active series available'); }
+    if (series.length > 0) {
+      if (import.meta.env.DEV) { console.log('✅ Series loaded'); }
     }
-  }, [series, activeSeries.length]);
+  }, [series, seriesRefreshTrigger]);
   
   // Average interest rate from backend (NOT calculated in frontend)
   const [averageInterestRate, setAverageInterestRate] = useState('0.0');
@@ -193,7 +205,7 @@ const Dashboard = () => {
     };
 
     fetchPayoutStats();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch total investments from backend (sum of all confirmed investments across all series)
   useEffect(() => {
@@ -208,6 +220,9 @@ const Dashboard = () => {
         // Set total investments (sum of all confirmed investments)
         setTotalInvestments(metrics.total_funds_raised || 0);
         
+        // Set active series count from backend
+        setActiveSeriesCount(metrics.active_series_count || 0);
+        
         // Set average interest rate from backend
         setAverageInterestRate(metrics.average_interest_rate ? metrics.average_interest_rate.toFixed(1) : '0.0');
         
@@ -217,6 +232,7 @@ const Dashboard = () => {
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Error fetching total investments:', error); }
         setTotalInvestments(0);
+        setActiveSeriesCount(0);
         setAverageInterestRate('0.0');
         setDataLoaded(true);
         setLoadingStates(prev => ({ ...prev, metrics: false }));
@@ -244,7 +260,7 @@ const Dashboard = () => {
       //   }
       // });
     }
-  }, [refreshTrigger, user]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, user, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch Pending KYC count from backend (from Investors page)
   useEffect(() => {
@@ -265,12 +281,19 @@ const Dashboard = () => {
     };
 
     fetchPendingKYC();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch compliance data from backend for ACTIVE and MATURED series only
   useEffect(() => {
     const fetchComplianceData = async () => {
-      if (import.meta.env.DEV) { console.log('🔍 Compliance useEffect triggered, series.length:', series.length); }
+      if (import.meta.env.DEV) { console.log('🔍 Compliance useEffect triggered, series.length:', series.length, 'seriesLoading:', seriesLoading); }
+      
+      // Wait for series to finish loading
+      if (seriesLoading) {
+        if (import.meta.env.DEV) { console.log('⏳ Series still loading, waiting...'); }
+        setLoadingStates(prev => ({ ...prev, compliance: true }));
+        return;
+      }
       
       // Set loading state immediately
       setLoadingStates(prev => ({ ...prev, compliance: true }));
@@ -299,40 +322,39 @@ const Dashboard = () => {
       if (import.meta.env.DEV) { console.log('🔄 Fetching compliance data from backend for', activeAndMaturedSeries.length, 'active/matured series...'); }
       
       try {
-        const compliancePromises = activeAndMaturedSeries.map(async (s) => {
+        // OPTIMIZED: Load compliance data incrementally instead of waiting for all
+        const complianceMap = {};
+        
+        // Fetch each series compliance data sequentially but update UI immediately
+        for (const s of activeAndMaturedSeries) {
           try {
             const summary = await apiService.getSeriesComplianceSummary(s.id);
-            return {
-              seriesId: s.id,
-              seriesName: s.name,
-              data: {
-                pre: summary.pre_percentage || 0,
-                post: summary.post_percentage || 0,
-                recurring: summary.recurring_percentage || 0
-              }
+            complianceMap[s.name] = {
+              pre: summary.pre_percentage || 0,
+              post: summary.post_percentage || 0,
+              recurring: summary.recurring_percentage || 0
             };
+            
+            // Update UI immediately after each series loads
+            setComplianceData(prev => ({
+              ...prev,
+              [s.name]: complianceMap[s.name]
+            }));
+            
+            if (import.meta.env.DEV) { console.log(`✅ Compliance loaded for ${s.name}`); }
           } catch (error) {
             if (import.meta.env.DEV) { console.error(`❌ Failed to fetch compliance for series ${s.id}:`, error); }
-            // Return default values on error
-            return {
-              seriesId: s.id,
-              seriesName: s.name,
-              data: { pre: 0, post: 0, recurring: 0 }
-            };
+            // Set default values on error
+            complianceMap[s.name] = { pre: 0, post: 0, recurring: 0 };
+            setComplianceData(prev => ({
+              ...prev,
+              [s.name]: complianceMap[s.name]
+            }));
           }
-        });
-
-        const results = await Promise.all(compliancePromises);
+        }
         
-        // Convert array to object keyed by series name
-        const complianceMap = {};
-        results.forEach(result => {
-          complianceMap[result.seriesName] = result.data;
-        });
-        
-        setComplianceData(complianceMap);
         setLoadingStates(prev => ({ ...prev, compliance: false }));
-        if (import.meta.env.DEV) { console.log('✅ Compliance data loaded for active/matured series:', complianceMap); }
+        if (import.meta.env.DEV) { console.log('✅ All compliance data loaded:', complianceMap); }
         
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Error fetching compliance data:', error); }
@@ -341,7 +363,7 @@ const Dashboard = () => {
     };
 
     fetchComplianceData();
-  }, [series, refreshTrigger]); // Re-fetch when series changes or refresh triggered
+  }, [series, seriesLoading, refreshTrigger, seriesRefreshTrigger]); // Re-fetch when series changes, loading completes, or refresh triggered
 
   // Fetch maturity and lock-in distribution from backend
   useEffect(() => {
@@ -403,7 +425,7 @@ const Dashboard = () => {
     };
 
     fetchDistributionData();
-  }, [refreshTrigger, series]); // Re-fetch when refresh triggered OR series changes
+  }, [refreshTrigger, series, seriesRefreshTrigger]); // Re-fetch when refresh triggered OR series changes
 
   // Fetch upcoming maturity calendar data from backend
   useEffect(() => {
@@ -426,7 +448,7 @@ const Dashboard = () => {
     };
 
     fetchCalendarData();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch top investors from backend
   useEffect(() => {
@@ -447,7 +469,7 @@ const Dashboard = () => {
     };
 
     fetchTopInvestors();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch grievance stats from backend (same as Grievance Management page)
   useEffect(() => {
@@ -488,7 +510,7 @@ const Dashboard = () => {
     };
 
     fetchGrievanceStats();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
   // Fetch satisfaction metrics from backend (Investor Satisfaction Index)
   useEffect(() => {
@@ -528,7 +550,7 @@ const Dashboard = () => {
     };
 
     fetchSatisfactionMetrics();
-  }, [refreshTrigger]); // Re-fetch when refresh triggered
+  }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
 
 
   // REMOVE ALL FRONTEND LOGIC - getTopInvestorsByInvestment function deleted
@@ -671,7 +693,7 @@ const Dashboard = () => {
                     <RiStackLine size={20} />
                   </div>
                 </div>
-                <div className="portfolio-card-value">{activeSeries.length}</div>
+                <div className="portfolio-card-value">{activeSeriesCount}</div>
                 <div className="portfolio-card-currency">Nos</div>
               </div>
             </div>
@@ -908,10 +930,6 @@ const Dashboard = () => {
             ) : series.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                 <p>No series data available</p>
-              </div>
-            ) : series.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
-                <p>No series found</p>
               </div>
             ) : (
               series

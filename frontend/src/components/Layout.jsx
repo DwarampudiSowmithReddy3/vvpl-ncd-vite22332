@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
+import apiService from '../services/api';
 import Sidebar from './Sidebar';
 import ColorPickerGreeting from './ColorPickerGreeting';
 import { HiOutlineDocumentText } from 'react-icons/hi';
@@ -361,7 +362,36 @@ const Layout = ({ children, isInvestor = false }) => {
             <div className="sop-modal-footer">
               <button
                 className="sop-download"
-                onClick={() => window.open("/sop_ncd_vvpl_v1.0.pdf", "_blank")}
+                onClick={async () => {
+                  try {
+                    // Log SOP download to audit log
+                    await apiService.createAuditLog({
+                      action: 'Document Downloaded',
+                      admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+                      admin_role: user?.role || user?.displayRole || 'Unknown Role',
+                      details: `User downloaded SOP - NCD - VVPL document`,
+                      entity_type: 'Document',
+                      entity_id: 'sop_ncd_vvpl_v1.0.pdf',
+                      changes: {
+                        document_name: 'SOP - NCD - VVPL',
+                        file_name: 'sop_ncd_vvpl_v1.0.pdf',
+                        document_type: 'SOP',
+                        action: 'document_download',
+                        timestamp: new Date().toISOString(),
+                        username: user?.username,
+                        user_role: user?.role || user?.displayRole
+                      }
+                    });
+                    
+                    if (import.meta.env.DEV) { console.log('✅ SOP download logged to audit trail'); }
+                  } catch (error) {
+                    if (import.meta.env.DEV) { console.error('❌ Failed to log SOP download:', error); }
+                    // Don't prevent download if logging fails
+                  }
+                  
+                  // Proceed with download
+                  window.open("/sop_ncd_vvpl_v1.0.pdf", "_blank");
+                }}
               >
                 Download
               </button>

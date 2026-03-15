@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.core.permissions import has_permission, log_unauthorized_access
 from datetime import datetime, date
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -1531,6 +1532,41 @@ async def import_payouts(
             for error in errors[:10]:
                 logger.error(f"   - {error}")
         
+        # Log to audit_logs table
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            if success:
+                action = 'Payout Data Imported'
+                details = f"Successfully imported {updated_count} payout record(s) from file '{file.filename}'"
+            else:
+                action = 'Payout Data Import Failed'
+                details = f"Failed to import payout data from file '{file.filename}' - {error_count} error(s), {updated_count} record(s) processed"
+            
+            changes_json = json.dumps({
+                'fileName': file.filename,
+                'successCount': updated_count,
+                'errorCount': error_count,
+                'errors': errors[:5],  # Store first 5 errors
+                'action': 'payout_import' if success else 'payout_import_failed'
+            })
+            
+            db.execute_query(audit_query, (
+                action,
+                current_user.full_name or current_user.username,
+                current_user.role,
+                details,
+                'Interest Payout',
+                'Import Operation',
+                changes_json
+            ))
+            logger.info(f"✅ Audit log created for payout import: {file.filename}")
+        except Exception as audit_error:
+            logger.error(f"⚠️ Failed to create audit log for payout import: {audit_error}")
+        
         return {
             'success': success,
             'message': message,
@@ -1625,6 +1661,35 @@ async def update_payout_status(
         db.execute_query(update_query, (new_status, paid_date, payout_id))
         
         logger.info(f"✅ Payout {payout_id} status updated from '{existing_status}' to '{new_status}' by {current_user.username}")
+        
+        # Log to audit_logs table
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            changes_json = json.dumps({
+                'payout_id': payout_id,
+                'old_status': existing_status,
+                'new_status': new_status,
+                'paid_date': paid_date.isoformat() if paid_date else None,
+                'amount': float(existing_payout['amount']),
+                'action': 'payout_status_updated'
+            })
+            
+            db.execute_query(audit_query, (
+                'Payout Status Updated',
+                current_user.full_name or current_user.username,
+                current_user.role,
+                f"Updated payout status from '{existing_status}' to '{new_status}' for payout ID {payout_id}",
+                'Interest Payout',
+                str(payout_id),
+                changes_json
+            ))
+            logger.info(f"✅ Audit log created for payout status update: {payout_id}")
+        except Exception as audit_error:
+            logger.error(f"⚠️ Failed to create audit log for payout status update: {audit_error}")
         
         return {
             "success": True,
@@ -1721,6 +1786,34 @@ async def download_payouts_csv(
         from fastapi.responses import Response
         
         filename = f"interest-payouts-{datetime.now().strftime('%Y-%m-%d')}.csv"
+        
+        # Log to audit_logs table
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            changes_json = json.dumps({
+                'fileName': filename,
+                'recordCount': len(payouts),
+                'seriesId': series_id,
+                'statusFilter': status_filter,
+                'action': 'payouts_list_download'
+            })
+            
+            db.execute_query(audit_query, (
+                'Interest Payouts List Downloaded',
+                current_user.full_name or current_user.username,
+                current_user.role,
+                f"Downloaded interest payouts list - {len(payouts)} records",
+                'Interest Payout',
+                filename,
+                changes_json
+            ))
+            logger.info(f"✅ Audit log created for payouts list download: {filename}")
+        except Exception as audit_error:
+            logger.error(f"⚠️ Failed to create audit log for payouts list download: {audit_error}")
         
         return Response(
             content=csv_content,
@@ -1827,6 +1920,36 @@ async def download_export_csv(
         series_name = 'all' if not series_id else f'series-{series_id}'
         filename = f"interest-payout-{series_name}-{month_type}-{datetime.now().strftime('%Y-%m-%d')}.csv"
         
+        # Log to audit_logs table
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            changes_json = json.dumps({
+                'fileName': filename,
+                'recordCount': len(payouts),
+                'seriesId': series_id,
+                'monthType': month_type,
+                'totalAmount': float(summary['total_amount']),
+                'investorCount': summary['investor_count'],
+                'action': 'export_download'
+            })
+            
+            db.execute_query(audit_query, (
+                'Interest Payout Export Downloaded',
+                current_user.full_name or current_user.username,
+                current_user.role,
+                f"Downloaded interest payout export ({month_type} month) - {len(payouts)} records, ₹{summary['total_amount']}",
+                'Interest Payout',
+                filename,
+                changes_json
+            ))
+            logger.info(f"✅ Audit log created for export download: {filename}")
+        except Exception as audit_error:
+            logger.error(f"⚠️ Failed to create audit log for export download: {audit_error}")
+        
         return Response(
             content=csv_content,
             media_type="text/csv; charset=utf-8",
@@ -1920,6 +2043,32 @@ async def download_sample_template(
         from fastapi.responses import Response
         
         filename = f"Interest_Payout_Sample_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
+        
+        # Log to audit_logs table
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            """
+            
+            changes_json = json.dumps({
+                'fileName': filename,
+                'format': 'Excel',
+                'action': 'sample_template_download'
+            })
+            
+            db.execute_query(audit_query, (
+                'Interest Payout Sample Template Downloaded',
+                current_user.full_name or current_user.username,
+                current_user.role,
+                f"Downloaded interest payout sample template: {filename}",
+                'Interest Payout',
+                filename,
+                changes_json
+            ))
+            logger.info(f"✅ Audit log created for sample template download: {filename}")
+        except Exception as audit_error:
+            logger.error(f"⚠️ Failed to create audit log for sample template download: {audit_error}")
         
         return Response(
             content=excel_content,

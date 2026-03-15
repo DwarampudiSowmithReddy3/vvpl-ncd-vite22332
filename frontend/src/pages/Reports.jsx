@@ -42,6 +42,9 @@ const Reports = () => {
   });
   const [lastGeneratedDates, setLastGeneratedDates] = useState({});
   const [loading, setLoading] = useState(true);
+  const [showFormatModal, setShowFormatModal] = useState(false);
+  const [selectedReportForDownload, setSelectedReportForDownload] = useState(null);
+  const [downloadingFormat, setDownloadingFormat] = useState(null);
 
   // Fetch report statistics on mount
   useEffect(() => {
@@ -53,7 +56,7 @@ const Reports = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
 
@@ -139,20 +142,29 @@ const Reports = () => {
       const fileName = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
       
-      // Add audit log for document download
-      addAuditLog({
-        action: 'Downloaded Report',
-        adminName: user ? user.name : 'Admin',
-        adminRole: user ? user.displayRole : 'Admin',
-        details: `Downloaded "${reportName}" report (PDF format)`,
-        entityType: 'Report',
-        entityId: reportName,
-        changes: {
-          documentType: reportName,
-          fileName: fileName,
-          format: 'PDF'
-        }
-      });
+      // Add audit log for report download directly to backend
+      try {
+        apiService.createAuditLog({
+          action: 'Report Downloaded',
+          admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+          admin_role: user?.role || user?.displayRole || 'Unknown Role',
+          details: `Downloaded "${reportName}" report (PDF format)`,
+          entity_type: 'Report',
+          entity_id: reportName,
+          changes: {
+            document_type: reportName,
+            file_name: fileName,
+            format: 'PDF',
+            action: 'report_download',
+            timestamp: new Date().toISOString(),
+            username: user?.username,
+            user_role: user?.role || user?.displayRole
+          }
+        });
+        if (import.meta.env.DEV) { console.log('✅ Report PDF download logged'); }
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('❌ Failed to log report PDF download:', error); }
+      }
       
       if (import.meta.env.DEV) { console.log('Report PDF generated successfully:', fileName); }
     } catch (error) {
@@ -503,36 +515,128 @@ const Reports = () => {
       recordCount = getReportRecordCount(reportName);
     }
     
-    // Log report download using auditService
-    auditService.logReportDownloaded({
-      type: reportName,
-      name: reportName,
-      format: format
-    }, user).catch(error => {
-      if (import.meta.env.DEV) { console.error('Failed to log report download:', error); }
-    });
-    
-    // Also add to local audit log for backward compatibility
-    addAuditLog({
-      action: 'Downloaded Report',
-      adminName: user ? user.name : 'User',
-      adminRole: user ? user.displayRole : 'User',
-      details: `Downloaded ${reportName} (${recordCount} records, ${format} format)`,
-      entityType: 'Report',
-      entityId: reportName,
-      changes: {
-        reportType: reportName,
-        format: format,
-        fileName: fileName,
-        recordCount: recordCount
-      }
-    });
+    // Log report download directly to backend
+    try {
+      apiService.createAuditLog({
+        action: 'Report Downloaded',
+        admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+        admin_role: user?.role || user?.displayRole || 'Unknown Role',
+        details: `Downloaded "${reportName}" report (${recordCount} records, ${format} format)`,
+        entity_type: 'Report',
+        entity_id: reportName,
+        changes: {
+          report_type: reportName,
+          format: format,
+          file_name: fileName,
+          record_count: recordCount,
+          action: 'report_download',
+          timestamp: new Date().toISOString(),
+          username: user?.username,
+          user_role: user?.role || user?.displayRole
+        }
+      }).catch(error => {
+        if (import.meta.env.DEV) { console.error('❌ Failed to log report download:', error); }
+      });
+      if (import.meta.env.DEV) { console.log('✅ Report download logged'); }
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('❌ Error logging report download:', error); }
+    }
     
     // Close preview after download
     setPreviewReport(null);
     
     // Refresh statistics after downloading report
     fetchStatistics();
+  };
+
+  const handleGenerateClick = (reportName) => {
+    // Show format selection modal
+    setSelectedReportForDownload(reportName);
+    setShowFormatModal(true);
+  };
+
+  const handleFormatSelected = async (format) => {
+    if (!selectedReportForDownload) return;
+    
+    setDownloadingFormat(format);
+    
+    try {
+      let blob;
+      const reportName = selectedReportForDownload;
+      
+      // Call appropriate download endpoint based on report type
+      switch (reportName) {
+        case 'Monthly Collection Report':
+          blob = await apiService.downloadMonthlyCollectionReport(format.toLowerCase());
+          break;
+        case 'Payout Statement':
+          blob = await apiService.downloadPayoutStatementReport(format.toLowerCase());
+          break;
+        case 'Series-wise Performance':
+          blob = await apiService.downloadSeriesPerformanceReport(format.toLowerCase());
+          break;
+        default:
+          // For other reports, show preview instead
+          handlePreview(reportName);
+          setShowFormatModal(false);
+          return;
+      }
+      
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      // Determine file extension
+      let extension = format.toLowerCase();
+      if (format === 'PDF') extension = 'pdf';
+      else if (format === 'Excel') extension = 'xlsx';
+      else if (format === 'CSV') extension = 'csv';
+      
+      link.download = `${reportName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.${extension}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Log download
+      try {
+        apiService.createAuditLog({
+          action: 'Report Downloaded',
+          admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+          admin_role: user?.role || user?.displayRole || 'Unknown Role',
+          details: `Downloaded "${reportName}" report (${format} format)`,
+          entity_type: 'Report',
+          entity_id: reportName,
+          changes: {
+            report_type: reportName,
+            format: format,
+            file_name: link.download,
+            action: 'report_download',
+            timestamp: new Date().toISOString(),
+            username: user?.username,
+            user_role: user?.role || user?.displayRole
+          }
+        }).catch(error => {
+          if (import.meta.env.DEV) { console.error('Failed to log report download:', error); }
+        });
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('Error logging report download:', error); }
+      }
+      
+      // Refresh statistics
+      fetchStatistics();
+      
+      // Close modal
+      setShowFormatModal(false);
+      setSelectedReportForDownload(null);
+      
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('Error downloading report:', error); }
+      alert(`Error downloading report: ${error.message}`);
+    } finally {
+      setDownloadingFormat(null);
+    }
   };
 
   const handleGenerate = (reportName) => {
@@ -695,7 +799,7 @@ const Reports = () => {
                       </button>
                       <button 
                         className="generate-button"
-                        onClick={() => handleGenerate(report.name)}
+                        onClick={() => handleGenerateClick(report.name)}
                         disabled={!showCreateButton('reports')}
                         style={{ 
                           opacity: showCreateButton('reports') ? 1 : 0.5,
@@ -712,6 +816,125 @@ const Reports = () => {
           ))}
         </div>
       </div>
+
+      {previewReport && (
+        <ReportPreview 
+          reportName={previewReport}
+          onClose={handleClosePreview}
+          onDownload={handleDownload}
+          onReportGenerated={() => {
+            fetchStatistics();
+            fetchLastGeneratedDates();
+          }}
+        />
+      )}
+
+      {/* Format Selection Modal */}
+      {showFormatModal && (
+        <>
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            zIndex: 99998
+          }} onClick={() => setShowFormatModal(false)} />
+          
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 99999,
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
+            padding: '32px',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h2 style={{
+              margin: '0 0 8px 0',
+              fontSize: '24px',
+              fontWeight: 600,
+              color: '#0f172a'
+            }}>
+              Select Download Format
+            </h2>
+            <p style={{
+              margin: '0 0 24px 0',
+              fontSize: '14px',
+              color: '#64748b'
+            }}>
+              Choose the format you want to download {selectedReportForDownload} in
+            </p>
+            
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              marginBottom: '24px'
+            }}>
+              {['PDF', 'Excel', 'CSV'].map((format) => (
+                <button
+                  key={format}
+                  onClick={() => handleFormatSelected(format)}
+                  disabled={downloadingFormat !== null}
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    background: downloadingFormat === format ? '#2563eb' : 'white',
+                    color: downloadingFormat === format ? 'white' : '#374151',
+                    fontSize: '14px',
+                    fontWeight: 500,
+                    cursor: downloadingFormat === null ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: downloadingFormat === null ? 1 : 0.6
+                  }}
+                  onMouseEnter={(e) => {
+                    if (downloadingFormat === null) {
+                      e.target.style.borderColor = '#2563eb';
+                      e.target.style.background = '#f0f9ff';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (downloadingFormat === null) {
+                      e.target.style.borderColor = '#e5e7eb';
+                      e.target.style.background = 'white';
+                    }
+                  }}
+                >
+                  {downloadingFormat === format ? 'Downloading...' : `Download as ${format}`}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setShowFormatModal(false)}
+              disabled={downloadingFormat !== null}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                border: '1px solid #d1d5db',
+                borderRadius: '8px',
+                background: 'white',
+                color: '#374151',
+                fontSize: '14px',
+                fontWeight: 500,
+                cursor: downloadingFormat === null ? 'pointer' : 'not-allowed',
+                opacity: downloadingFormat === null ? 1 : 0.6
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </>
+      )}
 
       {previewReport && (
         <ReportPreview 

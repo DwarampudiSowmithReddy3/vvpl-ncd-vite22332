@@ -51,6 +51,9 @@ export const DataProvider = ({ children }) => {
     return [];
   });
 
+  // Add a series loading state
+  const [seriesLoading, setSeriesLoading] = useState(true);
+
   // Add a series refresh trigger
   const [seriesRefreshTrigger, setSeriesRefreshTrigger] = useState(0);
 
@@ -158,6 +161,7 @@ export const DataProvider = ({ children }) => {
         const token = localStorage.getItem('authToken');
         if (import.meta.env.DEV) { console.log('🔍 Token exists:', !!token); }
         if (token) {
+          setSeriesLoading(true); // Set loading state
           const { default: apiService } = await import('../services/api');
           
           if (import.meta.env.DEV) { console.log('🔄 Loading NCD Series from database...'); }
@@ -204,17 +208,22 @@ export const DataProvider = ({ children }) => {
           
           if (import.meta.env.DEV) { console.log('✅ Loaded', transformedSeries.length, 'NCD series from database'); }
           setSeries(transformedSeries);
+          setSeriesLoading(false); // Clear loading state
         } else {
           if (import.meta.env.DEV) { console.log('⏳ No auth token found, skipping series loading'); }
+          setSeriesLoading(false); // Clear loading state even if no token
         }
       } catch (error) {
         if (import.meta.env.DEV) { console.error('❌ Failed to load NCD series:', error); }
+        setSeriesLoading(false); // Clear loading state on error
       }
     };
 
     const token = localStorage.getItem('authToken');
     if (token) {
       loadSeriesFromBackend();
+    } else {
+      setSeriesLoading(false); // No token, not loading
     }
   }, [seriesRefreshTrigger]); // Reload when seriesRefreshTrigger changes
 
@@ -976,6 +985,7 @@ export const DataProvider = ({ children }) => {
     <DataContext.Provider value={{
       investors,
       series,
+      seriesLoading,
       complaints,
       auditLogs,
       complianceStatus,

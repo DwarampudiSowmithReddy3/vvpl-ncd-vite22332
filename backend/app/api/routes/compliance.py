@@ -10,6 +10,7 @@ ALL business logic in backend, frontend just displays
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from typing import List, Dict, Optional
 from datetime import datetime, date
 from decimal import Decimal
@@ -537,7 +538,8 @@ async def update_compliance_status(
                 "year": year,
                 "month": month,
                 "new_status": new_status,
-                "notes": notes
+                "notes": notes,
+                "action": "compliance_status_updated"
             }
         )
         
@@ -787,59 +789,59 @@ async def get_series_compliance_summary(
         
         series_name = series_result[0]['name']
         
-        # Get total counts for each section from master items
-        master_counts_query = """
+        # Get current year and month for recurring compliance
+        current_year = datetime.now().year
+        current_month = datetime.now().month
+        
+        # OPTIMIZED: Single combined query to get all counts at once
+        combined_query = """
         SELECT 
-            section,
-            COUNT(*) as total_items
+            'master_pre' as type,
+            COUNT(*) as count
         FROM compliance_master_items
-        WHERE is_active = 1
-        GROUP BY section
-        """
-        master_counts = db.execute_query(master_counts_query)
+        WHERE is_active = 1 AND section = 'pre'
         
-        # Create lookup for total items per section
-        total_items = {}
-        for row in master_counts:
-            total_items[row['section']] = row['total_items']
+        UNION ALL
         
-        # Default values if no master items exist
-        pre_total = total_items.get('pre', 26)
-        post_total = total_items.get('post', 11)
-        recurring_total = total_items.get('recurring', 5)
+        SELECT 
+            'master_post' as type,
+            COUNT(*) as count
+        FROM compliance_master_items
+        WHERE is_active = 1 AND section = 'post'
         
-        # Get completed/submitted counts for this series
-        # For pre/post: count items with status 'received' or 'submitted'
-        # For recurring: count items for current month with status 'received' or 'submitted'
+        UNION ALL
         
-        # Pre-compliance completed count
-        pre_completed_query = """
-        SELECT COUNT(DISTINCT master_item_id) as completed
+        SELECT 
+            'master_recurring' as type,
+            COUNT(*) as count
+        FROM compliance_master_items
+        WHERE is_active = 1 AND section = 'recurring'
+        
+        UNION ALL
+        
+        SELECT 
+            'completed_pre' as type,
+            COUNT(DISTINCT master_item_id) as count
         FROM series_compliance_status
         WHERE series_id = %s 
         AND section = 'pre'
         AND status IN ('received', 'submitted')
-        """
-        pre_result = db.execute_query(pre_completed_query, (series_id,))
-        pre_completed = pre_result[0]['completed'] if pre_result else 0
         
-        # Post-compliance completed count
-        post_completed_query = """
-        SELECT COUNT(DISTINCT master_item_id) as completed
+        UNION ALL
+        
+        SELECT 
+            'completed_post' as type,
+            COUNT(DISTINCT master_item_id) as count
         FROM series_compliance_status
         WHERE series_id = %s 
         AND section = 'post'
         AND status IN ('received', 'submitted')
-        """
-        post_result = db.execute_query(post_completed_query, (series_id,))
-        post_completed = post_result[0]['completed'] if post_result else 0
         
-        # Recurring-compliance completed count (for current month)
-        current_year = datetime.now().year
-        current_month = datetime.now().month
+        UNION ALL
         
-        recurring_completed_query = """
-        SELECT COUNT(DISTINCT master_item_id) as completed
+        SELECT 
+            'completed_recurring' as type,
+            COUNT(DISTINCT master_item_id) as count
         FROM series_compliance_status
         WHERE series_id = %s 
         AND section = 'recurring'
@@ -847,8 +849,21 @@ async def get_series_compliance_summary(
         AND month = %s
         AND status IN ('received', 'submitted')
         """
-        recurring_result = db.execute_query(recurring_completed_query, (series_id, current_year, current_month))
-        recurring_completed = recurring_result[0]['completed'] if recurring_result else 0
+        
+        results = db.execute_query(combined_query, (series_id, series_id, series_id, current_year, current_month))
+        
+        # Parse results from combined query
+        counts = {}
+        for row in results:
+            counts[row['type']] = row['count']
+        
+        # Extract values with defaults
+        pre_total = counts.get('master_pre', 26)
+        post_total = counts.get('master_post', 11)
+        recurring_total = counts.get('master_recurring', 5)
+        pre_completed = counts.get('completed_pre', 0)
+        post_completed = counts.get('completed_post', 0)
+        recurring_completed = counts.get('completed_recurring', 0)
         
         # Calculate percentages
         pre_percentage = round((pre_completed / pre_total * 100)) if pre_total > 0 else 0
@@ -894,4 +909,166 @@ async def get_series_compliance_summary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error retrieving compliance summary: {str(e)}"
+        )
+
+
+
+# ============================================================================
+# 5. COMPLIANCE EXPORT ENDPOINTS
+# ============================================================================
+
+@router.get("/series/{series_id}/export/timesheet")
+async def export_compliance_timesheet(
+    series_id: int,
+    year: int,
+    format: str = 'csv',
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Export compliance timesheet for a specific series and year
+    Format: csv or pdf
+    """
+    try:
+        logger.info(f"🔄 Exporting compliance timesheet: series={series_id}, year={year}, format={format}")
+        db = get_db()
+        
+        # CHECK PERMISSION
+        if not has_permission(current_user, "view_compliance", db):
+            log_unauthorized_access(db, current_user, "export_compliance_timesheet", "view_compliance")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to export compliance data"
+            )
+        
+        # Get series name
+        series_query = "SELECT name FROM ncd_series WHERE id = %s AND is_active = 1"
+        series_result = db.execute_query(series_query, (series_id,))
+        if not series_result:
+            raise HTTPException(status_code=404, detail="Series not found")
+        
+        series_name = series_result[0]['name']
+        
+        # Get compliance data for all 12 months
+        total_records = 0
+        for month in range(1, 13):
+            status_query = """
+            SELECT COUNT(*) as count FROM series_compliance_status
+            WHERE series_id = %s AND year = %s AND month = %s
+            """
+            result = db.execute_query(status_query, (series_id, year, month))
+            if result:
+                total_records += result[0]['count']
+        
+        # Create audit log
+        create_audit_log(
+            db,
+            "Compliance TimeSheet Exported",
+            current_user.full_name,
+            current_user.role,
+            f"Exported compliance timesheet for series '{series_name}' for year {year} in {format.upper()} format",
+            "compliance",
+            str(series_id),
+            {
+                "series_id": series_id,
+                "series_name": series_name,
+                "year": year,
+                "format": format,
+                "record_count": total_records,
+                "action": "compliance_timesheet_export"
+            }
+        )
+        
+        logger.info(f"✅ Compliance timesheet exported: {total_records} records")
+        
+        return {
+            "success": True,
+            "message": f"Timesheet exported successfully",
+            "series_id": series_id,
+            "series_name": series_name,
+            "year": year,
+            "format": format,
+            "record_count": total_records,
+            "filename": f"compliance-timesheet-{series_id}-{year}.{format}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error exporting timesheet: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting timesheet: {str(e)}"
+        )
+
+
+@router.get("/series/{series_id}/export/report")
+async def export_compliance_report(
+    series_id: int,
+    format: str = 'pdf',
+    sections: Optional[str] = None,
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Export compliance report - minimal endpoint that just logs the action
+    Frontend generates the PDF using jsPDF with data already loaded
+    """
+    try:
+        logger.info(f"🔄 Exporting compliance report: series={series_id}, format={format}, sections={sections}")
+        db = get_db()
+        
+        # CHECK PERMISSION
+        if not has_permission(current_user, "view_compliance", db):
+            log_unauthorized_access(db, current_user, "export_compliance_report", "view_compliance")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to export compliance data"
+            )
+        
+        # Get series name
+        series_query = "SELECT name FROM ncd_series WHERE id = %s AND is_active = 1"
+        series_result = db.execute_query(series_query, (series_id,))
+        if not series_result:
+            raise HTTPException(status_code=404, detail="Series not found")
+        
+        series_name = series_result[0]['name']
+        
+        # Parse sections
+        section_list = sections.split(',') if sections else ['pre', 'post', 'recurring', 'statistics']
+        section_list = [s.strip() for s in section_list]
+        
+        # Create audit log
+        create_audit_log(
+            db,
+            "Compliance Report Exported",
+            current_user.full_name,
+            current_user.role,
+            f"Exported compliance report for series '{series_name}' with sections: {', '.join(section_list)} in {format.upper()} format",
+            "compliance",
+            str(series_id),
+            {
+                "series_id": series_id,
+                "series_name": series_name,
+                "format": format,
+                "sections": section_list,
+                "action": "compliance_report_export"
+            }
+        )
+        
+        logger.info(f"✅ Compliance report export logged")
+        
+        return {
+            "success": True,
+            "series_id": series_id,
+            "series_name": series_name,
+            "format": format,
+            "sections": section_list
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error exporting report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error exporting report: {str(e)}"
         )

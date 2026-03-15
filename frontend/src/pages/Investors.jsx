@@ -30,6 +30,7 @@ const Investors = () => {
   const [investors, setInvestors] = useState([]);
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true); // Always start with loading true
+  const [minLoadTimeComplete, setMinLoadTimeComplete] = useState(false); // Track minimum load time
   const [error, setError] = useState(null);
   const [statistics, setStatistics] = useState({
     total_investors: 0,
@@ -178,13 +179,23 @@ const Investors = () => {
     }
   };
 
-  // Minimum loading time of 3 seconds
+  // Minimum loading time of 1401ms
   useEffect(() => {
     const timer = setTimeout(() => {
-      setLoading(false);
-    }, 3000);
+      setMinLoadTimeComplete(true);
+    }, 1401);
     return () => clearTimeout(timer);
   }, []);
+
+  // Hide loader only when BOTH conditions are met:
+  // 1. Minimum 1401ms has passed
+  // 2. Data has been fetched
+  useEffect(() => {
+    if (minLoadTimeComplete && !loading) {
+      // Data is already loaded (loadData sets loading to false)
+      // Just ensure loader is hidden
+    }
+  }, [minLoadTimeComplete, loading]);
 
   // Load filtered investors when filters change
   useEffect(() => {
@@ -272,13 +283,30 @@ const Investors = () => {
     a.download = fileName;
     a.click();
 
-    // Log audit
-    await auditService.logReportDownload({
-      reportType: 'Investors List',
-      fileName: fileName,
-      format: 'CSV',
-      recordCount: filteredInvestors.length
-    }, user);
+    // Log audit directly to backend
+    try {
+      await apiService.createAuditLog({
+        action: 'Report Downloaded',
+        admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+        admin_role: user?.role || user?.displayRole || 'Unknown Role',
+        details: `Downloaded Investors List report (CSV format) with ${filteredInvestors.length} records`,
+        entity_type: 'Report',
+        entity_id: 'investors_list',
+        changes: {
+          report_type: 'Investors List',
+          file_name: fileName,
+          format: 'CSV',
+          record_count: filteredInvestors.length,
+          action: 'report_download',
+          timestamp: new Date().toISOString(),
+          username: user?.username,
+          user_role: user?.role || user?.displayRole
+        }
+      });
+      if (import.meta.env.DEV) { console.log('✅ Investors export logged'); }
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('❌ Failed to log investors export:', error); }
+    }
   };
 
   const handleDragOver = (e) => {
@@ -386,14 +414,31 @@ const Investors = () => {
         }
       }
 
-      // Log audit - FIXED: Changed logInvestorCreated to logInvestorCreate and matched parameter names
-      await auditService.logInvestorCreate(user, {
-        fullName: formData.fullName,
-        investorId: formData.investorId.trim().toUpperCase(),
-        email: formData.email,
-        phone: formData.phone,
-        kycStatus: formData.kycStatus
-      });
+      // Log audit directly to backend
+      try {
+        await apiService.createAuditLog({
+          action: 'Investor Created',
+          admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+          admin_role: user?.role || user?.displayRole || 'Unknown Role',
+          details: `Created new investor "${formData.fullName}" (ID: ${formData.investorId.trim().toUpperCase()})`,
+          entity_type: 'Investor',
+          entity_id: formData.investorId.trim().toUpperCase(),
+          changes: {
+            investor_name: formData.fullName,
+            investor_id: formData.investorId.trim().toUpperCase(),
+            email: formData.email,
+            phone: formData.phone,
+            kyc_status: formData.kycStatus,
+            action: 'investor_create',
+            timestamp: new Date().toISOString(),
+            username: user?.username,
+            user_role: user?.role || user?.displayRole
+          }
+        });
+        if (import.meta.env.DEV) { console.log('✅ Investor creation logged'); }
+      } catch (error) {
+        if (import.meta.env.DEV) { console.error('❌ Failed to log investor creation:', error); }
+      }
 
       // Reload data
       await loadData();

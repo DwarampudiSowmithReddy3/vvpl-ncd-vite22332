@@ -361,16 +361,8 @@ export const AuthProvider = ({ children }) => {
       return false;
     }
     
-    // CRITICAL: Super Admin ALWAYS has ALL permissions
-    if (user.role === 'Super Admin') {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.log('✅ Super Admin - GRANTING access automatically'); }
-      }
-      return true;
-    }
-    
-    // CRITICAL FIX: Use permissions state (from backend) instead of hardcoded PERMISSIONS
+    // CRITICAL FIX: Use permissions state (from backend) instead of hardcoded bypass
+    // Even Super Admin and Admin should use database permissions for consistency
     const userPermissions = permissions[user.role];
     if (!userPermissions) {
       // SECURITY: Only log in development mode
@@ -442,30 +434,15 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      // CRITICAL FIX: Merge the new permissions with existing permissions
-      const mergedPermissions = {
-        ...permissions,
-        ...newPermissions
-      };
-      
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Merged permissions for roles:', Object.keys(mergedPermissions)); }
-
-        }
-      }
-      
       // First, try to update permissions in the backend
       try {
         // SECURITY: Only log in development mode
         if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Sending ONLY changed permissions to backend...'); }
+          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Sending permissions to backend...'); }
           if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: About to call apiService.updatePermissions - CHECK NETWORK TAB!'); }
         }
         
-        // Send only the changed permissions to backend for precise audit logging
+        // Send the permissions to backend
         const result = await apiService.updatePermissions(newPermissions);
         
         // SECURITY: Only log in development mode
@@ -473,18 +450,29 @@ export const AuthProvider = ({ children }) => {
           if (import.meta.env.DEV) { console.log('✅ AuthContext: Backend permissions updated successfully:', result); }
         }
         
-        // Update the local permissions state with merged permissions
-        setPermissions(mergedPermissions);
+        // CRITICAL FIX: Fetch the updated permissions from backend to ensure consistency
+        if (import.meta.env.DEV) {
+          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Fetching updated permissions from backend...'); }
+        }
+        
+        const updatedPermissions = await apiService.getPermissions();
+        
+        if (import.meta.env.DEV) {
+          if (import.meta.env.DEV) { console.log('✅ AuthContext: Fetched updated permissions from backend'); }
+        }
+        
+        // Update the local permissions state with what the backend actually saved
+        setPermissions(updatedPermissions);
         
         // Also update the static PERMISSIONS object for backward compatibility
-        Object.assign(PERMISSIONS, mergedPermissions);
+        Object.assign(PERMISSIONS, updatedPermissions);
         
-        // Also save merged permissions to localStorage as backup
-        localStorage.setItem('userPermissions', JSON.stringify(mergedPermissions));
+        // Also save permissions to localStorage as backup
+        localStorage.setItem('userPermissions', JSON.stringify(updatedPermissions));
         
         // SECURITY: Only log in development mode
         if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('✅ AuthContext: Permissions updated successfully'); }
+          if (import.meta.env.DEV) { console.log('✅ AuthContext: Permissions updated and verified from backend'); }
         }
         
         return { success: true, message: result.message || 'Permissions updated successfully' };
@@ -493,18 +481,11 @@ export const AuthProvider = ({ children }) => {
         // SECURITY: Only log in development mode
         if (import.meta.env.DEV) {
           if (import.meta.env.DEV) { console.error('❌ AuthContext: Backend update failed:', backendError); }
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Falling back to local state update only...'); }
         }
         
-        // Fallback to local state update only
-        setPermissions(mergedPermissions);
-        Object.assign(PERMISSIONS, mergedPermissions);
-        localStorage.setItem('userPermissions', JSON.stringify(mergedPermissions));
-        
         return { 
-          success: true, 
-          message: 'Permissions updated locally (backend sync failed)',
-          warning: backendError.message 
+          success: false, 
+          error: backendError.message || 'Failed to update permissions'
         };
       }
       

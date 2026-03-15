@@ -8,6 +8,7 @@ import Layout from '../components/Layout';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Lottie from 'lottie-react';
 import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
+import documentDownloadAnimation from '../assets/animations/document-download.json';
 import './InterestPayout.css';
 import { MdOutlineFileDownload, MdPayment } from "react-icons/md";
 import { FiSearch, FiFilter, FiUpload } from "react-icons/fi";
@@ -26,6 +27,8 @@ const InterestPayout = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [importStatus, setImportStatus] = useState('');
+  const [showDownloadAnimation, setShowDownloadAnimation] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
   
   // Backend data states
   const [payoutData, setPayoutData] = useState([]);
@@ -63,7 +66,7 @@ const InterestPayout = () => {
     const timer = setTimeout(() => {
       console.log('✅ Timer complete - setting loading to false');
       setLoading(false);
-    }, 3000);
+    }, 1401);
     return () => {
       console.log('🧹 Cleaning up timer');
       clearTimeout(timer);
@@ -205,10 +208,23 @@ const InterestPayout = () => {
 
   const handleDownloadSample = async () => {
     try {
+      // Show loading animation
+      setShowDownloadAnimation(true);
+      setDownloadSuccess(false);
+      
       // Call backend to generate and download sample Excel
       const result = await api.downloadSampleTemplate();
       
-      // Add audit log
+      // Show success animation briefly then close
+      setDownloadSuccess(true);
+      
+      // Close animation after 1.5 seconds to show success state
+      setTimeout(() => {
+        setShowDownloadAnimation(false);
+        setDownloadSuccess(false);
+      }, 1500);
+      
+      // Add audit log (non-blocking)
       auditService.logDocumentDownloaded({
         documentType: 'Interest Payout Sample',
         fileName: result.filename,
@@ -218,6 +234,11 @@ const InterestPayout = () => {
       });
     } catch (error) {
       if (import.meta.env.DEV) { console.error('Error downloading sample template:', error); }
+      
+      // Close animation on error
+      setShowDownloadAnimation(false);
+      setDownloadSuccess(false);
+      
       alert('Failed to download sample template. Please try again.');
     }
   };
@@ -249,7 +270,7 @@ const InterestPayout = () => {
         await fetchPayoutData();
         await fetchSummaryData();
         
-        // Add audit log
+        // Add audit log for successful import
         auditService.logPayoutImported({
           fileName: uploadedFile.name,
           recordCount: response.updated_count
@@ -270,10 +291,50 @@ const InterestPayout = () => {
           errorMsg += '\n\nDetails:\n' + response.errors.join('\n');
         }
         setImportStatus(`error:${errorMsg}`);
+        
+        // Add audit log for failed import
+        auditService.logPayoutImportFailed({
+          fileName: uploadedFile.name,
+          successCount: response.updated_count || 0,
+          errorCount: response.error_count || 0,
+          errors: response.errors || []
+        }, user).catch(error => {
+          if (import.meta.env.DEV) { console.error('Failed to log payout import failure:', error); }
+        });
       }
     } catch (error) {
       if (import.meta.env.DEV) { console.error('Error importing payouts:', error); }
       setImportStatus(`error:${error.message || 'Failed to import payouts'}`);
+      
+      // Add audit log for import exception
+      auditService.logPayoutImportFailed({
+        fileName: uploadedFile.name,
+        successCount: 0,
+        errorCount: 1,
+        errors: [error.message || 'Unknown error during import']
+      }, user).catch(logError => {
+        if (import.meta.env.DEV) { console.error('Failed to log payout import exception:', logError); }
+      });
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      // Call backend to generate and download CSV
+      const result = await api.downloadPayoutsCSV(null, null);
+      
+      // Add audit log
+      auditService.logDocumentDownloaded({
+        documentType: 'Interest Payouts List',
+        fileName: result.filename,
+        format: 'CSV',
+        recordCount: payoutData.length
+      }, user).catch(error => {
+        if (import.meta.env.DEV) { console.error('Failed to log document download:', error); }
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('Error downloading CSV:', error); }
+      alert('Failed to download CSV file. Please try again.');
     }
   };
 
@@ -666,30 +727,73 @@ const InterestPayout = () => {
           </div>
         )}
 
+        {/* Download Sample Animation Card */}
+        {showDownloadAnimation && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 99999,
+            background: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+            border: '1px solid #e2e8f0',
+            width: '550px',
+            overflow: 'hidden',
+            animation: 'greetingEnter 0.5s ease-out'
+          }}>
+            <div style={{
+              padding: '32px 48px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px'
+            }}>
+              {/* Lottie Animation */}
+              <div style={{ width: '240px', height: '240px' }}>
+                <Lottie
+                  animationData={documentDownloadAnimation}
+                  loop={false}
+                  autoplay={true}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%'
+                  }}
+                />
+              </div>
+              
+              {/* Text Content */}
+              <div style={{
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  color: '#000000',
+                  margin: 0
+                }}>
+                  {downloadSuccess ? 'Download Complete!' : 'Downloading Sample...'}
+                </h2>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  color: '#64748b',
+                  margin: 0
+                }}>
+                  {downloadSuccess ? 'Your sample template is ready!' : 'Please wait while we prepare your file...'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </Layout>
   );
 };
 
 export default InterestPayout;
-
-
-  const handleExport = async () => {
-    try {
-      // Call backend to generate and download CSV
-      const result = await api.downloadPayoutsCSV(null, null);
-      
-      // Add audit log
-      auditService.logDocumentDownloaded({
-        documentType: 'Interest Payouts List',
-        fileName: result.filename,
-        format: 'CSV',
-        recordCount: payoutData.length
-      }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log document download:', error); }
-      });
-    } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading CSV:', error); }
-      alert('Failed to download CSV file. Please try again.');
-    }
-  };

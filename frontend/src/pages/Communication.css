@@ -1150,48 +1150,35 @@
   transform: translateY(-1px);
 }
 
-/* Communication History Styling - Make styles specific to history tab only */
-.communication-content .communication-section {
-  padding: 0;
-  margin: 0;
+/* Communication History Section - Styled like Audit Log */
+.communication-history-section {
+  margin-bottom: 2.5rem;
 }
 
-.communication-content .communication-section .section-card {
-  background: white;
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.communication-content .communication-section .card-header {
+.history-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95) 0%, rgba(241, 245, 249, 0.9) 100%);
-  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.communication-content .communication-section .card-header h3 {
+.history-header .section-title {
   font-size: 1.25rem;
   font-weight: 600;
   color: #1e293b;
   margin: 0;
 }
 
-.communication-content .communication-section .card-content {
-  padding: 1.5rem;
-}
-
-/* History Filter Buttons - Make specific to history section */
-.communication-section .history-filters {
+/* History Filter Buttons - Like Audit Log */
+.communication-history-section .history-filters {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
   flex-wrap: wrap;
 }
 
-.communication-section .filter-btn {
+.communication-history-section .filter-btn {
   padding: 0.5rem 1rem;
   border: 1px solid #e5e7eb;
   background: white;
@@ -1203,181 +1190,401 @@
   transition: all 0.2s ease;
 }
 
-.communication-section .filter-btn:hover {
+.communication-history-section .filter-btn:hover {
   background: #f9fafb;
   border-color: #d1d5db;
 }
 
-.communication-section .filter-btn.active {
+.communication-history-section .filter-btn.active {
   background: #f59e0b;
   color: white;
   border-color: #f59e0b;
 }
 
-/* Empty History State - Make specific to history section */
-.communication-section .empty-history {
-  text-align: center;
-  padding: 3rem 1rem;
-  color: #6b7280;
-}
-
-.communication-section .empty-history p {
-  font-size: 1rem;
-  margin: 0;
-}
-
-/* History Table - Make specific to history section */
-.communication-section .history-table-container {
+/* History Table - Desktop */
+.communication-history-section .table-container {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-x: auto;
-  overflow-y: auto;
-  max-height: 500px;
-  border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  overflow-y: hidden;
 }
 
-.communication-section .history-table {
+.communication-history-section .communication-history-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  table-layout: fixed;
 }
 
-.communication-section .history-table th {
-  background: #f9fafb;
-  padding: 0.75rem;
+.communication-history-section .communication-history-table th {
+  background: #f8fafc;
+  padding: 0.5rem 1.25rem !important;
   text-align: left;
   font-weight: 600;
   color: #374151;
   border-bottom: 1px solid #e5e7eb;
+  font-size: 0.875rem;
   white-space: nowrap;
+  vertical-align: middle !important;
+  line-height: 1.2;
 }
 
-.communication-section .history-table td {
-  padding: 0.75rem;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: top;
+.communication-history-section .communication-history-table th .time-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  margin-top: 0.125rem;
+  line-height: 1.2;
 }
 
-.communication-section .history-table tbody tr:hover {
+.communication-history-section .communication-history-table td {
+  padding: 0.5rem 1.25rem !important;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.875rem;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  height: auto;
+  line-height: 1.4;
+}
+
+.communication-history-section .communication-history-table tbody tr:hover {
   background: #f9fafb;
 }
 
-.communication-section .history-table tbody tr:last-child td {
-  border-bottom: none;
+/* Timestamp styling - inline */
+.communication-history-section .timestamp-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
+  width: 90px;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  line-height: 1.2;
 }
 
-/* Table Cell Specific Styling - Make specific to history section */
-.communication-section .timestamp-cell {
-  font-family: 'Monaco', 'Menlo', monospace;
+.communication-history-section .date-time-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.communication-history-section .date-part {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+}
+
+.communication-history-section .time-part {
   font-size: 0.75rem;
-  color: #6b7280;
-  white-space: nowrap;
+  color: #9ca3af;
+  line-height: 1.2;
 }
 
-.communication-section .type-badge {
+/* Type cell - inline */
+.communication-history-section .type-cell {
+  width: 70px;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  line-height: 1.4;
+}
+
+/* Type badge styling - inline */
+.communication-history-section .type-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   white-space: nowrap;
 }
 
-.communication-section .type-badge.sms {
+.communication-history-section .type-badge.sms {
   background: #dbeafe;
   color: #1e40af;
 }
 
-.communication-section .type-badge.email {
+.communication-history-section .type-badge.email {
   background: #dcfce7;
   color: #16a34a;
 }
 
-.communication-section .recipient-cell {
-  min-width: 150px;
+/* Recipient styling - inline */
+.communication-history-section .recipient-cell {
+  width: 130px;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  line-height: 1.4;
 }
 
-.communication-section .recipient-name {
-  font-weight: 500;
+.communication-history-section .recipient-name {
+  font-weight: 600;
   color: #1f2937;
-}
-
-.communication-section .recipient-id {
-  font-size: 0.75rem;
-  color: #6b7280;
-  font-family: 'Monaco', 'Menlo', monospace;
-}
-
-.communication-section .contact-cell {
-  font-family: 'Monaco', 'Menlo', monospace;
-  font-size: 0.75rem;
-  color: #6b7280;
-  max-width: 150px;
-  word-break: break-all;
-}
-
-.communication-section .status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  font-size: 0.875rem;
+  display: inline;
+  margin-right: 0.25rem;
   white-space: nowrap;
 }
 
-.communication-section .status-badge.success {
+.communication-history-section .recipient-id {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: 'Courier New', monospace;
+  display: inline;
+  white-space: nowrap;
+}
+
+/* Contact styling - inline */
+.communication-history-section .contact-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
+  width: 150px;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  display: table-cell;
+}
+
+/* Series cell - inline */
+.communication-history-section .series-cell {
+  display: none;
+}
+
+/* Status badge styling - inline */
+.communication-history-section .status-cell {
+  width: 100px;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  line-height: 1.4;
+}
+
+.communication-history-section .status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.communication-history-section .status-badge.status-sent {
   background: #dcfce7;
   color: #16a34a;
 }
 
-.communication-section .status-badge.failed {
+.communication-history-section .status-badge.status-pending {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.communication-history-section .status-badge.status-failed {
   background: #fee2e2;
   color: #dc2626;
 }
 
-.communication-section .message-preview {
-  max-width: 200px;
+.communication-history-section .status-badge.status-delivered {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Message cell - inline with ellipsis */
+.communication-history-section .message-cell {
+  flex: 1;
+  padding: 0.5rem 1.25rem !important;
+  vertical-align: middle !important;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.communication-history-section .message-preview {
+  display: inline;
+  color: #475569;
+  font-size: 0.875rem;
   white-space: nowrap;
-  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.communication-history-section .error-message {
+  display: none;
+}
+
+/* Empty history state */
+.communication-history-section .empty-history {
+  padding: 2.5rem;
+  text-align: center;
+  color: #64748b;
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.communication-history-section .empty-history p {
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* See All Logs Button Container */
+.see-all-logs-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.see-all-logs-button {
+  padding: 0.75rem 1.5rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.see-all-logs-button:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3);
+}
+
+.see-all-logs-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Mobile History Cards - Hidden on desktop */
+.mobile-history-list {
+  display: none;
+}
+
+.mobile-history-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.mobile-history-time {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: 'Courier New', monospace;
+}
+
+.mobile-history-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
   font-size: 0.875rem;
 }
 
-.communication-section .message-cell {
-  max-width: 250px;
+.mobile-history-recipient {
+  font-weight: 600;
+  color: #1f2937;
 }
 
-.communication-section .error-message {
+.mobile-history-id {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-family: 'Courier New', monospace;
+}
+
+.mobile-history-contact {
+  font-family: 'Courier New', monospace;
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.mobile-history-series {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.mobile-history-message {
+  color: #475569;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mobile-history-error {
   font-size: 0.75rem;
   color: #dc2626;
-  margin-top: 0.25rem;
   font-style: italic;
 }
 
-/* Responsive History Table - Make specific to history section */
+/* Responsive - Show mobile cards on small screens */
 @media (max-width: 768px) {
-  .communication-section .history-table-container {
-    font-size: 0.75rem;
+  .communication-history-section .communication-history-table {
+    display: none !important;
   }
   
-  .communication-section .history-table th,
-  .communication-section .history-table td {
-    padding: 0.5rem 0.25rem;
+  .mobile-history-list {
+    display: block !important;
   }
   
-  .communication-section .message-preview {
-    max-width: 100px;
+  .history-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
   
-  .communication-section .recipient-cell {
-    min-width: 100px;
+  .communication-history-section .history-filters {
+    width: 100%;
+    justify-content: flex-start;
   }
   
-  .communication-section .contact-cell {
-    max-width: 100px;
+  .mobile-history-card {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .mobile-history-header {
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+  
+  .mobile-history-details {
+    gap: 0.375rem;
+  }
+}
+
+/* Desktop - Hide mobile cards */
+@media (min-width: 769px) {
+  .communication-history-section .communication-history-table {
+    display: table;
+  }
+  
+  .mobile-history-list {
+    display: none;
   }
 }

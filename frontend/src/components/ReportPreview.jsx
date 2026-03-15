@@ -4,6 +4,7 @@ import apiService from '../services/api';
 import pdfTemplateService from '../utils/pdfTemplateService';
 import excelExportService from '../utils/excelExportService';
 import html2canvas from 'html2canvas';
+import { useAuth } from '../context/AuthContext';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -64,6 +65,7 @@ import {
 } from 'react-icons/fa';
 
 const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) => {
+  const { user } = useAuth();
   const [selectedFormat, setSelectedFormat] = useState('PDF');
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -348,6 +350,32 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
     }));
   };
 
+  // Helper function to log report download to audit
+  const logReportDownload = async (reportName, format, fileName) => {
+    try {
+      await apiService.createAuditLog({
+        action: 'Report Downloaded',
+        admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+        admin_role: user?.role || user?.displayRole || 'Unknown Role',
+        details: `Downloaded "${reportName}" report (${format} format)`,
+        entity_type: 'Report',
+        entity_id: reportName,
+        changes: {
+          report_type: reportName,
+          format: format,
+          file_name: fileName,
+          action: 'report_download',
+          timestamp: new Date().toISOString(),
+          username: user?.username,
+          user_role: user?.role || user?.displayRole
+        }
+      });
+      if (import.meta.env.DEV) { console.log('✅ Report download logged'); }
+    } catch (error) {
+      if (import.meta.env.DEV) { console.error('❌ Error logging report download:', error); }
+    }
+  };
+
   const handleDownload = async () => {
     try {
       if (import.meta.env.DEV) { console.log('📥 Starting download for:', reportName); }
@@ -393,16 +421,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Monthly Collection Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service...'); }
           excelExportService.exportMonthlyCollectionReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Monthly Collection Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service...'); }
           excelExportService.exportMonthlyCollectionReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         } else {
           // For other formats, use default handler
           onDownload(reportName, selectedFormat);
@@ -479,16 +513,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Payout Statement
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Payout Statement...'); }
           excelExportService.exportPayoutStatementReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Payout Statement
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Payout Statement...'); }
           excelExportService.exportPayoutStatementReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Series-wise Performance') {
         if (selectedFormat === 'PDF') {
@@ -595,16 +635,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Series-wise Performance
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Series-wise Performance...'); }
           excelExportService.exportSeriesPerformanceReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Series-wise Performance
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Series-wise Performance...'); }
           excelExportService.exportSeriesPerformanceReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Investor Portfolio Summary') {
         if (selectedFormat === 'PDF') {
@@ -696,16 +742,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Investor Portfolio Summary
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Investor Portfolio Summary...'); }
           excelExportService.exportInvestorPortfolioReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Investor Portfolio Summary
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Investor Portfolio Summary...'); }
           excelExportService.exportInvestorPortfolioReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'KYC Status Report') {
         if (selectedFormat === 'PDF') {
@@ -715,16 +767,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for KYC Status Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for KYC Status Report...'); }
           excelExportService.exportKYCStatusReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for KYC Status Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for KYC Status Report...'); }
           excelExportService.exportKYCStatusReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'New Investor Report') {
         if (selectedFormat === 'PDF') {
@@ -734,16 +792,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for New Investor Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for New Investor Report...'); }
           excelExportService.exportNewInvestorReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for New Investor Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for New Investor Report...'); }
           excelExportService.exportNewInvestorReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'RBI Compliance Report') {
         if (selectedFormat === 'PDF') {
@@ -753,16 +817,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = 'reports.pdf';
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for RBI Compliance Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for RBI Compliance Report...'); }
           excelExportService.exportRBIComplianceReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `RBI_Compliance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for RBI Compliance Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for RBI Compliance Report...'); }
           excelExportService.exportRBIComplianceReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `RBI_Compliance_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'SEBI Disclosure Report') {
         if (selectedFormat === 'PDF') {
@@ -772,16 +842,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for SEBI Disclosure Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for SEBI Disclosure Report...'); }
           excelExportService.exportSEBIDisclosureReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for SEBI Disclosure Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for SEBI Disclosure Report...'); }
           excelExportService.exportSEBIDisclosureReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Audit Trail Report') {
         if (selectedFormat === 'PDF') {
@@ -791,16 +867,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Audit Trail Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Audit Trail Report...'); }
           excelExportService.exportAuditTrailReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Audit Trail Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Audit Trail Report...'); }
           excelExportService.exportAuditTrailReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Daily Activity Report') {
         if (selectedFormat === 'PDF') {
@@ -832,16 +914,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Daily Activity Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Daily Activity Report...'); }
           excelExportService.exportDailyActivityReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Daily Activity Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Daily Activity Report...'); }
           excelExportService.exportDailyActivityReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Subscription Trend Analysis') {
         if (selectedFormat === 'PDF') {
@@ -873,16 +961,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Subscription Trend Analysis
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Subscription Trend Analysis...'); }
           excelExportService.exportSubscriptionTrendAnalysis(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Subscription Trend Analysis
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Subscription Trend Analysis...'); }
           excelExportService.exportSubscriptionTrendAnalysisCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Series Maturity Report') {
         if (selectedFormat === 'PDF') {
@@ -892,16 +986,22 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
           if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
+          // Log the download
+          await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Series Maturity Report
           if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Series Maturity Report...'); }
           excelExportService.exportSeriesMaturityReport(reportData);
           if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
+          const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+          await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Series Maturity Report
           if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Series Maturity Report...'); }
           excelExportService.exportSeriesMaturityReportCSV(reportData);
           if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
+          const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.csv`;
+          await logReportDownload(reportName, 'CSV', filename);
         }
       } else {
         // Use default download handler for other reports/formats

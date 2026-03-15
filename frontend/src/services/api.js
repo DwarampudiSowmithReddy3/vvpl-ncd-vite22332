@@ -270,6 +270,10 @@ class ApiService {
     return await this.request(endpoint);
   }
 
+  async getAvailableRoles() {
+    return await this.request('/users/roles/available');
+  }
+
   async createUser(userData) {
     return await this.request('/users/', {
       method: 'POST',
@@ -334,17 +338,7 @@ class ApiService {
     return await this.request(endpoint);
   }
 
-  // Permissions endpoints
-  async updatePermissions(permissionsData) {
-    return await this.request('/permissions/', {
-      method: 'PUT',
-      body: JSON.stringify(permissionsData),
-    });
-  }
 
-  async getPermissions() {
-    return await this.request('/permissions/');
-  }
 
   async getRolePermissions(roleName) {
     return await this.request(`/permissions/${roleName}`);
@@ -707,6 +701,24 @@ class ApiService {
 
   async getSeriesComplianceSummary(seriesId) {
     return await this.request(`/compliance/series/${seriesId}/summary`);
+  }
+
+  async exportComplianceTimesheet(seriesId, year, format = 'csv') {
+    const queryParams = new URLSearchParams();
+    queryParams.append('year', year);
+    queryParams.append('format', format);
+    
+    const url = `/compliance/series/${seriesId}/export/timesheet?${queryParams.toString()}`;
+    return await this.request(url);
+  }
+
+  async exportComplianceReport(seriesId, format = 'pdf', sections = null) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', format);
+    if (sections) queryParams.append('sections', sections);
+    
+    const url = `/compliance/series/${seriesId}/export/report?${queryParams.toString()}`;
+    return await this.requestBlob(url);
   }
 
   // ============================================
@@ -1241,6 +1253,57 @@ class ApiService {
 
   async getLastGeneratedDates() {
     return await this.request('/reports/last-generated');
+  }
+
+  // ============================================
+  // REPORT DOWNLOAD ENDPOINTS
+  // ============================================
+
+  async downloadMonthlyCollectionReport(format = 'pdf', fromDate = null, toDate = null, seriesId = null) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', format);
+    if (fromDate) queryParams.append('from_date', fromDate);
+    if (toDate) queryParams.append('to_date', toDate);
+    if (seriesId) queryParams.append('series_id', seriesId);
+    const url = `/reports/download/monthly-collection?${queryParams.toString()}`;
+    return await this.requestBlob(url);
+  }
+
+  async downloadPayoutStatementReport(format = 'pdf', fromDate = null, toDate = null, month = null, seriesId = null) {
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', format);
+    if (fromDate) queryParams.append('from_date', fromDate);
+    if (toDate) queryParams.append('to_date', toDate);
+    if (month) queryParams.append('month', month);
+    if (seriesId) queryParams.append('series_id', seriesId);
+    const url = `/reports/download/payout-statement?${queryParams.toString()}`;
+    return await this.requestBlob(url);
+  }
+
+  async downloadSeriesPerformanceReport(format = 'pdf') {
+    const queryParams = new URLSearchParams();
+    queryParams.append('format', format);
+    const url = `/reports/download/series-performance?${queryParams.toString()}`;
+    return await this.requestBlob(url);
+  }
+
+  // Helper method for blob requests
+  async requestBlob(url) {
+    const token = localStorage.getItem('token');
+    const response = await fetch(`${this.baseURL}${url}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.detail || 'Request failed');
+    }
+
+    return await response.blob();
   }
 }
 
