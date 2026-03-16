@@ -13,17 +13,12 @@ const InvestorSeries = () => {
   const investor = investors.find(inv => inv.investorId === user?.investorId);
 
   // EMERGENCY SECURITY CHECK - HARD BLOCK FOR DEACTIVATED/DELETED ACCOUNTS
-  if (import.meta.env.DEV) { console.log('EMERGENCY SECURITY CHECK - Current investor:', investor); }
-  if (import.meta.env.DEV) { console.log('Investor status:', investor?.status); }
-  if (import.meta.env.DEV) { console.log('Investor active:', investor?.active); }
 
   // IMMEDIATE RETURN - NO INVESTMENT PAGE FOR BLOCKED ACCOUNTS
   if (!investor || 
       investor.status === 'deleted' || 
       investor.status === 'deactivated' || 
       investor.active === false) {
-    
-    if (import.meta.env.DEV) { console.log('BLOCKING INVESTOR ACCESS - Account is not active'); }
     
     return (
       <Layout isInvestor={true}>
@@ -43,7 +38,7 @@ const InvestorSeries = () => {
             textAlign: 'center'
           }}>
             <h1 style={{ color: '#dc2626', fontSize: '32px', marginBottom: '20px' }}>
-              🚫 ACCESS DENIED
+              ðŸš« ACCESS DENIED
             </h1>
             <h2 style={{ color: '#991b1b', fontSize: '24px', marginBottom: '20px' }}>
               Investment Functionality Blocked
@@ -114,19 +109,13 @@ const InvestorSeries = () => {
 
   const handleInvest = (series) => {
     // EMERGENCY SECURITY CHECK - HARD BLOCK
-    if (import.meta.env.DEV) { console.log('🚫 EMERGENCY INVEST BUTTON CHECK'); }
-    if (import.meta.env.DEV) { console.log('Current investor:', investor); }
-    if (import.meta.env.DEV) { console.log('Investor status:', investor?.status); }
-    if (import.meta.env.DEV) { console.log('Investor active:', investor?.active); }
     
     // ABSOLUTE BLOCK - NO MODAL FOR BLOCKED ACCOUNTS
     if (!investor || 
         investor.status === 'deleted' || 
         investor.status === 'deactivated' || 
         investor.active === false) {
-      
-      if (import.meta.env.DEV) { console.log('🚫 BLOCKING INVESTMENT MODAL'); }
-      alert('🚫 ACCESS DENIED: Your account is deactivated/deleted. You cannot make investments.');
+      alert('ðŸš« ACCESS DENIED: Your account is deactivated/deleted. You cannot make investments.');
       return;
     }
 
@@ -138,19 +127,13 @@ const InvestorSeries = () => {
     e.preventDefault();
     
     // EMERGENCY SECURITY CHECK - ABSOLUTE BLOCK
-    if (import.meta.env.DEV) { console.log('EMERGENCY INVESTMENT BLOCK CHECK'); }
-    if (import.meta.env.DEV) { console.log('Current investor:', investor); }
-    if (import.meta.env.DEV) { console.log('Investor status:', investor?.status); }
-    if (import.meta.env.DEV) { console.log('Investor active:', investor?.active); }
     
     // HARD STOP - NO INVESTMENTS FOR BLOCKED ACCOUNTS
     if (!investor || 
         investor.status === 'deleted' || 
         investor.status === 'deactivated' || 
         investor.active === false) {
-      
-      if (import.meta.env.DEV) { console.log('🚫 INVESTMENT BLOCKED - Account is not active'); }
-      alert('🚫 INVESTMENT BLOCKED: Your account is deactivated/deleted. Contact support immediately.');
+      alert('ðŸš« INVESTMENT BLOCKED: Your account is deactivated/deleted. Contact support immediately.');
       setSelectedSeries(null);
       return;
     }
@@ -163,9 +146,7 @@ const InvestorSeries = () => {
         currentInvestor.status === 'deleted' || 
         currentInvestor.status === 'deactivated' || 
         currentInvestor.active === false) {
-      
-      if (import.meta.env.DEV) { console.log('🚫 DOUBLE CHECK FAILED - Investment blocked'); }
-      alert('🚫 SECURITY ALERT: Investment blocked due to account status. Contact support.');
+      alert('ðŸš« SECURITY ALERT: Investment blocked due to account status. Contact support.');
       setSelectedSeries(null);
       return;
     }
@@ -285,7 +266,7 @@ const InvestorSeries = () => {
                 </div>
                 {isInvested ? (
                   <button className="invested-button" disabled>
-                    ✓ Already Invested
+                    âœ“ Already Invested
                   </button>
                 ) : !isInvestorActive ? (
                   <button className="disabled-button" disabled>
@@ -370,4 +351,5 @@ const InvestorSeries = () => {
 };
 
 export default InvestorSeries;
+
 

@@ -67,7 +67,7 @@ export const sendSMS = async (mobileNumber, message) => {
       status: 'Success',
     };
   } catch (error) {
-    if (import.meta.env.DEV) { console.error('SMS sending error:', error); }
+    /* Error handled below */
     
     // Check if it's a network/API error
     if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {
@@ -129,7 +129,7 @@ export const sendEmail = async (emailId, subject, message, htmlContent = null) =
       status: 'Success',
     };
   } catch (error) {
-    if (import.meta.env.DEV) { console.error('Email sending error:', error); }
+    /* Error handled below */
     
     // Check if it's a network/API error
     if (error.message.includes('fetch') || error.message.includes('Failed to fetch')) {

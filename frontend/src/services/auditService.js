@@ -6,7 +6,7 @@ class AuditService {
     try {
       // Validate required fields
       if (!activityData.action || !activityData.adminName && !activityData.userName) {
-        if (import.meta.env.DEV) { console.warn('⚠️ Missing required audit fields:', activityData); }
+        // Log removed
         return; // Skip if required fields are missing
       }
 
@@ -21,11 +21,10 @@ class AuditService {
       };
       
       await apiService.createAuditLog(auditData);
-      if (import.meta.env.DEV) { console.log('✅ Activity logged to database:', activityData.action); }
+      // Log removed
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to log activity:', error); }
+      /* Log removed for security */ }
       // Don't throw error - audit logging should not break main functionality
-    }
   }
 
   // Dashboard specific logging
@@ -35,7 +34,7 @@ class AuditService {
 
   async logDashboardMetricsView(userData, metricsViewed = []) {
     // TEMPORARILY DISABLED - was causing 422 errors due to incorrect data format
-    if (import.meta.env.DEV) { console.log('🔄 Dashboard metrics logging temporarily disabled to prevent 422 errors'); }
+    // Log removed
     return;
     
     await this.logActivity({
@@ -593,7 +592,7 @@ class AuditService {
   async logDataOperation(userData, operation, entityType, entityId, details, changes = {}) {
     // Handle missing or incomplete user data
     if (!userData) {
-      if (import.meta.env.DEV) { console.warn('⚠️ User data missing for audit log'); }
+      /* Log removed */
       return; // Skip audit logging if user data is not available
     }
 

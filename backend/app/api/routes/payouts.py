@@ -56,7 +56,7 @@ def calculate_monthly_interest(principal_amount: float, annual_interest_rate: fl
         # Calculate interest based on actual days
         interest = (principal_amount * annual_interest_rate * days_in_month) / 100 / days_in_year
         
-        logger.info(f"Monthly interest for {month}/{year}: {days_in_month} days, Interest = ₹{interest:.2f}")
+        # logger.info(f"Monthly interest for {month}/{year}: {days_in_month} days, Interest = ₹{interest:.2f}")
         
         return round(interest, 2)
     except Exception as e:
@@ -117,7 +117,7 @@ def calculate_first_month_interest(
         # Calculate prorated interest
         interest = (principal_amount * annual_interest_rate * days) / 100 / days_in_year
         
-        logger.info(f"First month: {series_start_date} to {end_date} = {days} days, Interest = ₹{interest:.2f}")
+        # logger.info(f"First month: {series_start_date} to {end_date} = {days} days, Interest = ₹{interest:.2f}")
         
         return round(interest, 2)
     except Exception as e:
@@ -173,7 +173,7 @@ def calculate_exit_interest(
         # Calculate prorated interest
         interest = (principal_amount * annual_interest_rate * days) / 100 / days_in_year
         
-        logger.info(f"Exit: {start_date} to {exit_date} = {days} days, Interest = ₹{interest:.2f}")
+        # logger.info(f"Exit: {start_date} to {exit_date} = {days} days, Interest = ₹{interest:.2f}")
         
         return round(interest, 2)
     except Exception as e:
@@ -229,7 +229,7 @@ def calculate_maturity_interest(
         # Calculate prorated interest
         interest = (principal_amount * annual_interest_rate * days) / 100 / days_in_year
         
-        logger.info(f"Maturity: {start_date} to {maturity_date} = {days} days, Interest = ₹{interest:.2f}")
+        # logger.info(f"Maturity: {start_date} to {maturity_date} = {days} days, Interest = ₹{interest:.2f}")
         
         return round(interest, 2)
     except Exception as e:
@@ -397,7 +397,7 @@ def generate_payout_date(year: int, month: int, payment_day: int) -> str:
     try:
         import calendar
         
-        logger.info(f"🔍 generate_payout_date called: interest_month={month}/{year}, payment_day={payment_day}")
+        # logger.info(f"🔍 generate_payout_date called: interest_month={month}/{year}, payment_day={payment_day}")
         
         # Calculate NEXT month for payout
         if month == 12:
@@ -414,7 +414,7 @@ def generate_payout_date(year: int, month: int, payment_day: int) -> str:
         payout_date = date(payout_year, payout_month, actual_day)
         result = payout_date.strftime('%d-%b-%Y')
         
-        logger.info(f"🔍 generate_payout_date result: Interest for {month}/{year} → Payout on {result}")
+        # logger.info(f"🔍 generate_payout_date result: Interest for {month}/{year} → Payout on {result}")
         return result
     except Exception as e:
         logger.error(f"Error generating payout date: {e}")
@@ -449,9 +449,9 @@ async def get_all_payouts(
     try:
         db = get_db()
         
-        logger.info("=" * 80)
-        logger.info("🚀 GET_ALL_PAYOUTS CALLED - USING NEW CALCULATION LOGIC")
-        logger.info("=" * 80)
+        # logger.info("=" * 80)
+        # logger.info("🚀 GET_ALL_PAYOUTS CALLED - USING NEW CALCULATION LOGIC")
+        # logger.info("=" * 80)
         
         # CHECK PERMISSION
         if not has_permission(current_user, "view_interestPayout", db):
@@ -461,7 +461,7 @@ async def get_all_payouts(
                 detail="Access Denied: You don't have permission to view payouts"
             )
         
-        logger.info(f"📊 Fetching all payouts for user: {current_user.username}")
+        # logger.info(f"📊 Fetching all payouts for user: {current_user.username}")
         
         # CRITICAL BUSINESS RULE:
         # Interest for a month is PAID in the NEXT month
@@ -615,39 +615,12 @@ async def get_all_payouts(
             logger.info(f"🔍 DEBUG {row['investor_code']}: series_start={series_start_date}, interest_period={interest_year}-{interest_month}, is_first={is_first}, exit={exit_date}")
             
             if exit_date and is_final_payout_after_exit(payout_date_obj, exit_date):
-                # SCENARIO 1: Investor has exited - Calculate from series start (or 1st) to exit date
-                # This takes PRIORITY over first month calculation
-                # If exit is in first month: Calculate from series start to exit date
-                # If exit is in later month: Calculate from 1st of month to exit date
-                
-                print(f"\n{'='*100}")
-                print(f"🚨 EXIT DETECTED for {row['investor_code']}")
-                print(f"   Series Start: {series_start_date}")
-                print(f"   Exit Date: {exit_date}")
-                print(f"   Interest Period: {interest_month}/{interest_year}")
-                print(f"   Is First Payout: {is_first_payout(series_start_date, interest_month, interest_year) if series_start_date else False}")
-                print(f"{'='*100}\n")
-                
                 if series_start_date and is_first_payout(series_start_date, interest_month, interest_year):
-                    # Exit in first month: Calculate from series start to exit date
                     days_from_start_to_exit = (exit_date - series_start_date).days + 1
                     import calendar
                     days_in_year = 366 if calendar.isleap(exit_date.year) else 365
                     monthly_interest = (float(row['investment_amount']) * float(row['interest_rate']) * days_from_start_to_exit) / 100 / days_in_year
-                    
-                    print(f"\n{'='*100}")
-                    print(f"💰 EXIT IN FIRST MONTH CALCULATION for {row['investor_code']}")
-                    print(f"   Principal: Rs.{row['investment_amount']:,.2f}")
-                    print(f"   Rate: {row['interest_rate']}%")
-                    print(f"   Period: {series_start_date} to {exit_date}")
-                    print(f"   Days: {days_from_start_to_exit}")
-                    print(f"   Formula: ({row['investment_amount']} × {row['interest_rate']}% × {days_from_start_to_exit}) / {days_in_year}")
-                    print(f"   RESULT: Rs.{monthly_interest:,.2f}")
-                    print(f"{'='*100}\n")
-                    
-                    logger.info(f"Final payout (exit in first month) for {row['investor_code']}: {series_start_date} to {exit_date} = {days_from_start_to_exit} days = Rs.{monthly_interest:.2f}")
                 else:
-                    # Exit in later month: Calculate from 1st of month to exit date
                     monthly_interest = calculate_exit_interest(
                         float(row['investment_amount']),
                         float(row['interest_rate']),
@@ -655,28 +628,14 @@ async def get_all_payouts(
                         interest_month - 1 if interest_month > 1 else 12,
                         interest_year if interest_month > 1 else interest_year - 1
                     )
-                    
-                    print(f"\n{'='*100}")
-                    print(f"💰 EXIT IN LATER MONTH CALCULATION for {row['investor_code']}")
-                    print(f"   Exit Date: {exit_date}")
-                    print(f"   RESULT: Rs.{monthly_interest:,.2f}")
-                    print(f"{'='*100}\n")
-                    
-                    logger.info(f"Final payout (exit) for {row['investor_code']}: 1st of month to exit date = Rs.{monthly_interest:.2f}")
             
             elif maturity_date and is_last_payout_before_maturity(payout_date_obj, maturity_date):
-                # SCENARIO 2: Series has matured - Calculate from series start (or 1st) to maturity date
-                # If maturity is in first month: Calculate from series start to maturity date
-                # If maturity is in later month: Calculate from 1st of month to maturity date
                 if series_start_date and is_first_payout(series_start_date, interest_month, interest_year):
-                    # Maturity in first month: Calculate from series start to maturity date
                     days_from_start_to_maturity = (maturity_date - series_start_date).days + 1
                     import calendar
                     days_in_year = 366 if calendar.isleap(maturity_date.year) else 365
                     monthly_interest = (float(row['investment_amount']) * float(row['interest_rate']) * days_from_start_to_maturity) / 100 / days_in_year
-                    logger.info(f"Last payout (maturity in first month) for {row['investor_code']}: {series_start_date} to {maturity_date} = {days_from_start_to_maturity} days = Rs.{monthly_interest:.2f}")
                 else:
-                    # Maturity in later month: Calculate from 1st of month to maturity date
                     monthly_interest = calculate_maturity_interest(
                         float(row['investment_amount']),
                         float(row['interest_rate']),
@@ -684,12 +643,8 @@ async def get_all_payouts(
                         interest_month - 1 if interest_month > 1 else 12,
                         interest_year if interest_month > 1 else interest_year - 1
                     )
-                    logger.info(f"Last payout (maturity) for {row['investor_code']}: 1st of month to maturity date = Rs.{monthly_interest:.2f}")
             
             elif series_start_date and is_first_payout(series_start_date, interest_month, interest_year):
-                # SCENARIO 3: First payout - Calculate from series start to END OF MONTH
-                # Example: Series starts Feb 2 → Calculate Feb 2 to Feb 28 = 27 days = Rs.8,876.71
-                # Payment day is just a PROMISE (when we PAY), not used in calculation
                 monthly_interest = calculate_first_month_interest(
                     float(row['investment_amount']),
                     float(row['interest_rate']),
@@ -698,18 +653,14 @@ async def get_all_payouts(
                     interest_year,
                     row['interest_payment_day'] or 15
                 )
-                logger.info(f"First payout for {row['investor_code']}: Series start to end of month = Rs.{monthly_interest:.2f}")
             
             else:
-                # SCENARIO 4: Regular monthly interest (Days-based)
-                # Calculate based on actual days in the month
                 monthly_interest = calculate_monthly_interest(
                     float(row['investment_amount']),
                     float(row['interest_rate']),
                     interest_month,
                     interest_year
                 )
-                logger.info(f"Regular monthly payout for {row['investor_code']}: Rs.{monthly_interest}")
             
             # Check if payout record exists in database
             # Handle both old format (2026-03) and new format (March 2026)

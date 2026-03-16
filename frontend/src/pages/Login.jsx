@@ -46,7 +46,6 @@ const Login = () => {
         setShowToast(true);
       }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Login error:', error); }
       setError('Login failed. Please try again.');
       setShowToast(true);
     } finally {
@@ -127,7 +126,6 @@ const Login = () => {
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              required
               placeholder="Enter your username"
               disabled={isSubmitting}
             />
@@ -139,7 +137,6 @@ const Login = () => {
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               placeholder="Enter your password"
               disabled={isSubmitting}
             />
@@ -171,4 +168,5 @@ const Login = () => {
 };
 
 export default Login;
+
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Lottie from 'lottie-react';
@@ -94,7 +94,6 @@ const GrievanceManagement = () => {
   // Fetch grievances from backend
   const fetchGrievances = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Fetching grievances from backend...'); }
       
       // Build filter params
       const params = {
@@ -130,16 +129,13 @@ const GrievanceManagement = () => {
       }
       
       const data = await apiService.getGrievances(params);
-      if (import.meta.env.DEV) { console.log('✅ Grievances fetched:', data); }
       setGrievances(data || []);
       
       // Fetch stats
       const statsData = await apiService.getGrievanceStats(activeTab);
-      if (import.meta.env.DEV) { console.log('✅ Stats fetched:', statsData); }
       setStats(statsData);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching grievances:', error); }
       toast.error(error.message, 'Failed to Load Grievances');
       setGrievances([]);
     }
@@ -148,12 +144,9 @@ const GrievanceManagement = () => {
   // Fetch investors for validation
   const fetchInvestors = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Fetching investors from backend...'); }
       const data = await apiService.getInvestors();
-      if (import.meta.env.DEV) { console.log('✅ Investors fetched:', data); }
       setInvestors(data || []);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching investors:', error); }
       setInvestors([]);
     }
   };
@@ -161,12 +154,9 @@ const GrievanceManagement = () => {
   // Fetch series for filters
   const fetchSeries = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Fetching series from backend...'); }
       const data = await apiService.getSeries();
-      if (import.meta.env.DEV) { console.log('✅ Series fetched:', data); }
       setAvailableSeries(data || []);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching series:', error); }
       setAvailableSeries([]);
     }
   };
@@ -208,13 +198,11 @@ const GrievanceManagement = () => {
       setInvestorValidation(prev => ({ ...prev, isValidating: true }));
       
       try {
-        if (import.meta.env.DEV) { console.log('🔍 Validating investor ID:', value); }
         
         // Fetch investor details from backend
         const investor = await apiService.getInvestor(value.trim());
         
         if (investor) {
-          if (import.meta.env.DEV) { console.log('✅ Investor found:', investor); }
           
           // Check if investor is deleted
           if (investor.status === 'deleted') {
@@ -271,10 +259,6 @@ const GrievanceManagement = () => {
             });
           }
           
-          if (import.meta.env.DEV) { console.log('📊 Investor series:', investorSeries); }
-          if (import.meta.env.DEV) { console.log('📊 Available series:', availableSeries); }
-          if (import.meta.env.DEV) { console.log('📊 Investor data:', investor); }
-          
           setInvestorValidation({
             isValidating: false,
             isValid: true,
@@ -284,7 +268,6 @@ const GrievanceManagement = () => {
           });
         }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Investor validation failed:', error); }
         setInvestorValidation({
           isValidating: false,
           isValid: false,
@@ -358,7 +341,6 @@ const GrievanceManagement = () => {
     }
 
     try {
-      if (import.meta.env.DEV) { console.log('📝 Creating new grievance...'); }
       
       // Prepare data for backend
       const grievanceData = {
@@ -378,11 +360,8 @@ const GrievanceManagement = () => {
         grievanceData.trustee_name = newComplaint.investorId;
       }
       
-      if (import.meta.env.DEV) { console.log('📦 Grievance data:', grievanceData); }
-      
       // Call backend API
       const response = await apiService.createGrievance(grievanceData);
-      if (import.meta.env.DEV) { console.log('✅ Grievance created:', response); }
       
       // Add audit log for grievance creation
       await auditService.logDataOperation(
@@ -402,7 +381,6 @@ const GrievanceManagement = () => {
           action: 'grievance_create'
         }
       ).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log grievance creation:', error); }
       });
       
       toast.success('Grievance has been created successfully!', 'Success');
@@ -430,7 +408,6 @@ const GrievanceManagement = () => {
       fetchGrievances();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error creating grievance:', error); }
       toast.error(error.message, 'Failed to Create Grievance');
     }
   };
@@ -445,7 +422,6 @@ const GrievanceManagement = () => {
     }
 
     try {
-      if (import.meta.env.DEV) { console.log(`📝 Updating grievance ${grievanceId} status to ${newStatus}...`); }
       
       // Prepare status update data
       const statusData = {
@@ -453,11 +429,8 @@ const GrievanceManagement = () => {
         resolution_comment: resolution || null
       };
       
-      if (import.meta.env.DEV) { console.log('📦 Status data:', statusData); }
-      
       // Call backend API
       const response = await apiService.updateGrievanceStatus(grievanceId, statusData);
-      if (import.meta.env.DEV) { console.log('✅ Status updated:', response); }
       
       // Find the grievance to get details for audit log
       const grievance = grievances.find(g => g.id === grievanceId);
@@ -480,7 +453,6 @@ const GrievanceManagement = () => {
           action: 'grievance_status_update'
         }
       ).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log grievance status update:', error); }
       });
       
       toast.success(`Grievance status has been updated to ${newStatus}!`, 'Status Updated');
@@ -494,7 +466,6 @@ const GrievanceManagement = () => {
       fetchGrievances();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error updating status:', error); }
       toast.error(error.message, 'Failed to Update Status');
     }
   };
@@ -930,7 +901,7 @@ const GrievanceManagement = () => {
                 {activeTab === 'investor' && investorValidation.isValid && investorValidation.investorSeries.length === 0 && (
                   <div className="form-group series-selection">
                     <small className="field-help" style={{ color: '#ff9800', fontSize: '11px' }}>
-                      ℹ️ This investor has not invested in any series yet. Grievance will be general.
+                      â„¹ï¸ This investor has not invested in any series yet. Grievance will be general.
                     </small>
                   </div>
                 )}
@@ -992,3 +963,5 @@ const GrievanceManagement = () => {
 };
 
 export default GrievanceManagement;
+
+

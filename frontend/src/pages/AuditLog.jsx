@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import apiService from '../services/api';
 import Layout from '../components/Layout';
@@ -9,7 +9,6 @@ import { HiOutlineDocumentText, HiOutlineCalendar, HiOutlineUser } from "react-i
 import { MdOutlineFileDownload } from "react-icons/md";
 
 const AuditLog = () => {
-  if (import.meta.env.DEV) { console.log('🎯 AuditLog component mounted'); }
   const { user } = useAuth();
   const [auditLogs, setAuditLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +21,6 @@ const AuditLog = () => {
 
   // Fetch audit logs from backend on component mount
   useEffect(() => {
-    if (import.meta.env.DEV) { console.log('🎯 useEffect triggered - calling fetchAuditLogs'); }
     fetchAuditLogs();
   }, []);
 
@@ -30,14 +28,11 @@ const AuditLog = () => {
     try {
       setLoading(true);
       setError(null);
-      if (import.meta.env.DEV) { console.log('🔄 Fetching audit logs from backend...'); }
       
       const response = await apiService.getAuditLogs();
-      if (import.meta.env.DEV) { console.log('✅ Audit logs fetched:', response); }
       
       // Backend returns array directly, not wrapped in { logs: [...] }
       if (!response || !Array.isArray(response)) {
-        if (import.meta.env.DEV) { console.error('❌ Invalid response format:', response); }
         throw new Error('Invalid response format from server');
       }
       
@@ -57,9 +52,7 @@ const AuditLog = () => {
       }));
       
       setAuditLogs(transformedLogs);
-      if (import.meta.env.DEV) { console.log('✅ Audit logs loaded:', transformedLogs.length); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching audit logs:', error); }
       setError(error.message);
     } finally {
       setLoading(false);
@@ -133,9 +126,7 @@ const AuditLog = () => {
           recordCount: filteredLogs.length
         }
       });
-      if (import.meta.env.DEV) { console.log('✅ Audit log created for export'); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to create audit log for export:', error); }
     }
   };
 
@@ -345,3 +336,4 @@ const AuditLog = () => {
 };
 
 export default AuditLog;
+

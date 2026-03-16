@@ -71,11 +71,8 @@ const SeriesDetails = () => {
 
   // CRITICAL: Force refresh series data when component mounts to ensure data is available
   React.useEffect(() => {
-    if (import.meta.env.DEV) { console.log(`📊 [SeriesDetails] Component mounted for series ID: ${id}`); }
-    if (import.meta.env.DEV) { console.log(`📊 [SeriesDetails] Current series array length: ${series.length}`); }
     
     if (forceSeriesRefresh) {
-      if (import.meta.env.DEV) { console.log(`🔄 [SeriesDetails] Triggering series refresh...`); }
       forceSeriesRefresh();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -88,12 +85,9 @@ const SeriesDetails = () => {
       
       try {
         setLoadingInvestors(true);
-        if (import.meta.env.DEV) { console.log(`📊 Fetching investors for series ID: ${id}`); }
         const response = await apiService.getSeriesInvestors(id);
-        if (import.meta.env.DEV) { console.log(`✅ Fetched ${response.investors.length} investors:`, response.investors); }
         setSeriesInvestors(response.investors || []);
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching series investors:', error); }
         setSeriesInvestors([]);
       } finally {
         setLoadingInvestors(false);
@@ -113,25 +107,25 @@ const SeriesDetails = () => {
         setLoadingDisplayData(true);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`📊 [${new Date().toISOString()}] Fetching series display data for series ID: ${id}`); }
+          // Log removed
 
         }
         const displayData = await apiService.getSeriesDisplayData(id);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] Fetched series display data:`, displayData); }
+          // Log removed
 
         }
         setSeriesDisplayData(displayData);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] seriesDisplayData state updated`); }
+          // Log removed
 
         }
       } catch (error) {
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.error(`❌ [${new Date().toISOString()}] Error fetching series display data:`, error); }
+      /* Log removed for security */
 
         }
         setSeriesDisplayData(null);
@@ -139,7 +133,7 @@ const SeriesDetails = () => {
         setLoadingDisplayData(false);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] loadingDisplayData set to false`); }
+          // Log removed
 
         }
       }
@@ -158,20 +152,20 @@ const SeriesDetails = () => {
         setLoadingInsights(true);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`📊 [${new Date().toISOString()}] Fetching series insights for series ID: ${id}`); }
+          // Log removed
 
         }
         const insights = await apiService.getSeriesInsights(id);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] Fetched series insights:`, insights); }
+          // Log removed
 
         }
         setSeriesInsights(insights);
       } catch (error) {
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.error(`❌ [${new Date().toISOString()}] Error fetching series insights:`, error); }
+      /* Log removed for security */
 
         }
         setSeriesInsights(null);
@@ -193,20 +187,20 @@ const SeriesDetails = () => {
         setLoadingUpcomingPayouts(true);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`📊 [${new Date().toISOString()}] Fetching upcoming payouts for series ID: ${id}`); }
+          // Log removed
 
         }
         const payoutsData = await apiService.getSeriesUpcomingPayouts(id);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] Fetched upcoming payouts:`, payoutsData); }
+          // Log removed
 
         }
         setUpcomingPayouts(payoutsData);
       } catch (error) {
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.error(`❌ [${new Date().toISOString()}] Error fetching upcoming payouts:`, error); }
+      /* Log removed for security */
 
         }
         setUpcomingPayouts(null);
@@ -228,20 +222,20 @@ const SeriesDetails = () => {
         setLoadingRecentPayouts(true);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`📊 [${new Date().toISOString()}] Fetching recent payouts for series ID: ${id}`); }
+          // Log removed
 
         }
         const payoutsData = await apiService.getSeriesRecentPayouts(id, 10);
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log(`✅ [${new Date().toISOString()}] Fetched recent payouts:`, payoutsData); }
+          // Log removed
 
         }
         setRecentPayouts(payoutsData);
       } catch (error) {
         if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.error(`❌ [${new Date().toISOString()}] Error fetching recent payouts:`, error); }
+      /* Log removed for security */
 
         }
         setRecentPayouts(null);
@@ -261,18 +255,9 @@ const SeriesDetails = () => {
       
       try {
         setLoadingSeriesDocuments(true);
-        if (import.meta.env.DEV) {
-          console.log(`📄 Fetching series documents for series ID: ${id}`);
-        }
         const documentsData = await apiService.getSeriesDocuments(id);
-        if (import.meta.env.DEV) {
-          console.log(`✅ Fetched series documents:`, documentsData);
-        }
         setSeriesDocuments(documentsData);
       } catch (error) {
-        if (import.meta.env.DEV) {
-          console.error(`❌ Error fetching series documents:`, error);
-        }
         setSeriesDocuments(null);
       } finally {
         setLoadingSeriesDocuments(false);
@@ -286,12 +271,12 @@ const SeriesDetails = () => {
   React.useEffect(() => {
     if (import.meta.env.DEV) {
 
-      if (import.meta.env.DEV) { console.log(`🔍 [${new Date().toISOString()}] seriesDisplayData changed:`, seriesDisplayData); }
+      /* Log removed for security */
 
     }
     if (import.meta.env.DEV) {
 
-      if (import.meta.env.DEV) { console.log(`🔍 [${new Date().toISOString()}] loadingDisplayData:`, loadingDisplayData); }
+      /* Log removed for security */
 
     }
   }, [seriesDisplayData, loadingDisplayData]);
@@ -310,16 +295,8 @@ const SeriesDetails = () => {
   let seriesData = null;
   let isRealData = false;
   
-  if (import.meta.env.DEV) { console.log('🔍 SeriesDetails Debug:', {
-    id,
-    seriesArrayLength: series?.length,
-    seriesArray: series,
-    hasId: !!id
-  }); }
-  
   if (series && series.length > 0 && id) {
     const foundSeries = series.find(s => s.id === parseInt(id));
-    if (import.meta.env.DEV) { console.log('🔍 Found series:', foundSeries); }
     
     if (foundSeries) {
       isRealData = true;
@@ -332,17 +309,9 @@ const SeriesDetails = () => {
         progress: Math.round((foundSeries.fundsRaised / foundSeries.targetAmount) * 100),
         transactions: [] // Will be populated from actual investments
       };
-      
-      if (import.meta.env.DEV) { console.log('✅ seriesData set:', seriesData); }
     } else {
-      if (import.meta.env.DEV) { console.log('❌ Series not found with id:', id); }
     }
   } else {
-    if (import.meta.env.DEV) { console.log('❌ Cannot find series:', {
-      hasSeries: !!series,
-      seriesLength: series?.length,
-      hasId: !!id
-    }); }
   }
   
   // If no series found, seriesData remains null - will show "Not Found" message
@@ -405,7 +374,6 @@ const SeriesDetails = () => {
 
   const generateSeriesPDF = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Generating Series Details PDF using template...'); }
       
       // Use the pdfTemplateService to generate PDF with proper formatting
       const pdfBytes = await pdfTemplateService.fillSeriesDetails(seriesData);
@@ -424,8 +392,6 @@ const SeriesDetails = () => {
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      if (import.meta.env.DEV) { console.log('✅ Series Details PDF generated successfully:', fileName); }
-      
       // Add audit log for document download
       addAuditLog({
         action: 'Downloaded Report',
@@ -442,7 +408,6 @@ const SeriesDetails = () => {
       });
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error generating series PDF:', error); }
       alert('Error generating PDF: ' + error.message);
     }
   };
@@ -460,7 +425,6 @@ const SeriesDetails = () => {
 
   const handleFileUpload = (documentType, file) => {
     if (file) {
-      if (import.meta.env.DEV) { console.log(`📎 File selected for ${documentType}:`, file.name); }
       
       // Store the actual File object (not base64) for uploading to backend
       const fileData = {
@@ -536,11 +500,10 @@ const SeriesDetails = () => {
       // Upload all documents
       if (import.meta.env.DEV) {
 
-        if (import.meta.env.DEV) { console.log(`📤 Uploading ${uploadPromises.length} document(s) to S3...`); }
+        // Log removed
 
       }
       const results = await Promise.all(uploadPromises);
-      if (import.meta.env.DEV) { console.log('✅ All documents uploaded successfully:', results); }
 
       // Add audit log for document upload
       addAuditLog({
@@ -578,7 +541,6 @@ const SeriesDetails = () => {
       });
 
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error uploading documents:', error); }
       alert(`Error uploading documents: ${error.message}`);
     }
   };
@@ -762,13 +724,7 @@ const SeriesDetails = () => {
               {/* NEW: Lock-in Date - ALL DATA FROM BACKEND */}
               {(() => {
                 const shouldRender = !loadingDisplayData && seriesDisplayData;
-                if (import.meta.env.DEV) {
-                  console.log(`🎨 [${new Date().toISOString()}] Lock-in Date card render check:`, {
-                    loadingDisplayData,
-                    hasSeriesDisplayData: !!seriesDisplayData,
-                    shouldRender
-                  });
-                }
+                // Log removed per security policy
                 return shouldRender && (
                   <div className="detail-row">
                     <div className="detail-item">
@@ -789,13 +745,7 @@ const SeriesDetails = () => {
               {/* NEW: Subscription Period - ALL DATA FROM BACKEND */}
               {(() => {
                 const shouldRender = !loadingDisplayData && seriesDisplayData;
-                if (import.meta.env.DEV) {
-                  console.log(`🎨 [${new Date().toISOString()}] Subscription Period card render check:`, {
-                    loadingDisplayData,
-                    hasSeriesDisplayData: !!seriesDisplayData,
-                    shouldRender
-                  });
-                }
+                // Log removed per security policy
                 return shouldRender && (
                   <div className="detail-row">
                     <div className="detail-item">
@@ -1008,10 +958,7 @@ const SeriesDetails = () => {
                                   user_role: user?.role || user?.displayRole
                                 }
                               });
-                              
-                              if (import.meta.env.DEV) { console.log('✅ Document view logged to audit trail'); }
                             } catch (error) {
-                              if (import.meta.env.DEV) { console.error('❌ Failed to log document view:', error); }
                               // Don't prevent document viewing if logging fails
                             }
                             
@@ -1214,17 +1161,16 @@ const SeriesDetails = () => {
                         id="form15G-upload"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {
-                          if (import.meta.env.DEV) { console.log('15G file selected:', e.target.files[0]); }
                           handleFileUpload('form15G', e.target.files[0]);
                         }}
                         style={{ display: 'none' }}
                       />
                       <div className="upload-content">
-                        <div className="upload-icon">📄</div>
+                        <div className="upload-icon">ðŸ“„</div>
                         <div className="upload-text">
                           {uploadDocuments.form15G ? (
                             <span style={{ color: '#10b981', fontWeight: '600' }}>
-                              ✓ {uploadDocuments.form15G.name}
+                              âœ“ {uploadDocuments.form15G.name}
                             </span>
                           ) : (
                             'Click to upload 15G document'
@@ -1244,17 +1190,16 @@ const SeriesDetails = () => {
                         id="form15H-upload"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {
-                          if (import.meta.env.DEV) { console.log('15H file selected:', e.target.files[0]); }
                           handleFileUpload('form15H', e.target.files[0]);
                         }}
                         style={{ display: 'none' }}
                       />
                       <div className="upload-content">
-                        <div className="upload-icon">📄</div>
+                        <div className="upload-icon">ðŸ“„</div>
                         <div className="upload-text">
                           {uploadDocuments.form15H ? (
                             <span style={{ color: '#10b981', fontWeight: '600' }}>
-                              ✓ {uploadDocuments.form15H.name}
+                              âœ“ {uploadDocuments.form15H.name}
                             </span>
                           ) : (
                             'Click to upload 15H document'
@@ -1274,17 +1219,16 @@ const SeriesDetails = () => {
                         id="bondPaper-upload"
                         accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                         onChange={(e) => {
-                          if (import.meta.env.DEV) { console.log('Bond Paper file selected:', e.target.files[0]); }
                           handleFileUpload('bondPaper', e.target.files[0]);
                         }}
                         style={{ display: 'none' }}
                       />
                       <div className="upload-content">
-                        <div className="upload-icon">📄</div>
+                        <div className="upload-icon">ðŸ“„</div>
                         <div className="upload-text">
                           {uploadDocuments.bondPaper ? (
                             <span style={{ color: '#10b981', fontWeight: '600' }}>
-                              ✓ {uploadDocuments.bondPaper.name}
+                              âœ“ {uploadDocuments.bondPaper.name}
                             </span>
                           ) : (
                             'Click to upload bond paper document'
@@ -1314,4 +1258,5 @@ const SeriesDetails = () => {
 };
 
 export default SeriesDetails;
+
 

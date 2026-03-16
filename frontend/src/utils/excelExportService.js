@@ -12,10 +12,6 @@ class ExcelExportService {
    */
   exportMonthlyCollectionReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Monthly Collection Report...'); }
-      if (import.meta.env.DEV) { console.log('📊 Data received:', data); }
-      if (import.meta.env.DEV) { console.log('📊 Series breakdown:', data.series_breakdown); }
-      if (import.meta.env.DEV) { console.log('📊 Investment details:', data.investment_details); }
       
       // Create a new workbook
       const workbook = XLSX.utils.book_new();
@@ -51,9 +47,7 @@ class ExcelExportService {
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Report Summary');
       
       // Sheet 2: Series-wise Breakdown
-      if (import.meta.env.DEV) { console.log('📊 Checking series_breakdown:', data.series_breakdown?.length); }
       if (data.series_breakdown && data.series_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Series Breakdown sheet with', data.series_breakdown.length, 'series'); }
         
         const seriesData = [
           ['SERIES-WISE COLLECTION BREAKDOWN'],
@@ -99,15 +93,11 @@ class ExcelExportService {
         ];
         
         XLSX.utils.book_append_sheet(workbook, seriesSheet, 'Series Breakdown');
-        if (import.meta.env.DEV) { console.log('✅ Series Breakdown sheet added'); }
       } else {
-        if (import.meta.env.DEV) { console.log('⚠️ No series breakdown data found'); }
       }
       
       // Sheet 3: Investment Details
-      if (import.meta.env.DEV) { console.log('📊 Checking investment_details:', data.investment_details?.length); }
       if (data.investment_details && data.investment_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investment Details sheet with', data.investment_details.length, 'records'); }
         
         const investmentData = [
           ['INVESTMENT DETAILS'],
@@ -150,9 +140,7 @@ class ExcelExportService {
         ];
         
         XLSX.utils.book_append_sheet(workbook, investmentSheet, 'Investment Details');
-        if (import.meta.env.DEV) { console.log('✅ Investment Details sheet added'); }
       } else {
-        if (import.meta.env.DEV) { console.log('⚠️ No investment details data found'); }
       }
       
       // Generate filename
@@ -161,12 +149,7 @@ class ExcelExportService {
       // Write the workbook and trigger download
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log('📄 Total sheets:', workbook.SheetNames.length); }
-      if (import.meta.env.DEV) { console.log('📄 Sheet names:', workbook.SheetNames); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting to Excel:', error); }
       throw error;
     }
   }
@@ -178,8 +161,6 @@ class ExcelExportService {
    */
   exportMonthlyCollectionReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Monthly Collection Report...'); }
-      if (import.meta.env.DEV) { console.log('📊 Data received:', data); }
       
       let csvContent = '';
       
@@ -209,7 +190,6 @@ class ExcelExportService {
       
       // Series-wise Breakdown Section
       if (data.series_breakdown && data.series_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Series Breakdown to CSV with', data.series_breakdown.length, 'series'); }
         
         csvContent += 'SERIES-WISE COLLECTION BREAKDOWN\n';
         csvContent += 'Series Code,Series Name,Target Amount (₹),Collected Amount (₹),Achievement (%),Investor Count,Transaction Count,Average Investment (₹)\n';
@@ -229,14 +209,11 @@ class ExcelExportService {
         
         csvContent += '\n';
         csvContent += '\n';
-        if (import.meta.env.DEV) { console.log('✅ Series Breakdown added to CSV'); }
       } else {
-        if (import.meta.env.DEV) { console.log('⚠️ No series breakdown data found'); }
       }
       
       // Investment Details Section
       if (data.investment_details && data.investment_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investment Details to CSV with', data.investment_details.length, 'records'); }
         
         csvContent += 'INVESTMENT DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Series Code,Series Name,Investment Amount (₹),Date Received,Date Transferred\n';
@@ -253,10 +230,7 @@ class ExcelExportService {
           csvContent += `${inv.date_received || ''},`;
           csvContent += `${inv.date_transferred || ''}\n`;
         });
-        
-        if (import.meta.env.DEV) { console.log('✅ Investment Details added to CSV'); }
       } else {
-        if (import.meta.env.DEV) { console.log('⚠️ No investment details data found'); }
       }
       
       // Create blob and download
@@ -273,10 +247,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting to CSV:', error); }
       throw error;
     }
   }
@@ -288,8 +259,6 @@ class ExcelExportService {
    */
   exportPayoutStatementReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Payout Statement Report...'); }
-      if (import.meta.env.DEV) { console.log('📊 Data received:', data); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -317,11 +286,9 @@ class ExcelExportService {
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
       summarySheet['!cols'] = [{ wch: 35 }, { wch: 25 }];
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-      if (import.meta.env.DEV) { console.log('✅ Summary sheet added'); }
       
       // Sheet 2: Series-wise Breakdown
       if (data.series_breakdown && data.series_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Series Breakdown sheet with', data.series_breakdown.length, 'series'); }
         
         const seriesData = [
           ['SERIES-WISE BREAKDOWN'],
@@ -356,12 +323,10 @@ class ExcelExportService {
           { wch: 20 }   // Completion Rate
         ];
         XLSX.utils.book_append_sheet(workbook, seriesSheet, 'Series Breakdown');
-        if (import.meta.env.DEV) { console.log('✅ Series Breakdown sheet added'); }
       }
       
       // Sheet 3: Payout Details (COMPLETE DETAILS - ALL AVAILABLE FIELDS)
       if (data.payout_details && data.payout_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Payout Details sheet with', data.payout_details.length, 'records'); }
         
         const payoutData = [
           ['PAYOUT DETAILS - COMPLETE INFORMATION'],
@@ -427,12 +392,10 @@ class ExcelExportService {
           { wch: 15 }   // IFSC Code
         ];
         XLSX.utils.book_append_sheet(workbook, payoutSheet, 'Payout Details');
-        if (import.meta.env.DEV) { console.log('✅ Payout Details sheet added with ALL available fields'); }
       }
       
       // Sheet 4: Status Breakdown
       if (data.status_breakdown && data.status_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Status Breakdown sheet with', data.status_breakdown.length, 'statuses'); }
         
         const statusData = [
           ['STATUS BREAKDOWN'],
@@ -463,12 +426,10 @@ class ExcelExportService {
           { wch: 25 }   // Percentage
         ];
         XLSX.utils.book_append_sheet(workbook, statusSheet, 'Status Breakdown');
-        if (import.meta.env.DEV) { console.log('✅ Status Breakdown sheet added'); }
       }
       
       // Sheet 5: Monthly Trend
       if (data.monthly_trend && data.monthly_trend.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Monthly Trend sheet with', data.monthly_trend.length, 'months'); }
         
         const monthlyData = [
           ['MONTHLY TREND'],
@@ -502,19 +463,13 @@ class ExcelExportService {
           { wch: 22 }   // Completion Rate
         ];
         XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly Trend');
-        if (import.meta.env.DEV) { console.log('✅ Monthly Trend sheet added'); }
       }
       
       // Generate and download
       const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log('📄 Total sheets:', workbook.SheetNames.length); }
-      if (import.meta.env.DEV) { console.log('📄 Sheet names:', workbook.SheetNames); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting to Excel:', error); }
       throw error;
     }
   }
@@ -526,7 +481,6 @@ class ExcelExportService {
    */
   exportPayoutStatementReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Payout Statement Report...'); }
       
       let csvContent = '';
       
@@ -555,7 +509,6 @@ class ExcelExportService {
       
       // Series-wise Breakdown
       if (data.series_breakdown && data.series_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Series Breakdown to CSV with', data.series_breakdown.length, 'series'); }
         
         csvContent += 'SERIES-WISE BREAKDOWN\n';
         csvContent += 'Series Code,Series Name,Total Payout (₹),Paid Amount (₹),Pending Amount (₹),Number of Investors,Completion Rate (%)\n';
@@ -577,12 +530,10 @@ class ExcelExportService {
         
         csvContent += '\n';
         csvContent += '\n';
-        if (import.meta.env.DEV) { console.log('✅ Series Breakdown added to CSV'); }
       }
       
       // Payout Details (COMPLETE DETAILS - ALL AVAILABLE FIELDS)
       if (data.payout_details && data.payout_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Payout Details to CSV with', data.payout_details.length, 'records'); }
         
         csvContent += 'PAYOUT DETAILS - COMPLETE INFORMATION\n';
         csvContent += 'Payout ID,Investor ID,Investor Name,Email,Phone,PAN,Series Code,Series Name,Payout Amount (₹),Status,Payout Date,Paid Date,Payout Month,Bank Name,Account Number,IFSC Code\n';
@@ -613,12 +564,10 @@ class ExcelExportService {
         
         csvContent += '\n';
         csvContent += '\n';
-        if (import.meta.env.DEV) { console.log('✅ Payout Details added to CSV with ALL available fields'); }
       }
       
       // Status Breakdown
       if (data.status_breakdown && data.status_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Status Breakdown to CSV with', data.status_breakdown.length, 'statuses'); }
         
         csvContent += 'STATUS BREAKDOWN\n';
         csvContent += 'Status,Number of Payouts,Total Amount (₹),Percentage of Total (%)\n';
@@ -638,12 +587,10 @@ class ExcelExportService {
         
         csvContent += '\n';
         csvContent += '\n';
-        if (import.meta.env.DEV) { console.log('✅ Status Breakdown added to CSV'); }
       }
       
       // Monthly Trend
       if (data.monthly_trend && data.monthly_trend.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Monthly Trend to CSV with', data.monthly_trend.length, 'months'); }
         
         csvContent += 'MONTHLY TREND\n';
         csvContent += 'Month,Total Payout Amount (₹),Paid Amount (₹),Pending Amount (₹),Number of Payouts,Completion Rate (%)\n';
@@ -661,8 +608,6 @@ class ExcelExportService {
           csvContent += `${month.payout_count || 0},`;
           csvContent += `${completionRate}\n`;
         });
-        
-        if (import.meta.env.DEV) { console.log('✅ Monthly Trend added to CSV'); }
       }
       
       // Create blob and download
@@ -679,10 +624,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting to CSV:', error); }
       throw error;
     }
   }
@@ -694,7 +636,6 @@ class ExcelExportService {
    */
   exportSeriesPerformanceReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Series-wise Performance Report...'); }
       
       // Create a new workbook
       const workbook = XLSX.utils.book_new();
@@ -878,10 +819,7 @@ class ExcelExportService {
       const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Series Performance Report to Excel:', error); }
       throw error;
     }
   }
@@ -893,7 +831,6 @@ class ExcelExportService {
    */
   exportSeriesPerformanceReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Series-wise Performance Report...'); }
       
       let csvContent = '';
       
@@ -1044,10 +981,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Series Performance Report to CSV:', error); }
       throw error;
     }
   }
@@ -1060,8 +994,6 @@ class ExcelExportService {
    */
   exportInvestorPortfolioReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Investor Portfolio Summary Report...'); }
-      if (import.meta.env.DEV) { console.log('📊 Data received:', data); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -1085,13 +1017,11 @@ class ExcelExportService {
       const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData);
       overviewSheet['!cols'] = [{ wch: 35 }, { wch: 25 }];
       XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Portfolio Overview');
-      if (import.meta.env.DEV) { console.log('✅ Portfolio Overview sheet added'); }
       
       // ============================================================
       // SHEET 2: INVESTOR INVESTMENTS SUMMARY
       // ============================================================
       if (data.investor_breakdown && data.investor_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investor Investments Summary sheet with', data.investor_breakdown.length, 'investors'); }
         
         const investmentSummaryData = [
           ['INVESTOR INVESTMENTS SUMMARY'],
@@ -1150,14 +1080,12 @@ class ExcelExportService {
           { wch: 20 }   // Last Investment
         ];
         XLSX.utils.book_append_sheet(workbook, investmentSummarySheet, 'Investment Summary');
-        if (import.meta.env.DEV) { console.log('✅ Investor Investments Summary sheet added'); }
       }
       
       // ============================================================
       // SHEET 3: INVESTORS DETAILS
       // ============================================================
       if (data.investors_details && data.investors_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investors Details sheet with', data.investors_details.length, 'investors'); }
         
         const investorsData = [
           ['INVESTORS DETAILS'],
@@ -1205,14 +1133,12 @@ class ExcelExportService {
           { wch: 15 }   // Date Joined
         ];
         XLSX.utils.book_append_sheet(workbook, investorsSheet, 'Investors Details');
-        if (import.meta.env.DEV) { console.log('✅ Investors Details sheet added'); }
       }
       
       // ============================================================
       // SHEET 4: NOMINEE DETAILS
       // ============================================================
       if (data.nominee_details && data.nominee_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Nominee Details sheet with', data.nominee_details.length, 'nominees'); }
         
         const nomineeData = [
           ['NOMINEE DETAILS'],
@@ -1251,14 +1177,12 @@ class ExcelExportService {
           { wch: 40 }   // Address
         ];
         XLSX.utils.book_append_sheet(workbook, nomineeSheet, 'Nominee Details');
-        if (import.meta.env.DEV) { console.log('✅ Nominee Details sheet added'); }
       }
       
       // ============================================================
       // SHEET 5: ALL PAYOUTS
       // ============================================================
       if (data.payouts_table && data.payouts_table.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding All Payouts sheet with', data.payouts_table.length, 'records'); }
         
         const payoutsData = [
           ['ALL PAYOUTS'],
@@ -1309,14 +1233,12 @@ class ExcelExportService {
           { wch: 20 }   // Last Payout Date
         ];
         XLSX.utils.book_append_sheet(workbook, payoutsSheet, 'All Payouts');
-        if (import.meta.env.DEV) { console.log('✅ All Payouts sheet added'); }
       }
       
       // ============================================================
       // SHEET 6: GRIEVANCE SUMMARY
       // ============================================================
       if (data.grievance_summary) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Grievance Summary sheet'); }
         
         const grievanceData = [
           ['GRIEVANCE SUMMARY'],
@@ -1331,14 +1253,12 @@ class ExcelExportService {
         const grievanceSheet = XLSX.utils.aoa_to_sheet(grievanceData);
         grievanceSheet['!cols'] = [{ wch: 30 }, { wch: 20 }];
         XLSX.utils.book_append_sheet(workbook, grievanceSheet, 'Grievance Summary');
-        if (import.meta.env.DEV) { console.log('✅ Grievance Summary sheet added'); }
       }
       
       // ============================================================
       // SHEET 7: INVESTOR GRIEVANCES
       // ============================================================
       if (data.investor_grievances_table && data.investor_grievances_table.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investor Grievances sheet with', data.investor_grievances_table.length, 'records'); }
         
         const grievancesData = [
           ['INVESTOR GRIEVANCES'],
@@ -1377,19 +1297,13 @@ class ExcelExportService {
           { wch: 15 }   // Resolved Date
         ];
         XLSX.utils.book_append_sheet(workbook, grievancesSheet, 'Investor Grievances');
-        if (import.meta.env.DEV) { console.log('✅ Investor Grievances sheet added'); }
       }
       
       // Generate and download
       const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log('📄 Total sheets:', workbook.SheetNames.length); }
-      if (import.meta.env.DEV) { console.log('📄 Sheet names:', workbook.SheetNames); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Investor Portfolio Report to Excel:', error); }
       throw error;
     }
   }
@@ -1401,7 +1315,6 @@ class ExcelExportService {
    */
   exportInvestorPortfolioReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Investor Portfolio Summary Report...'); }
       
       let csvContent = '';
       
@@ -1424,7 +1337,6 @@ class ExcelExportService {
       
       // Investor Investments Summary
       if (data.investor_breakdown && data.investor_breakdown.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investor Investments Summary to CSV'); }
         
         csvContent += 'INVESTOR INVESTMENTS SUMMARY\n';
         csvContent += 'Investor ID,Investor Name,Email,Phone,Total Investment (₹),Series Count,First Investment Date,Last Investment Date\n';
@@ -1455,7 +1367,6 @@ class ExcelExportService {
       
       // Investors Details
       if (data.investors_details && data.investors_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investors Details to CSV'); }
         
         csvContent += 'INVESTORS DETAILS\n';
         csvContent += 'Investor ID,Full Name,Email,Phone,PAN,Bank Name,Account Number,IFSC Code,KYC Status,Date Joined\n';
@@ -1483,7 +1394,6 @@ class ExcelExportService {
       
       // Nominee Details
       if (data.nominee_details && data.nominee_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Nominee Details to CSV'); }
         
         csvContent += 'NOMINEE DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Nominee Name,Relationship,Mobile,Email,Address\n';
@@ -1509,7 +1419,6 @@ class ExcelExportService {
       
       // All Payouts
       if (data.payouts_table && data.payouts_table.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding All Payouts to CSV'); }
         
         csvContent += 'ALL PAYOUTS\n';
         csvContent += 'Investor ID,Investor Name,Series Code,Series Name,Total Amount (₹),Last Payout Date\n';
@@ -1538,7 +1447,6 @@ class ExcelExportService {
       
       // Grievance Summary
       if (data.grievance_summary) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Grievance Summary to CSV'); }
         
         csvContent += 'GRIEVANCE SUMMARY\n';
         csvContent += 'Metric,Value\n';
@@ -1552,7 +1460,6 @@ class ExcelExportService {
       
       // Investor Grievances
       if (data.investor_grievances_table && data.investor_grievances_table.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investor Grievances to CSV'); }
         
         csvContent += 'INVESTOR GRIEVANCES\n';
         csvContent += 'Investor ID,Investor Name,Complaint Type,Description,Status,Filed Date,Resolved Date\n';
@@ -1586,10 +1493,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Investor Portfolio Report to CSV:', error); }
       throw error;
     }
   }
@@ -1601,12 +1505,10 @@ class ExcelExportService {
    */
   exportKYCStatusReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for KYC Status Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
       // Sheet 1: Summary
-      if (import.meta.env.DEV) { console.log('📊 Creating Summary sheet'); }
       const summaryData = [
         ['KYC STATUS REPORT'],
         ['Generated On:', new Date().toLocaleDateString('en-GB')],
@@ -1623,7 +1525,6 @@ class ExcelExportService {
       
       // Sheet 2: Banking Details
       if (data.banking_details && data.banking_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating Banking Details sheet'); }
         
         const bankingData = [
           ['BANKING DETAILS'],
@@ -1654,7 +1555,6 @@ class ExcelExportService {
       
       // Sheet 3: KYC Details
       if (data.kyc_details && data.kyc_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating KYC Details sheet'); }
         
         const kycData = [
           ['KYC DETAILS'],
@@ -1687,7 +1587,6 @@ class ExcelExportService {
       
       // Sheet 4: Personal Details
       if (data.personal_details && data.personal_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating Personal Details sheet'); }
         
         const personalData = [
           ['INVESTORS PERSONAL DETAILS'],
@@ -1722,10 +1621,7 @@ class ExcelExportService {
       const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting KYC Status Report to Excel:', error); }
       throw error;
     }
   }
@@ -1737,7 +1633,6 @@ class ExcelExportService {
    */
   exportKYCStatusReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for KYC Status Report...'); }
       
       let csvContent = '';
       
@@ -1753,7 +1648,6 @@ class ExcelExportService {
       
       // Banking Details
       if (data.banking_details && data.banking_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Banking Details to CSV'); }
         
         csvContent += 'BANKING DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Bank Name,Account Number,IFSC Code\n';
@@ -1775,7 +1669,6 @@ class ExcelExportService {
       
       // KYC Details
       if (data.kyc_details && data.kyc_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding KYC Details to CSV'); }
         
         csvContent += 'KYC DETAILS\n';
         csvContent += 'Investor ID,Investor Name,PAN,Aadhaar,KYC Status,Yet to Submit Documents\n';
@@ -1799,7 +1692,6 @@ class ExcelExportService {
       
       // Personal Details
       if (data.personal_details && data.personal_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Personal Details to CSV'); }
         
         csvContent += 'INVESTORS PERSONAL DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Email,Phone,Date of Birth,Source of Funds\n';
@@ -1832,10 +1724,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting KYC Status Report to CSV:', error); }
       throw error;
     }
   }
@@ -1847,12 +1736,10 @@ class ExcelExportService {
    */
   exportNewInvestorReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for New Investor Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
       // Sheet 1: Summary
-      if (import.meta.env.DEV) { console.log('📊 Creating Summary sheet'); }
       const summaryData = [
         ['NEW INVESTOR REPORT'],
         ['Generated On:', new Date().toLocaleDateString('en-GB')],
@@ -1872,7 +1759,6 @@ class ExcelExportService {
       
       // Sheet 2: Investment Details
       if (data.investment_details && data.investment_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating Investment Details sheet'); }
         
         const investmentData = [
           ['INVESTOR INVESTMENT DETAILS'],
@@ -1918,7 +1804,6 @@ class ExcelExportService {
       
       // Sheet 3: Banking Details
       if (data.banking_details && data.banking_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating Banking Details sheet'); }
         
         const bankingData = [
           ['INVESTORS BANK DETAILS'],
@@ -1949,7 +1834,6 @@ class ExcelExportService {
       
       // Sheet 4: KYC Details
       if (data.kyc_details && data.kyc_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating KYC Details sheet'); }
         
         const kycData = [
           ['INVESTOR KYC DETAILS'],
@@ -1982,7 +1866,6 @@ class ExcelExportService {
       
       // Sheet 5: Personal Details
       if (data.personal_details && data.personal_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Creating Personal Details sheet'); }
         
         const personalData = [
           ['INVESTOR PERSONAL DETAILS'],
@@ -2019,10 +1902,7 @@ class ExcelExportService {
       const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting New Investor Report to Excel:', error); }
       throw error;
     }
   }
@@ -2034,7 +1914,6 @@ class ExcelExportService {
    */
   exportNewInvestorReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for New Investor Report...'); }
       
       let csvContent = '';
       
@@ -2054,7 +1933,6 @@ class ExcelExportService {
       
       // Investment Details
       if (data.investment_details && data.investment_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Investment Details to CSV'); }
         
         csvContent += 'INVESTOR INVESTMENT DETAILS\n';
         csvContent += 'Investor ID,Investor Name,All Series Invested In,Total Amount Invested,Total Payouts Received\n';
@@ -2085,7 +1963,6 @@ class ExcelExportService {
       
       // Banking Details
       if (data.banking_details && data.banking_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Banking Details to CSV'); }
         
         csvContent += 'INVESTORS BANK DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Bank Name,Account Number,IFSC Code\n';
@@ -2107,7 +1984,6 @@ class ExcelExportService {
       
       // KYC Details
       if (data.kyc_details && data.kyc_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding KYC Details to CSV'); }
         
         csvContent += 'INVESTOR KYC DETAILS\n';
         csvContent += 'Investor ID,Investor Name,PAN,Aadhaar,KYC Status,Yet to Submit Documents\n';
@@ -2131,7 +2007,6 @@ class ExcelExportService {
       
       // Personal Details
       if (data.personal_details && data.personal_details.length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Adding Personal Details to CSV'); }
         
         csvContent += 'INVESTOR PERSONAL DETAILS\n';
         csvContent += 'Investor ID,Investor Name,Email,Phone,Date of Birth,Source of Funds,Date Joined\n';
@@ -2165,10 +2040,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting New Investor Report to CSV:', error); }
       throw error;
     }
   }
@@ -2180,7 +2052,6 @@ class ExcelExportService {
    */
   exportRBIComplianceReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for RBI Compliance Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -2304,10 +2175,7 @@ class ExcelExportService {
       const filename = `RBI_Compliance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting RBI Compliance Report to Excel:', error); }
       throw error;
     }
   }
@@ -2319,7 +2187,6 @@ class ExcelExportService {
    */
   exportRBIComplianceReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for RBI Compliance Report...'); }
       
       let csvContent = 'RBI COMPLIANCE REPORT\n\n';
       csvContent += `Generated Date:,${new Date().toLocaleDateString('en-GB')}\n\n`;
@@ -2403,10 +2270,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
       
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting RBI Compliance Report to CSV:', error); }
       throw error;
     }
   }
@@ -2418,7 +2282,6 @@ class ExcelExportService {
    */
   exportSEBIDisclosureReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for SEBI Disclosure Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -2648,10 +2511,7 @@ class ExcelExportService {
       const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting SEBI Disclosure Report to Excel:', error); }
       throw error;
     }
   }
@@ -2663,7 +2523,6 @@ class ExcelExportService {
    */
   exportSEBIDisclosureReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for SEBI Disclosure Report...'); }
       
       // Create CSV content with all sections
       let csvContent = 'SEBI DISCLOSURE REPORT\n\n';
@@ -2772,10 +2631,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting SEBI Disclosure Report to CSV:', error); }
       throw error;
     }
   }
@@ -2787,7 +2643,6 @@ class ExcelExportService {
    */
   exportAuditTrailReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Audit Trail Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -2991,14 +2846,7 @@ class ExcelExportService {
       const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Investment Transactions: ${data.investments?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Completed Payouts: ${data.completed_payouts?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Pending Payouts: ${data.pending_payouts?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Upcoming Payouts: ${data.upcoming_payouts?.length || 0} records`); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Audit Trail Report to Excel:', error); }
       throw error;
     }
   }
@@ -3010,18 +2858,11 @@ class ExcelExportService {
    */
   exportAuditTrailReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Audit Trail Report...'); }
       
       // DEBUG: Log sample data to see timestamp format
       if (data.completed_payouts && data.completed_payouts.length > 0) {
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - Sample completed payout:', data.completed_payouts[0]); }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - paid_timestamp value:', data.completed_payouts[0].paid_timestamp); }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - paid_timestamp type:', typeof data.completed_payouts[0].paid_timestamp); }
       }
       if (data.investments && data.investments.length > 0) {
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - Sample investment:', data.investments[0]); }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - created_at value:', data.investments[0].created_at); }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - created_at type:', typeof data.investments[0].created_at); }
       }
       
       // Helper function to clean and escape CSV values
@@ -3149,14 +2990,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Investment Transactions: ${data.investments?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Completed Payouts: ${data.completed_payouts?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Pending Payouts: ${data.pending_payouts?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Upcoming Payouts: ${data.upcoming_payouts?.length || 0} records`); }
-
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Audit Trail Report to CSV:', error); }
       throw error;
     }
   }
@@ -3168,7 +3002,6 @@ class ExcelExportService {
    */
   exportDailyActivityReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Daily Activity Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -3290,12 +3123,7 @@ class ExcelExportService {
       const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - User Activities: ${data.user_activities?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Role Breakdown: ${data.role_breakdown?.length || 0} records`); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Daily Activity Report to Excel:', error); }
       throw error;
     }
   }
@@ -3307,7 +3135,6 @@ class ExcelExportService {
    */
   exportDailyActivityReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Daily Activity Report...'); }
       
       // Helper function to clean and escape CSV values
       const cleanValue = (value) => {
@@ -3392,12 +3219,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - User Activities: ${data.user_activities?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Role Breakdown: ${data.role_breakdown?.length || 0} records`); }
-
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Daily Activity Report to CSV:', error); }
       throw error;
     }
   }
@@ -3409,7 +3231,6 @@ class ExcelExportService {
    */
   exportSubscriptionTrendAnalysis(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Subscription Trend Analysis...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -3581,13 +3402,7 @@ class ExcelExportService {
       const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Investor Details: ${data.investor_details?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Trend: ${data.series_trend?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Top Performing Series: ${data.top_performing_series?.length || 0} records`); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Subscription Trend Analysis to Excel:', error); }
       throw error;
     }
   }
@@ -3599,7 +3414,6 @@ class ExcelExportService {
    */
   exportSubscriptionTrendAnalysisCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Subscription Trend Analysis...'); }
       
       // Helper function to clean values for CSV
       const cleanValue = (value) => {
@@ -3722,13 +3536,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Investor Details: ${data.investor_details?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Trend: ${data.series_trend?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Top Performing Series: ${data.top_performing_series?.length || 0} records`); }
-
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Subscription Trend Analysis to CSV:', error); }
       throw error;
     }
   }
@@ -3740,7 +3548,6 @@ class ExcelExportService {
    */
   exportSeriesMaturityReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting Excel export for Series Maturity Report...'); }
       
       const workbook = XLSX.utils.book_new();
       
@@ -3927,13 +3734,7 @@ class ExcelExportService {
       const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
       
-      if (import.meta.env.DEV) { console.log('✅ Excel export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing Within 90 Days: ${data.series_maturing_90_days?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing in 90-180 Days: ${data.series_maturing_90_to_180_days?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing After 6 Months: ${data.series_maturing_after_6_months?.length || 0} records`); }
-      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Series Maturity Report to Excel:', error); }
       throw error;
     }
   }
@@ -3945,7 +3746,6 @@ class ExcelExportService {
    */
   exportSeriesMaturityReportCSV(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📊 Starting CSV export for Series Maturity Report...'); }
       
       // Helper function to clean values for CSV
       const cleanValue = (value) => {
@@ -4068,13 +3868,7 @@ class ExcelExportService {
       link.click();
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) { console.log('✅ CSV export completed successfully'); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing Within 90 Days: ${data.series_maturing_90_days?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing in 90-180 Days: ${data.series_maturing_90_to_180_days?.length || 0} records`); }
-      if (import.meta.env.DEV) { console.log(`   - Series Maturing After 6 Months: ${data.series_maturing_after_6_months?.length || 0} records`); }
-
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting Series Maturity Report to CSV:', error); }
       throw error;
     }
   }
@@ -4083,3 +3877,4 @@ class ExcelExportService {
 // Export singleton instance
 const excelExportService = new ExcelExportService();
 export default excelExportService;
+

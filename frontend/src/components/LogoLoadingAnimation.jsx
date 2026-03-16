@@ -1,21 +1,16 @@
-import React from 'react';
+﻿import React from 'react';
 import './LogoLoadingAnimation.css';
 
 const LogoLoadingAnimation = ({ onComplete }) => {
   // Auto complete after 3 seconds
   React.useEffect(() => {
-    console.log('🎬 LogoLoadingAnimation mounted - animation starting');
     const timer = setTimeout(() => {
-      console.log('✅ Animation complete - calling onComplete');
       if (onComplete) onComplete();
     }, 3000);
     return () => {
-      console.log('🛑 LogoLoadingAnimation unmounting');
       clearTimeout(timer);
     };
   }, [onComplete]);
-
-  console.log('🎨 Rendering LogoLoadingAnimation');
 
   return (
     <div className="logo-loading-overlay">
@@ -30,3 +25,4 @@ const LogoLoadingAnimation = ({ onComplete }) => {
 };
 
 export default LogoLoadingAnimation;
+

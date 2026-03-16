@@ -49,11 +49,8 @@ const InterestPayout = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  console.log('🔍 InterestPayout render - loading:', loading);
-
   // Fetch payout data from backend on mount
   useEffect(() => {
-    console.log('🚀 Initial mount useEffect running');
     fetchPayoutData();
     fetchSummaryData();
     fetchUniqueSeriesNames();
@@ -62,13 +59,10 @@ const InterestPayout = () => {
 
   // Minimum loading time of 3 seconds (only on initial mount)
   useEffect(() => {
-    console.log('⏱️ Starting 3-second timer');
     const timer = setTimeout(() => {
-      console.log('✅ Timer complete - setting loading to false');
       setLoading(false);
     }, 1401);
     return () => {
-      console.log('🧹 Cleaning up timer');
       clearTimeout(timer);
     };
   }, []);
@@ -89,7 +83,6 @@ const InterestPayout = () => {
       const response = await api.getAllPayouts(seriesId, null, search);
       setPayoutData(response.payouts || []);
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('Error fetching payouts:', err); }
       setError(err.message || 'Failed to fetch payouts');
     }
   };
@@ -110,7 +103,6 @@ const InterestPayout = () => {
         totalInvestorsCount: response.total_investors || 0
       });
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('Error fetching summary:', err); }
     }
   };
 
@@ -118,9 +110,7 @@ const InterestPayout = () => {
     try {
       const response = await api.getUniqueSeriesNames();
       setUniqueSeriesNames(response.series_names || []);
-      if (import.meta.env.DEV) { console.log('✅ Unique series names loaded from backend:', response.series_names); }
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('Error fetching unique series names:', err); }
     }
   };
 
@@ -128,9 +118,7 @@ const InterestPayout = () => {
     try {
       const response = await api.getUniqueSeriesForExport();
       setUniqueSeriesForExport(response.series || []);
-      if (import.meta.env.DEV) { console.log('✅ Unique series for export loaded from backend:', response.series); }
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('Error fetching unique series for export:', err); }
     }
   };
 
@@ -154,7 +142,6 @@ const InterestPayout = () => {
         payout_count: 0
       });
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('Error fetching export data:', err); }
     }
   };
 
@@ -196,12 +183,10 @@ const InterestPayout = () => {
         month: exportTab,
         recordCount: exportPayoutData.length
       }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log document download:', error); }
       });
       
       setShowExportModal(false);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading export CSV:', error); }
       alert('Failed to download export CSV. Please try again.');
     }
   };
@@ -230,10 +215,8 @@ const InterestPayout = () => {
         fileName: result.filename,
         format: 'Excel'
       }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log document download:', error); }
       });
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading sample template:', error); }
       
       // Close animation on error
       setShowDownloadAnimation(false);
@@ -275,7 +258,6 @@ const InterestPayout = () => {
           fileName: uploadedFile.name,
           recordCount: response.updated_count
         }, user).catch(error => {
-          if (import.meta.env.DEV) { console.error('Failed to log payout import:', error); }
         });
         
         // Reset after 3 seconds
@@ -299,11 +281,9 @@ const InterestPayout = () => {
           errorCount: response.error_count || 0,
           errors: response.errors || []
         }, user).catch(error => {
-          if (import.meta.env.DEV) { console.error('Failed to log payout import failure:', error); }
         });
       }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error importing payouts:', error); }
       setImportStatus(`error:${error.message || 'Failed to import payouts'}`);
       
       // Add audit log for import exception
@@ -313,7 +293,6 @@ const InterestPayout = () => {
         errorCount: 1,
         errors: [error.message || 'Unknown error during import']
       }, user).catch(logError => {
-        if (import.meta.env.DEV) { console.error('Failed to log payout import exception:', logError); }
       });
     }
   };
@@ -330,10 +309,8 @@ const InterestPayout = () => {
         format: 'CSV',
         recordCount: payoutData.length
       }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log document download:', error); }
       });
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading CSV:', error); }
       alert('Failed to download CSV file. Please try again.');
     }
   };
@@ -701,7 +678,7 @@ const InterestPayout = () => {
 
                   {uploadedFile && (
                     <div className="uploaded-file-info">
-                      <span className="file-name">📄 {uploadedFile.name}</span>
+                      <span className="file-name">ðŸ“„ {uploadedFile.name}</span>
                     </div>
                   )}
 
@@ -797,3 +774,4 @@ const InterestPayout = () => {
 };
 
 export default InterestPayout;
+

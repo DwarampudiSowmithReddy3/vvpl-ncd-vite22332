@@ -110,12 +110,10 @@ export const DataProvider = ({ children }) => {
           // Import apiService here to avoid circular dependency issues
           const { default: apiService } = await import('../services/api');
           
-          if (import.meta.env.DEV) { console.log('🔄 Loading initial audit logs from database...'); }
           const response = await apiService.getAuditLogs({ limit: 100 }); // Get latest 100 logs
           
           // Backend returns array directly, not wrapped in { logs: [...] }
           if (!response || !Array.isArray(response)) {
-            if (import.meta.env.DEV) { console.error('❌ Invalid response format:', response); }
             return;
           }
           
@@ -134,12 +132,8 @@ export const DataProvider = ({ children }) => {
           
           setAuditLogs(transformedLogs);
           auditLogsLoadedRef.current = true; // Mark as loaded
-          if (import.meta.env.DEV) { console.log('✅ Loaded', transformedLogs.length, 'initial audit logs from database'); }
-        } else {
-          if (import.meta.env.DEV) { console.log('⏳ No auth token found, skipping audit log loading'); }
         }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to load initial audit logs:', error); }
         // Keep existing empty array if loading fails
       }
     };
@@ -148,8 +142,6 @@ export const DataProvider = ({ children }) => {
     const token = localStorage.getItem('authToken');
     if (token && !auditLogsLoadedRef.current) {
       loadInitialAuditLogs();
-    } else {
-      if (import.meta.env.DEV) { console.log('🔄 Audit logs already loaded or no token, skipping initial load'); }
     }
     
   }, []); // Empty dependency array - run only once on mount
@@ -159,16 +151,11 @@ export const DataProvider = ({ children }) => {
     const loadSeriesFromBackend = async () => {
       try {
         const token = localStorage.getItem('authToken');
-        if (import.meta.env.DEV) { console.log('🔍 Token exists:', !!token); }
         if (token) {
           setSeriesLoading(true); // Set loading state
           const { default: apiService } = await import('../services/api');
           
-          if (import.meta.env.DEV) { console.log('🔄 Loading NCD Series from database...'); }
           const seriesData = await apiService.getSeries();
-          if (import.meta.env.DEV) { console.log('🔍 Raw series data from API:', seriesData); }
-          if (import.meta.env.DEV) { console.log('🔍 Series data type:', typeof seriesData); }
-          if (import.meta.env.DEV) { console.log('🔍 Series data length:', seriesData?.length); }
           
           // Transform backend format (snake_case) to frontend format (camelCase)
           const transformedSeries = seriesData.map(s => ({
@@ -206,15 +193,12 @@ export const DataProvider = ({ children }) => {
             investors: s.investor_count || 0  // FIXED: Use investor_count from backend
           }));
           
-          if (import.meta.env.DEV) { console.log('✅ Loaded', transformedSeries.length, 'NCD series from database'); }
           setSeries(transformedSeries);
           setSeriesLoading(false); // Clear loading state
         } else {
-          if (import.meta.env.DEV) { console.log('⏳ No auth token found, skipping series loading'); }
           setSeriesLoading(false); // Clear loading state even if no token
         }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to load NCD series:', error); }
         setSeriesLoading(false); // Clear loading state on error
       }
     };
@@ -336,7 +320,6 @@ export const DataProvider = ({ children }) => {
 
   // REMOVED: forceRecalculateAllSeries - ALL calculations done in backend
   const forceRecalculateAllSeries = useCallback(() => {
-    if (import.meta.env.DEV) { console.log('⚠️ forceRecalculateAllSeries called but DISABLED - all data from backend'); }
     // Do nothing - all calculations in backend
   }, []);
 
@@ -344,13 +327,11 @@ export const DataProvider = ({ children }) => {
   // Series data including funds_raised and investor counts come from backend
   // Frontend should NEVER calculate these values
   const recalculateSeriesMetrics = (seriesName = null) => {
-    if (import.meta.env.DEV) { console.log('⚠️ recalculateSeriesMetrics called but DISABLED - all data from backend'); }
     // Do nothing - all calculations in backend
   };
 
   // REMOVED: checkAndUpdateSeriesStatus - status calculated in backend
   const checkAndUpdateSeriesStatus = () => {
-    if (import.meta.env.DEV) { console.log('⚠️ checkAndUpdateSeriesStatus called but DISABLED - status from backend'); }
     // Do nothing - status comes from backend
   };
 
@@ -386,16 +367,11 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateInvestor = (id, updates) => {
-    if (import.meta.env.DEV) { console.log('🔄 updateInvestor called with:', { id, updates }); }
-    
     // Find the investor being updated
     const targetInvestor = investors.find(inv => inv.id === id);
     if (!targetInvestor) {
-      if (import.meta.env.DEV) { console.error('❌ Investor not found with id:', id); }
       return;
     }
-    
-    if (import.meta.env.DEV) { console.log('📋 Current investor data:', targetInvestor); }
     
     // Find and update investor
     const updatedInvestors = investors.map(inv => 
@@ -403,25 +379,17 @@ export const DataProvider = ({ children }) => {
     );
     
     const updatedInvestor = updatedInvestors.find(inv => inv.id === id);
-    if (import.meta.env.DEV) { console.log('📋 Updated investor data:', updatedInvestor); }
     
     // Update state and localStorage immediately
     setInvestors(updatedInvestors);
     localStorage.setItem('investors', JSON.stringify(updatedInvestors));
-    if (import.meta.env.DEV) { console.log('✅ Investors state and localStorage updated'); }
-    
-    // REMOVED: No longer recalculating series on frontend
-    // Series data including funds_raised and investor counts come from backend
-    if (import.meta.env.DEV) { console.log('⚠️ Series recalculation DISABLED - all data from backend'); }
     
     // Force a series refresh trigger to reload from backend
     setSeriesRefreshTrigger(prev => prev + 1);
-    if (import.meta.env.DEV) { console.log('✅ Series refresh trigger updated - will reload from backend'); }
     
     // Dispatch custom event to refresh Dashboard metrics
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('dashboardRefresh'));
-      if (import.meta.env.DEV) { console.log('📊 Dashboard refresh event dispatched'); }
     }, 100);
   };
 
@@ -430,12 +398,10 @@ export const DataProvider = ({ children }) => {
   // Load audit logs from database
   const loadAuditLogs = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Loading audit logs from database...'); }
       const response = await apiService.getAuditLogs({ limit: 100 }); // Get latest 100 logs
       
       // Backend returns array directly, not wrapped in { logs: [...] }
       if (!response || !Array.isArray(response)) {
-        if (import.meta.env.DEV) { console.error('❌ Invalid response format:', response); }
         return;
       }
       
@@ -453,18 +419,13 @@ export const DataProvider = ({ children }) => {
       }));
       
       setAuditLogs(transformedLogs);
-      if (import.meta.env.DEV) { console.log('✅ Loaded', transformedLogs.length, 'audit logs from database'); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to load audit logs from database:', error); }
       // Keep existing logs if loading fails
     }
   };
 
   // Save to database
   const addAuditLog = async (logEntry) => {
-    // DEBUGGING: Log when this function is called
-    if (import.meta.env.DEV) { console.log('🔍 addAuditLog called with:', logEntry.action); }
-    
     const newLog = {
       id: auditLogs.length + 1,
       timestamp: new Date().toISOString(),
@@ -473,7 +434,6 @@ export const DataProvider = ({ children }) => {
     
     // Add to local state immediately for UI responsiveness
     setAuditLogs([newLog, ...auditLogs]);
-    if (import.meta.env.DEV) { console.log('🔍 Added audit log to state, total logs:', auditLogs.length + 1); }
     
     // FIXED: Save to database via API with proper error handling
     try {
@@ -487,12 +447,9 @@ export const DataProvider = ({ children }) => {
         changes: logEntry.changes || {}
       };
       
-      if (import.meta.env.DEV) { console.log('🔄 Saving audit log to database:', auditData.action); }
       await apiService.createAuditLog(auditData);
-      if (import.meta.env.DEV) { console.log('✅ Audit log saved to database successfully'); }
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to save audit log to database:', error); }
       // Don't remove from local state - keep it for UI even if DB save fails
     }
   };
@@ -653,9 +610,7 @@ export const DataProvider = ({ children }) => {
   // UPDATED: Fetch from backend API instead of localStorage
   const getInterestPayoutStats = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching payout stats from backend...'); }
       const stats = await apiService.getPayoutStats();
-      if (import.meta.env.DEV) { console.log('✅ Payout stats loaded from backend:', stats); }
       
       return {
         totalInterestPaid: stats.total_interest_paid || 0,
@@ -667,7 +622,6 @@ export const DataProvider = ({ children }) => {
         upcomingDetails: stats.upcoming_details || []
       };
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching payout stats from backend:', error); }
       // Return default values on error
       const currentDate = new Date();
       const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -870,7 +824,6 @@ export const DataProvider = ({ children }) => {
 
   // REMOVED: updateSeriesStatuses - status calculated in backend
   const updateSeriesStatuses = useCallback(() => {
-    if (import.meta.env.DEV) { console.log('⚠️ updateSeriesStatuses called but DISABLED - status from backend'); }
     // Do nothing - status comes from backend
   }, []);
 
@@ -883,8 +836,6 @@ export const DataProvider = ({ children }) => {
 
   // Add transaction to investor's transaction history
   const addTransactionToInvestor = (investorId, transaction) => {
-    if (import.meta.env.DEV) { console.log('Adding transaction to investor:', investorId, transaction); }
-    
     const updatedInvestors = investors.map(inv => {
       if (inv.investorId === investorId || inv.id === investorId) {
         const currentTransactions = inv.transactions || [];
@@ -908,7 +859,6 @@ export const DataProvider = ({ children }) => {
     
     setInvestors(updatedInvestors);
     localStorage.setItem('investors', JSON.stringify(updatedInvestors));
-    if (import.meta.env.DEV) { console.log('Transaction added successfully'); }
   };
 
   // Add investment transaction (called when new investment is made)
@@ -941,8 +891,6 @@ export const DataProvider = ({ children }) => {
 
   // Document management functions
   const addInvestorDocument = (investorId, document) => {
-    if (import.meta.env.DEV) { console.log('Adding document to investor:', investorId, document); }
-    
     const updatedInvestors = investors.map(inv => {
       if (inv.investorId === investorId || inv.id === investorId) {
         const currentDocuments = inv.seriesDocuments || [];
@@ -963,7 +911,6 @@ export const DataProvider = ({ children }) => {
     
     setInvestors(updatedInvestors);
     localStorage.setItem('investors', JSON.stringify(updatedInvestors));
-    if (import.meta.env.DEV) { console.log('Document added successfully'); }
   };
 
   // Get documents for specific investor

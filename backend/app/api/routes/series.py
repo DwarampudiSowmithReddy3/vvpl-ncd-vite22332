@@ -1445,6 +1445,13 @@ async def get_series_upcoming_payouts(
     try:
         db = get_db()
         
+        # AUTO-UPDATE: Update all series statuses based on current dates
+        # This ensures status is always accurate
+        try:
+            update_series_status_by_dates()
+        except:
+            pass # Continue even if update fails
+
         # CHECK PERMISSION
         if not has_permission(current_user, "view_ncdSeries", db):
             log_unauthorized_access(db, current_user, "get_series_upcoming_payouts", "view_ncdSeries")
@@ -1453,10 +1460,10 @@ async def get_series_upcoming_payouts(
                 detail="Access Denied: You don't have permission to view series payouts"
             )
         
-        # Verify series exists and is active
+        # Verify series exists and is active (Relaxed status filter to allow predicted payouts)
         series_query = """
         SELECT * FROM ncd_series
-        WHERE id = %s AND is_active = 1 AND status = 'active'
+        WHERE id = %s AND is_active = 1
         """
         series_result = db.execute_query(series_query, (series_id,))
         
@@ -3068,7 +3075,7 @@ async def get_series_documents(
                 'content_type': doc['content_type'],
                 'uploaded_at': str(doc['uploaded_at']),
                 'uploaded_by': doc['uploaded_by'],
-                'download_url': signed_url  # Fresh signed URL (expires in 5 min)
+                'view_url': signed_url  # Fresh signed URL (expires in 5 min)
             })
         
         return {

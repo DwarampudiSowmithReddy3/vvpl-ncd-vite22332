@@ -6,6 +6,7 @@ import Layout from '../components/Layout';
 import LoadingOverlay from '../components/LoadingOverlay';
 import Lottie from 'lottie-react';
 import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
+import documentDownloadAnimation from '../assets/animations/document-download.json';
 import apiService from '../services/api';
 import './Administrator.css';
 import { MdAdminPanelSettings, MdSearch, MdPersonAdd, MdClose, MdSecurity, MdOutlineFileDownload, MdDelete } from "react-icons/md";
@@ -19,36 +20,8 @@ const Administrator = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('users');
 
-  // CRITICAL DEBUG: Check what we're getting from AuthContext
-  if (import.meta.env.DEV) { console.log('🚨 ADMINISTRATOR PAGE DEBUG:'); }
-  if (import.meta.env.DEV) { console.log('  permissions from useAuth:', permissions); }
-  if (import.meta.env.DEV) { console.log('  permissions type:', typeof permissions); }
-  if (import.meta.env.DEV) {
-
-    if (import.meta.env.DEV) { console.log('  permissions keys:', permissions ? Object.keys(permissions) : 'null/undefined'); }
-
-  }
-  if (import.meta.env.DEV) { console.log('  PERMISSIONS from useAuth:', PERMISSIONS); }
-  if (import.meta.env.DEV) { console.log('  PERMISSIONS type:', typeof PERMISSIONS); }
-  if (import.meta.env.DEV) {
-
-    if (import.meta.env.DEV) { console.log('  PERMISSIONS keys:', PERMISSIONS ? Object.keys(PERMISSIONS) : 'null/undefined'); }
-
-  }
-
   // Use permissions or fallback to PERMISSIONS or empty object
   const currentPermissions = permissions || PERMISSIONS || {};
-  if (import.meta.env.DEV) { console.log('  currentPermissions:', currentPermissions); }
-  if (import.meta.env.DEV) {
-
-    if (import.meta.env.DEV) { console.log('  currentPermissions keys:', Object.keys(currentPermissions)); }
-
-  }
-  if (import.meta.env.DEV) {
-
-    if (import.meta.env.DEV) { console.log('  currentPermissions count:', Object.keys(currentPermissions).length); }
-
-  }
 
   // Fetch available roles from database (NO HARDCODING)
   const [ALL_ROLES, setALL_ROLES] = useState([]);
@@ -64,6 +37,7 @@ const Administrator = () => {
   const [toDate, setToDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAllLogs, setShowAllLogs] = useState(false);
   const [showAllUsers, setShowAllUsers] = useState(false);
+  const [showAddUserAnimation, setShowAddUserAnimation] = useState(false);
   
   // Users data - loaded from API
   const [users, setUsers] = useState([]);
@@ -80,8 +54,6 @@ const Administrator = () => {
         apiService.getUsers(searchQuery, limitCount),
         new Promise(resolve => setTimeout(resolve, 500)) // Minimum 500ms loading
       ]);
-      
-      if (import.meta.env.DEV) { console.log('✅ Users loaded from API:', usersData); }
       
       // Map API response to frontend format
       const mappedUsers = usersData.map(user => ({
@@ -111,7 +83,6 @@ const Administrator = () => {
         setDisplayedUsers(mappedUsers.slice(0, 7));
       }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to load users:', error); }
       // Keep empty array if API fails
       if (searchQuery) {
         setFilteredUsers([]);
@@ -137,10 +108,8 @@ const Administrator = () => {
     const fetchRoles = async () => {
       try {
         const rolesData = await apiService.getAvailableRoles();
-        if (import.meta.env.DEV) { console.log('✅ Available roles fetched from database:', rolesData); }
         setALL_ROLES(rolesData);
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to fetch roles:', error); }
         setALL_ROLES([]);
       }
     };
@@ -151,7 +120,6 @@ const Administrator = () => {
   useEffect(() => {
     // FIXED: Only load audit logs once on mount, not on every render
     if (loadAuditLogs) {
-      if (import.meta.env.DEV) { console.log('🔄 Administrator: Loading audit logs once on mount'); }
       loadAuditLogs();
     }
   }, []); // Empty dependency array - load only once on mount
@@ -290,6 +258,9 @@ const Administrator = () => {
     if (!validateForm(formData)) return;
 
     try {
+      // Show upload animation
+      setShowAddUserAnimation(true);
+      
       // Create user via API
       const userData = {
         user_id: formData.userId,
@@ -301,14 +272,11 @@ const Administrator = () => {
         password: formData.password
       };
 
-      if (import.meta.env.DEV) { console.log('🔄 Creating user via API:', userData); }
       const newUser = await apiService.createUser(userData);
-      if (import.meta.env.DEV) { console.log('✅ User created successfully:', newUser); }
       
       // Reload users from API to get updated list (audit log created automatically by backend)
       await loadUsers();
       
-      setShowAddUserModal(false);
       setFormData({
         userId: '',
         username: '',
@@ -323,8 +291,15 @@ const Administrator = () => {
       
       showSuccess(`User ${formData.username} created successfully and saved to database`);
       
+      // Close animation after 1 second, then close modal
+      setTimeout(() => {
+        setShowAddUserAnimation(false);
+        setShowAddUserModal(false);
+      }, 1000);
+      
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to create user:', error); }
+      // Hide animation on error
+      setShowAddUserAnimation(false);
       setErrors({ 
         general: error.message || 'Failed to create user. Please try again.' 
       });
@@ -371,12 +346,9 @@ const Administrator = () => {
         setErrors({ general: 'No changes detected from previous data' });
         return;
       }
-
-      if (import.meta.env.DEV) { console.log('🔄 Updating user via API:', { userId: selectedUser.id, updateData }); }
       
       // Update user via API
       const updatedUser = await apiService.updateUser(selectedUser.id, updateData);
-      if (import.meta.env.DEV) { console.log('✅ User updated successfully:', updatedUser); }
       
       // Reload users from API to get updated list (audit log created automatically by backend)
       await loadUsers();
@@ -388,7 +360,6 @@ const Administrator = () => {
       showSuccess(`${selectedUser.username}: ${changes.join(', ')} updated successfully`);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to update user:', error); }
       setErrors({ 
         general: error.message || 'Failed to update user. Please try again.' 
       });
@@ -413,11 +384,8 @@ const Administrator = () => {
       try {
         setLoading(true);
         
-        if (import.meta.env.DEV) { console.log('🔄 Deleting user via API:', userToDelete.id); }
-        
         // Delete user via API
         const result = await apiService.deleteUser(userToDelete.id);
-        if (import.meta.env.DEV) { console.log('✅ User deleted successfully:', result); }
         
         // Reload users from API to get updated list (audit log created automatically by backend)
         await loadUsers();
@@ -425,7 +393,6 @@ const Administrator = () => {
         showSuccess(`User ${userToDelete.username} deleted successfully`);
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to delete user:', error); }
         showSuccess(`Failed to delete user: ${error.message}`);
       }
     }
@@ -481,7 +448,6 @@ const Administrator = () => {
   };
 
   const handleViewUser = (user) => {
-    if (import.meta.env.DEV) { console.log('Opening edit modal for user:', user); } // Debug log
     setSelectedUser(user);
     setEditFormData({
       username: user.username,
@@ -529,19 +495,14 @@ const Administrator = () => {
 
   // Permission toggle handler - FIXED TO SEND ONLY CHANGED ROLE
   const handlePermissionToggle = async (role, module, action) => {
-    if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: Permission toggle clicked!'); }
-    if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: Changing permission for role:', role, 'module:', module, 'action:', action); }
-    
     // CRITICAL FIX: Add safety check for permissions
     if (!currentPermissions || !currentPermissions[role] || !currentPermissions[role][module]) {
-      if (import.meta.env.DEV) { console.error('❌ Permissions object is not available:', { currentPermissions, role, module, action }); }
       showSuccess('Error: Permissions not loaded');
       return;
     }
     
     // CRITICAL FIX: Check if updatePermissions is a function
     if (typeof updatePermissions !== 'function') {
-      if (import.meta.env.DEV) { console.error('🚨 CRITICAL ERROR: updatePermissions is not a function!', typeof updatePermissions); }
       showSuccess('Error: updatePermissions function not available');
       return;
     }
@@ -568,22 +529,13 @@ const Administrator = () => {
     
     try {
       // CRITICAL FIX: Send only the changed role to backend for precise audit logging
-      if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: Sending only changed role to backend:', role); }
       const result = await updatePermissions(changedRolePermissions);
       
-      if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: updatePermissions result:', result); }
-      
       if (result && result.success) {
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.log('✅ Permission toggled successfully (API call succeeded):', `${role}.${module}.${action}`, oldValue, '→', newValue); }
-
-        }
         showSuccess(`${role}: ${module} ${action} permission ${newValue ? 'granted' : 'revoked'}`);
         
         // CRITICAL FIX: Add audit logging for permission changes
         try {
-          if (import.meta.env.DEV) { console.log('🔄 Adding audit log for permission change...'); }
           await addAuditLog({
             action: 'Permission Updated',
             adminName: user ? user.name : 'Unknown Admin',
@@ -601,41 +553,32 @@ const Administrator = () => {
               timestamp: new Date().toISOString()
             }
           });
-          if (import.meta.env.DEV) { console.log('✅ Audit log created for permission change'); }
           
           // CRITICAL: Refresh audit logs to show the new entry immediately
           if (loadAuditLogs) {
-            if (import.meta.env.DEV) { console.log('🔄 Refreshing audit logs after permission change...'); }
             setTimeout(() => {
               loadAuditLogs();
             }, 500); // Small delay to ensure backend audit log is created first
           }
           
         } catch (auditError) {
-          if (import.meta.env.DEV) { console.error('❌ Failed to create audit log for permission change:', auditError); }
           // Don't fail the permission update if audit logging fails
         }
         
         if (result.warning) {
-          if (import.meta.env.DEV) { console.warn('⚠️ Backend sync warning:', result.warning); }
         }
         
         // CRITICAL FIX: Refresh audit logs after permission change
         try {
-          if (import.meta.env.DEV) { console.log('🔄 Refreshing audit logs after permission change...'); }
           if (loadAuditLogs) {
             await loadAuditLogs();
-            if (import.meta.env.DEV) { console.log('✅ Audit logs refreshed successfully'); }
           }
         } catch (refreshError) {
-          if (import.meta.env.DEV) { console.error('❌ Failed to refresh audit logs:', refreshError); }
         }
       } else {
-        if (import.meta.env.DEV) { console.error('❌ Permission toggle failed:', result?.error); }
         showSuccess(`Error: ${result?.error || 'Failed to update permissions'}`);
       }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Permission toggle error:', error); }
       showSuccess(`Error: ${error.message}`);
     }
   };
@@ -988,7 +931,6 @@ const Administrator = () => {
                   <div className="audit-log-buttons">
                     <button 
                       onClick={() => {
-                        if (import.meta.env.DEV) { console.log('🔄 Manual audit log refresh clicked'); }
                         if (loadAuditLogs) {
                           loadAuditLogs();
                         }
@@ -1414,6 +1356,70 @@ const Administrator = () => {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Add User Animation Overlay */}
+        {showAddUserAnimation && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 99999,
+            background: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+            border: '1px solid #e2e8f0',
+            width: '550px',
+            overflow: 'hidden',
+            animation: 'greetingEnter 0.5s ease-out'
+          }}>
+            <div style={{
+              padding: '32px 48px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px'
+            }}>
+              {/* Lottie Animation */}
+              <div style={{ width: '240px', height: '240px' }}>
+                <Lottie
+                  animationData={documentDownloadAnimation}
+                  loop={false}
+                  autoplay={true}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%'
+                  }}
+                />
+              </div>
+              
+              {/* Text Content */}
+              <div style={{
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  color: '#000000',
+                  margin: 0
+                }}>
+                  Creating User...
+                </h2>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  color: '#64748b',
+                  margin: 0
+                }}>
+                  Please wait while we add the new user
+                </p>
+              </div>
             </div>
           </div>
         )}

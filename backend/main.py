@@ -47,6 +47,18 @@ async def log_requests(request, call_next):
             content={"message": f"Internal server error: {str(e)}", "success": False}
         )
 
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request, call_next):
+    response = await call_next(request)
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
 # CORS Configuration - Read from secure environment variables
 app.add_middleware(
     CORSMiddleware,
@@ -56,10 +68,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ENCRYPTION DISABLED - The middleware approach has technical issues
-# For production, use HTTPS instead which encrypts the entire connection
-logger.info("ℹ️ Response encryption is DISABLED")
-logger.info("ℹ️ For production: Use HTTPS to encrypt all traffic")
+# ENCRYPTION ENABLED - Using SafeEncryptionMiddleware for RBI/SEBI compliance
+from app.services.security.safe_encryption_middleware import add_safe_encryption_middleware
+add_safe_encryption_middleware(app)
+logger.info("✅ Response encryption is ENABLED via SafeEncryptionMiddleware")
 
 # Include routers
 app.include_router(auth.router)

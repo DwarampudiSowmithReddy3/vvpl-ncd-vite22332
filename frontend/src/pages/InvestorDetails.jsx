@@ -64,10 +64,7 @@ const InvestorDetails = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      if (import.meta.env.DEV) { console.log('🔄 Loading investor details from backend for ID:', id); }
       const data = await apiService.getInvestor(id);
-      if (import.meta.env.DEV) { console.log('✅ Investor data loaded:', data); }
       
       // Backend now returns data in BOTH formats (snake_case AND camelCase)
       // We can use it directly without any transformation!
@@ -75,7 +72,6 @@ const InvestorDetails = () => {
       setInvestor(data);
       
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading investor:', err); }
       setError(err.message || 'Failed to load investor details');
     } finally {
       setLoading(false);
@@ -87,18 +83,14 @@ const InvestorDetails = () => {
       const data = await apiService.getSeries();
       setSeries(data);
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading series:', err); }
     }
   };
 
   const loadInvestorGrievances = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Loading grievances for investor:', id); }
       const data = await apiService.getInvestorGrievances(id);
-      if (import.meta.env.DEV) { console.log('✅ Investor grievances loaded:', data); }
       setInvestorGrievances(data || []);
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading investor grievances:', err); }
       // Don't show error to user, just log it - grievances are optional
       setInvestorGrievances([]);
     }
@@ -107,12 +99,9 @@ const InvestorDetails = () => {
   const loadInvestmentDocuments = async () => {
     try {
       setLoadingInvestmentDocs(true);
-      if (import.meta.env.DEV) { console.log('🔄 Loading investment documents for investor:', id); }
       const response = await apiService.getInvestorInvestmentDocuments(id);
-      if (import.meta.env.DEV) { console.log('✅ Investment documents loaded:', response); }
       setInvestmentDocuments(response.documents || []);
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading investment documents:', err); }
       setInvestmentDocuments([]);
     } finally {
       setLoadingInvestmentDocs(false);
@@ -392,7 +381,7 @@ const InvestorDetails = () => {
         const timeStr = currentDate.toLocaleTimeString('en-GB');
         doc.text('Generated on: ' + dateStr + ' at ' + timeStr, 20, pageHeight - 10);
         doc.text('Page ' + i + ' of ' + totalPages, pageWidth - 30, pageHeight - 10);
-        doc.text('© 2026 LOANFRONT | All Rights Reserved', pageWidth / 2, pageHeight - 10, { align: 'center' });
+        doc.text('Â© 2026 LOANFRONT | All Rights Reserved', pageWidth / 2, pageHeight - 10, { align: 'center' });
       }
       
       // Save the PDF
@@ -420,14 +409,9 @@ const InvestorDetails = () => {
             user_role: user?.role || user?.displayRole
           }
         });
-        if (import.meta.env.DEV) { console.log('✅ Investor profile download logged'); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to log investor profile download:', error); }
       }
-      
-      if (import.meta.env.DEV) { console.log('PDF generated successfully:', fileName); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error generating PDF:', error); }
       alert('Error generating PDF: ' + error.message);
     }
   };
@@ -445,7 +429,6 @@ const InvestorDetails = () => {
     e.preventDefault();
     
     try {
-      if (import.meta.env.DEV) { console.log('Form submitted with data:', editFormData); }
       
       // Prepare update data for backend
       const updateData = {
@@ -472,8 +455,6 @@ const InvestorDetails = () => {
         status: editFormData.active ? 'active' : 'inactive'
       };
 
-      if (import.meta.env.DEV) { console.log('Updating investor with ID:', investor.id, 'data:', updateData); }
-
       // Update investor via backend API
       await apiService.updateInvestor(investor.id, updateData);
 
@@ -495,17 +476,14 @@ const InvestorDetails = () => {
       for (const [formField, documentType] of Object.entries(documentMapping)) {
         if (editFormData[formField]) {
           documentsToUpload++;
-          if (import.meta.env.DEV) { console.log(`📤 Uploading ${documentType}...`); }
           documentUploadPromises.push(
             apiService.updateInvestorDocument(investor.id, documentType, editFormData[formField])
               .then(() => {
                 documentsUploaded++;
-                if (import.meta.env.DEV) { console.log(`✅ ${documentType} uploaded successfully`); }
               })
               .catch((error) => {
                 documentsFailed++;
                 failedDocuments.push(documentType.replace('_', ' '));
-                console.error(`❌ Error uploading ${documentType}:`, error);
               })
           );
         }
@@ -545,19 +523,14 @@ const InvestorDetails = () => {
             user_role: user?.role || user?.displayRole
           }
         });
-        if (import.meta.env.DEV) { console.log('✅ Investor update logged'); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to log investor update:', error); }
       }
-
-      if (import.meta.env.DEV) { console.log('Update completed, closing modal'); }
       setShowEditModal(false);
       
       // Reload investor data from backend
       await loadInvestorData();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error updating investor:', error); }
       toast.error(error.message || 'Failed to update investor. Please try again.', 'Update Failed');
     }
   };
@@ -565,7 +538,6 @@ const InvestorDetails = () => {
   // Handle checking documents for a specific series
   const handleCheckDocuments = (seriesName) => {
     // TODO: Implement backend API for investor documents
-    if (import.meta.env.DEV) { console.log('Check documents for series:', seriesName); }
     toast.info('Document viewing feature is coming soon. Backend API integration is pending.', 'Feature Coming Soon');
     // const documents = getInvestorDocuments(investor.investorId, seriesName);
     // setSelectedSeriesDocuments(documents);
@@ -621,8 +593,6 @@ The original file data was not stored in this demo version.`;
       // Clean up
       window.URL.revokeObjectURL(url);
       
-      if (import.meta.env.DEV) { console.log(`Downloaded: ${fileName}`); }
-      
       // Add audit log for document download
       await auditService.logDataOperation(
         user,
@@ -651,16 +621,12 @@ The original file data was not stored in this demo version.`;
       }
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading document:', error); }
       toast.error('Failed to download document. Please try again.', 'Download Failed');
     }
   };
 
   // Handle partial series exit - Exit from specific series only
   const handlePartialSeriesExit = async (seriesName) => {
-    if (import.meta.env.DEV) { console.log('=== PARTIAL SERIES EXIT FUNCTION CALLED ==='); }
-    if (import.meta.env.DEV) { console.log('Series to exit:', seriesName); }
-    if (import.meta.env.DEV) { console.log('Current investor:', investor); }
 
     try {
       // Find the series ID from the series name
@@ -699,7 +665,6 @@ The original file data was not stored in this demo version.`;
       setShowExitConfirmModal(true);
 
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error in partial series exit:', error); }
       toast.error(error.message || 'Failed to process series exit. Please try again.', 'Exit Failed');
     }
   };
@@ -711,12 +676,8 @@ The original file data was not stored in this demo version.`;
     try {
       const { seriesName, seriesId, holding } = exitSeriesData;
 
-      if (import.meta.env.DEV) { console.log('🚪 Calling exit API for investor:', investor.id, 'series:', seriesId); }
-
       // Call backend API
       const response = await apiService.exitInvestorFromSeries(investor.id, seriesId);
-      
-      if (import.meta.env.DEV) { console.log('✅ Exit successful:', response); }
       
       // Add audit log for series exit
       await auditService.logDataOperation(
@@ -735,7 +696,6 @@ The original file data was not stored in this demo version.`;
           action: 'series_exit'
         }
       ).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log series exit:', error); }
       });
       
       // Close modal
@@ -749,12 +709,10 @@ The original file data was not stored in this demo version.`;
       
       // Reload audit logs so Administrator page shows the exit log
       if (loadAuditLogs) {
-        if (import.meta.env.DEV) { console.log('🔄 Reloading audit logs after series exit...'); }
         await loadAuditLogs();
       }
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error in confirm exit series:', error); }
       setShowExitConfirmModal(false);
       setExitSeriesData(null);
       toast.error(error.message || 'Failed to process series exit. Please try again.', 'Exit Failed');
@@ -769,20 +727,15 @@ The original file data was not stored in this demo version.`;
 
   // Handle delete investor - PERMANENT DELETION WITH LOCK-IN PERIOD CHECK
   const handleDeleteInvestor = async () => {
-    if (import.meta.env.DEV) { console.log('=== PERMANENT DELETE FUNCTION CALLED ==='); }
-    if (import.meta.env.DEV) { console.log('confirmAction:', confirmAction); }
     
     if (confirmAction !== 'delete') {
-      if (import.meta.env.DEV) { console.log('Setting confirmAction to delete'); }
       setConfirmAction('delete');
       return;
     }
 
-    if (import.meta.env.DEV) { console.log('=== PROCEEDING WITH PERMANENT DELETE ==='); }
-
     try {
       const userConfirmed = confirm(
-        `⚠️ PERMANENT DELETE WARNING\n\n` +
+        `âš ï¸ PERMANENT DELETE WARNING\n\n` +
         `This will permanently delete investor "${investor.name}" (ID: ${investor.investorId}).\n\n` +
         `This action cannot be undone.\n\n` +
         `Do you want to proceed?`
@@ -807,7 +760,6 @@ The original file data was not stored in this demo version.`;
       }, 1500);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error permanently deleting investor:', error); }
       toast.error(error.message || 'Failed to delete investor. Please try again.', 'Delete Failed');
       setConfirmAction(null);
     }
@@ -815,24 +767,18 @@ The original file data was not stored in this demo version.`;
 
   // Handle deactivate/activate investor - SIMPLIFIED VERSION
   const handleToggleActivation = async () => {
-    if (import.meta.env.DEV) { console.log('=== TOGGLE ACTIVATION FUNCTION CALLED ==='); }
     
     const isCurrentlyActive = investor.active !== false && investor.status !== 'deactivated';
     const newAction = isCurrentlyActive ? 'deactivate' : 'activate';
     
-    if (import.meta.env.DEV) { console.log('isCurrentlyActive:', isCurrentlyActive, 'newAction:', newAction, 'confirmAction:', confirmAction); }
-    
     if (confirmAction !== newAction) {
-      if (import.meta.env.DEV) { console.log('Setting confirmAction to:', newAction); }
       setConfirmAction(newAction);
       return;
     }
 
     if (import.meta.env.DEV) {
 
-
-      if (import.meta.env.DEV) { console.log('=== PROCEEDING WITH', newAction.toUpperCase(), '==='); }
-
+      // Log removed
 
     }
 
@@ -878,7 +824,6 @@ The original file data was not stored in this demo version.`;
       await loadInvestorData();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error toggling activation:', error); }
       toast.error(error.message || 'Failed to update investor status. Please try again.', 'Update Failed');
       setConfirmAction(null);
     }
@@ -920,7 +865,6 @@ The original file data was not stored in this demo version.`;
           {/* Conditional Edit Button - Only show for active investors */}
           {investor.status !== 'deleted' ? (
             <button className="edit-user-button" onClick={() => {
-              if (import.meta.env.DEV) { console.log('Edit Investor button clicked!'); }
               // Initialize edit form with current investor data
               setEditFormData({
                 fullName: investor.name || '',
@@ -949,7 +893,6 @@ The original file data was not stored in this demo version.`;
                 form15G15H: null,
                 digitalSignature: null
               });
-              if (import.meta.env.DEV) { console.log('Setting showEditModal to true'); }
               setShowEditModal(true);
             }}>
               <MdEdit size={18} /> Edit Investor
@@ -957,7 +900,7 @@ The original file data was not stored in this demo version.`;
           ) : (
             <div className="deleted-notice">
               <span className="deleted-text">
-                🚫 DELETED ACCOUNT - View Only
+                ðŸš« DELETED ACCOUNT - View Only
               </span>
               <p className="deleted-subtext">
                 This investor account has been permanently deleted. Data is preserved for reference only.
@@ -965,11 +908,11 @@ The original file data was not stored in this demo version.`;
               {investor.refundAmount && (
                 <div className="refund-info">
                   <p className="refund-amount">
-                    💰 Net Refund: ₹{investor.refundAmount.toLocaleString('en-IN')}
+                    ðŸ’° Net Refund: ₹{investor.refundAmount.toLocaleString('en-IN')}
                   </p>
                   {investor.penaltyAmount > 0 && (
                     <p className="penalty-amount">
-                      ⚠️ Penalties Applied: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
+                      âš ï¸ Penalties Applied: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
                     </p>
                   )}
                   {investor.refundDetails && investor.refundDetails.length > 0 && (
@@ -982,11 +925,11 @@ The original file data was not stored in this demo version.`;
                             <p className="lockin-status">
                               {detail.lockInStatus === 'completed' ? (
                                 <span className="lockin-completed">
-                                  ✅ Lock-in completed ({detail.monthsCompleted}/{detail.lockInRequired} months)
+                                  âœ… Lock-in completed ({detail.monthsCompleted}/{detail.lockInRequired} months)
                                 </span>
                               ) : (
                                 <span className="lockin-violation">
-                                  ⚠️ Early exit penalty ({detail.monthsCompleted}/{detail.lockInRequired} months, ₹{detail.penaltyAmount?.toLocaleString('en-IN')} penalty)
+                                  âš ï¸ Early exit penalty ({detail.monthsCompleted}/{detail.lockInRequired} months, ₹{detail.penaltyAmount?.toLocaleString('en-IN')} penalty)
                                 </span>
                               )}
                             </p>
@@ -1104,7 +1047,7 @@ The original file data was not stored in this demo version.`;
                     onClick={() => setShowPartialExitInfo(!showPartialExitInfo)}
                     title="Information about partial series exit"
                   >
-                    ℹ️
+                    â„¹ï¸
                   </button>
                   {showPartialExitInfo && (
                     <div className="info-tooltip-popup">
@@ -1278,9 +1221,7 @@ The original file data was not stored in this demo version.`;
                                     user_role: user?.role || user?.displayRole
                                   }
                                 });
-                                if (import.meta.env.DEV) { console.log('✅ KYC document download logged'); }
                               } catch (error) {
-                                if (import.meta.env.DEV) { console.error('❌ Failed to log KYC document download:', error); }
                               }
                             }}
                           >
@@ -1351,9 +1292,7 @@ The original file data was not stored in this demo version.`;
                                     user_role: user?.role || user?.displayRole
                                   }
                                 });
-                                if (import.meta.env.DEV) { console.log('✅ Investment document download logged'); }
                               } catch (error) {
-                                if (import.meta.env.DEV) { console.error('❌ Failed to log investment document download:', error); }
                               }
                             }}
                           >
@@ -1912,7 +1851,7 @@ The original file data was not stored in this demo version.`;
                     {selectedSeriesDocuments.map((document, index) => (
                       <div key={index} className="document-card">
                         <div className="document-info">
-                          <div className="document-icon">📄</div>
+                          <div className="document-icon">ðŸ“„</div>
                           <div className="document-details">
                             <div className="document-name">{document.type}</div>
                             <div className="document-meta">
@@ -1936,7 +1875,7 @@ The original file data was not stored in this demo version.`;
                   </div>
                 ) : (
                   <div className="no-documents-found">
-                    <div className="no-docs-icon">📄</div>
+                    <div className="no-docs-icon">ðŸ“„</div>
                     <p>No documents uploaded for this series yet</p>
                     <span>Documents will appear here once they are uploaded from the Series Details page.</span>
                   </div>
@@ -1951,7 +1890,7 @@ The original file data was not stored in this demo version.`;
           <div className="modal-overlay" onClick={cancelExitSeries}>
             <div className="modal-content exit-confirm-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header exit-warning">
-                <div className="warning-icon">⚠️</div>
+                <div className="warning-icon">âš ï¸</div>
                 <h2>Confirm Series Exit</h2>
                 <button className="close-button" onClick={cancelExitSeries}>×</button>
               </div>
@@ -1979,10 +1918,10 @@ The original file data was not stored in this demo version.`;
                 <div className="exit-consequences">
                   <p className="consequences-title">What happens when you exit:</p>
                   <ul className="consequences-list">
-                    <li>✓ Investment will be marked as exited</li>
-                    <li>✓ No further interest payouts will be processed</li>
-                    <li>✓ Principal amount settlement will be initiated</li>
-                    <li>✗ This action cannot be reversed</li>
+                    <li>âœ“ Investment will be marked as exited</li>
+                    <li>âœ“ No further interest payouts will be processed</li>
+                    <li>âœ“ Principal amount settlement will be initiated</li>
+                    <li>âœ— This action cannot be reversed</li>
                   </ul>
                 </div>
               </div>
@@ -2003,3 +1942,4 @@ The original file data was not stored in this demo version.`;
 };
 
 export default InvestorDetails;
+

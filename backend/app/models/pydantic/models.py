@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -49,8 +49,8 @@ class TokenData(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: str = Field(..., min_length=1)
+    password: str = Field(..., min_length=1)
 
 
 class LoginResponse(BaseModel):

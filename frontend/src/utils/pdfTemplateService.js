@@ -219,7 +219,6 @@ class PDFTemplateService {
    */
   async loadTemplate() {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Loading PDF template from:', this.templatePath); }
       
       // Fetch the template PDF
       const response = await fetch(this.templatePath);
@@ -230,17 +229,14 @@ class PDFTemplateService {
       
       const existingPdfBytes = await response.arrayBuffer();
       const pdfDoc = await PDFDocument.load(existingPdfBytes);
-      
-      if (import.meta.env.DEV) { console.log('✅ PDF template loaded successfully'); }
       if (import.meta.env.DEV) {
 
-        if (import.meta.env.DEV) { console.log(`   Pages: ${pdfDoc.getPageCount()}`); }
+        // Log removed
 
       }
       
       return pdfDoc;
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading PDF template:', error); }
       throw new Error(`Failed to load PDF template: ${error.message}`);
     }
   }
@@ -361,10 +357,6 @@ class PDFTemplateService {
       // Load fonts
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      
-      if (import.meta.env.DEV) { console.log('📝 Filling Monthly Collection Report data...'); }
-      if (import.meta.env.DEV) { console.log('📊 Investment records:', data.investment_details?.length || 0); }
-      if (import.meta.env.DEV) { console.log('📐 Page dimensions:', width, 'x', height); }
       
       let currentPage = firstPage;
       // Start below the template header (logo, company info, etc.)
@@ -764,15 +756,11 @@ class PDFTemplateService {
         });
       }
       
-      if (import.meta.env.DEV) { console.log('✅ Data filled successfully'); }
-      if (import.meta.env.DEV) { console.log(`📄 Total pages: ${totalPages}`); }
-      
       // Save and return the PDF bytes
       const pdfBytes = await pdfDoc.save();
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling PDF template:', error); }
       throw error;
     }
   }
@@ -792,8 +780,6 @@ class PDFTemplateService {
       
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      
-      if (import.meta.env.DEV) { console.log('📝 Filling Payout Statement Report data...'); }
       
       let currentPage = firstPage;
       let yPos = height - 180;
@@ -1063,7 +1049,6 @@ class PDFTemplateService {
       
       // Embed Chart Images on Page 3 if available
       if (chartImages && Object.keys(chartImages).length > 0) {
-        if (import.meta.env.DEV) { console.log('📊 Embedding chart images into PDF...'); }
         
         // Create a new page dedicated to charts (Page 3)
         currentPage = await this.addPageWithTemplate(pdfDoc, firstPage, font, boldFont);
@@ -1122,9 +1107,7 @@ class PDFTemplateService {
             });
             
             yPos -= pieHeight + 20;
-            if (import.meta.env.DEV) { console.log('✅ Pie chart embedded'); }
           } catch (error) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not embed pie chart:', error); }
             currentPage.drawText('(Pie chart could not be rendered)', {
               x: 50,
               y: yPos,
@@ -1185,9 +1168,7 @@ class PDFTemplateService {
             });
             
             yPos -= barHeight + 20;
-            if (import.meta.env.DEV) { console.log('✅ Bar chart embedded'); }
           } catch (error) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not embed bar chart:', error); }
             currentPage.drawText('(Bar chart could not be rendered)', {
               x: 50,
               y: yPos,
@@ -1248,9 +1229,7 @@ class PDFTemplateService {
             });
             
             yPos -= lineHeight + 20;
-            if (import.meta.env.DEV) { console.log('✅ Line chart embedded'); }
           } catch (error) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not embed line chart:', error); }
             currentPage.drawText('(Line chart could not be rendered)', {
               x: 50,
               y: yPos,
@@ -1275,13 +1254,10 @@ class PDFTemplateService {
           color: rgb(0.5, 0.5, 0.5),
         });
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ Payout Statement PDF filled successfully'); }
       const pdfBytes = await pdfDoc.save();
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Payout Statement PDF:', error); }
       throw error;
     }
   }
@@ -1302,10 +1278,7 @@ class PDFTemplateService {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
-      if (import.meta.env.DEV) { console.log('✅ PDF downloaded:', filename); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error downloading PDF:', error); }
       throw error;
     }
   }
@@ -1326,9 +1299,6 @@ class PDFTemplateService {
       
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      
-      if (import.meta.env.DEV) { console.log('📝 Filling Series-wise Performance Report data...'); }
-      if (import.meta.env.DEV) { console.log('📊 Series count:', data.detailed_series_data?.length || 0); }
       
       let currentPage = firstPage;
       let yPos = height - 180;
@@ -1495,9 +1465,7 @@ class PDFTemplateService {
           });
           
           yPos -= chartHeight + 20;
-          if (import.meta.env.DEV) { console.log('✅ Series Comparison chart embedded'); }
         } catch (error) {
-          if (import.meta.env.DEV) { console.warn('⚠️ Could not embed comparison chart:', error); }
           currentPage.drawText('(Chart could not be rendered)', {
             x: 50,
             y: yPos,
@@ -1829,9 +1797,7 @@ class PDFTemplateService {
                 });
                 
                 yPos -= chartHeight + 20;
-                if (import.meta.env.DEV) { console.log(`✅ Series ${seriesIndex + 1} Line chart embedded`); }
               } catch (error) {
-                if (import.meta.env.DEV) { console.warn(`⚠️ Could not embed series ${seriesIndex + 1} line chart:`, error); }
                 currentPage.drawText('(Chart could not be rendered)', {
                   x: 50,
                   y: yPos,
@@ -1892,9 +1858,7 @@ class PDFTemplateService {
                 });
                 
                 yPos -= chartHeight + 20;
-                if (import.meta.env.DEV) { console.log(`✅ Series ${seriesIndex + 1} Pie chart embedded`); }
               } catch (error) {
-                if (import.meta.env.DEV) { console.warn(`⚠️ Could not embed series ${seriesIndex + 1} pie chart:`, error); }
                 currentPage.drawText('(Chart could not be rendered)', {
                   x: 50,
                   y: yPos,
@@ -1908,12 +1872,9 @@ class PDFTemplateService {
           }
         }
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ Series-wise Performance Report PDF generated'); }
       return await pdfDoc.save();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Series-wise Performance Report:', error); }
       throw error;
     }
   }
@@ -1933,11 +1894,9 @@ class PDFTemplateService {
       
       const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
       const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-      
-      if (import.meta.env.DEV) { console.log('📝 Filling Investor Portfolio Summary Report data...'); }
       if (import.meta.env.DEV) {
 
-        if (import.meta.env.DEV) { console.log('📊 Report data keys:', Object.keys(data)); }
+        // Log removed
 
       }
       
@@ -2897,9 +2856,7 @@ class PDFTemplateService {
                 });
                 
                 yPos -= chartHeight + 20;
-                if (import.meta.env.DEV) { console.log(`✅ Investor ${invIndex + 1} Pie chart embedded`); }
               } catch (error) {
-                if (import.meta.env.DEV) { console.warn(`⚠️ Could not embed investor ${invIndex + 1} pie chart:`, error); }
                 currentPage.drawText('(Chart could not be rendered)', {
                   x: 50,
                   y: yPos,
@@ -2957,9 +2914,7 @@ class PDFTemplateService {
                 });
                 
                 yPos -= chartHeight + 20;
-                if (import.meta.env.DEV) { console.log(`✅ Investor ${invIndex + 1} Line chart embedded`); }
               } catch (error) {
-                if (import.meta.env.DEV) { console.warn(`⚠️ Could not embed investor ${invIndex + 1} line chart:`, error); }
                 currentPage.drawText('(Chart could not be rendered)', {
                   x: 50,
                   y: yPos,
@@ -2986,12 +2941,9 @@ class PDFTemplateService {
           color: rgb(0.5, 0.5, 0.5),
         });
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ Investor Portfolio Summary Report PDF generated'); }
       return await pdfDoc.save();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Investor Portfolio Summary Report:', error); }
       throw error;
     }
   }
@@ -3002,7 +2954,6 @@ class PDFTemplateService {
    * @returns {Promise<Uint8Array>} - Filled PDF bytes
    */
   async fillKYCStatusReport(data) {
-    if (import.meta.env.DEV) { console.log('📄 Filling KYC Status Report PDF...'); }
     
     try {
       const pdfDoc = await this.loadTemplate();
@@ -3313,12 +3264,9 @@ class PDFTemplateService {
           color: rgb(0.5, 0.5, 0.5),
         });
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ KYC Status Report PDF generated'); }
       return await pdfDoc.save();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling KYC Status Report:', error); }
       throw error;
     }
   }
@@ -3329,7 +3277,6 @@ class PDFTemplateService {
    * @returns {Promise<Uint8Array>} - Filled PDF bytes
    */
   async fillNewInvestorReport(data) {
-    if (import.meta.env.DEV) { console.log('📄 Filling New Investor Report PDF...'); }
     
     try {
       const pdfDoc = await this.loadTemplate();
@@ -3688,12 +3635,9 @@ class PDFTemplateService {
           color: rgb(0.5, 0.5, 0.5),
         });
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ New Investor Report PDF generated'); }
       return await pdfDoc.save();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling New Investor Report:', error); }
       throw error;
     }
   }
@@ -3749,7 +3693,6 @@ class PDFTemplateService {
    */
   async fillRBIComplianceReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling RBI Compliance Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -3770,20 +3713,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, ''); // Remove any remaining non-ASCII characters
       };
       
@@ -4030,12 +3973,10 @@ class PDFTemplateService {
       
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ RBI Compliance Report PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling RBI Compliance Report:', error); }
       throw error;
     }
   }
@@ -4047,7 +3988,6 @@ class PDFTemplateService {
    */
   async fillSEBIDisclosureReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling SEBI Disclosure Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -4068,20 +4008,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, '');
       };
       
@@ -4505,12 +4445,10 @@ class PDFTemplateService {
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ SEBI Disclosure Report PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling SEBI Disclosure Report:', error); }
       throw error;
     }
   }
@@ -4522,7 +4460,6 @@ class PDFTemplateService {
    */
   async fillAuditTrailReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling Audit Trail Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -4543,20 +4480,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, '');
       };
       
@@ -4856,12 +4793,10 @@ class PDFTemplateService {
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ Audit Trail Report PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Audit Trail Report:', error); }
       throw error;
     }
   }
@@ -4874,7 +4809,6 @@ class PDFTemplateService {
    */
   async fillDailyActivityReport(data, chartImageDataUrl = null) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling Daily Activity Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -4895,20 +4829,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, '');
       };
       
@@ -5086,7 +5020,6 @@ class PDFTemplateService {
         // Embed pie chart image if available
         if (chartImageDataUrl) {
           try {
-            if (import.meta.env.DEV) { console.log('📊 Embedding pie chart image in PDF...'); }
             
             // Ensure we have enough space for the chart (need at least 300px)
             if (yPosition < 320) {
@@ -5121,18 +5054,13 @@ class PDFTemplateService {
             
             // Update yPosition to be below the image
             yPosition = imageY - 30;
-            if (import.meta.env.DEV) { console.log('✅ Pie chart image embedded successfully'); }
-            if (import.meta.env.DEV) { console.log(`   Image dimensions: ${imageDims.width}x${imageDims.height}`); }
-            if (import.meta.env.DEV) { console.log(`   New yPosition: ${yPosition}`); }
           } catch (error) {
-            if (import.meta.env.DEV) { console.error('❌ Error embedding pie chart image:', error); }
             // Continue without the image
           }
         }
         
         // Ensure we have space for the table (need at least 150px)
         if (yPosition < 150) {
-          if (import.meta.env.DEV) { console.log('⚠️ Not enough space for table, creating new page'); }
           currentPage = await this.addPageWithTemplate(pdfDoc, firstPage, font, boldFont);
           yPosition = height - 120;
         }
@@ -5154,11 +5082,9 @@ class PDFTemplateService {
         yPosition -= 15;
         
         // Table rows
-        if (import.meta.env.DEV) { console.log(`📋 Drawing ${roleBreakdown.length} role breakdown rows...`); }
         for (const role of roleBreakdown) {
           // Check if we need a new page for this row
           if (yPosition < 80) {
-            if (import.meta.env.DEV) { console.log('⚠️ Creating new page for table continuation'); }
             currentPage = await this.addPageWithTemplate(pdfDoc, firstPage, font, boldFont);
             yPosition = height - 120;
           }
@@ -5168,16 +5094,13 @@ class PDFTemplateService {
           currentPage.drawText(`${role.percentage || 0}%`, { x: leftMargin + 380, y: yPosition, size: 7, font: boldFont });
           yPosition -= 10;
         }
-        if (import.meta.env.DEV) { console.log('✅ Role breakdown table completed'); }
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ Daily Activity Report PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Daily Activity Report:', error); }
       throw error;
     }
   }
@@ -5190,7 +5113,6 @@ class PDFTemplateService {
    */
   async fillSubscriptionTrendAnalysis(data, chartImageDataUrl = null) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling Subscription Trend Analysis Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -5211,20 +5133,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, '');
       };
       
@@ -5457,7 +5379,6 @@ class PDFTemplateService {
         // Embed bar chart image if available
         if (chartImageDataUrl) {
           try {
-            if (import.meta.env.DEV) { console.log('📊 Embedding bar chart image in PDF...'); }
             
             // Ensure we have enough space for the chart (need at least 300px)
             if (yPosition < 320) {
@@ -5492,10 +5413,8 @@ class PDFTemplateService {
             });
             
             yPosition -= scaledHeight + 30;
-            if (import.meta.env.DEV) { console.log('✅ Bar chart embedded successfully'); }
             
           } catch (error) {
-            if (import.meta.env.DEV) { console.error('❌ Error embedding bar chart:', error); }
           }
         }
         
@@ -5541,12 +5460,10 @@ class PDFTemplateService {
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ Subscription Trend Analysis PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Subscription Trend Analysis:', error); }
       throw error;
     }
   }
@@ -5558,7 +5475,6 @@ class PDFTemplateService {
    */
   async fillSeriesMaturityReport(data) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Filling Series Maturity Report...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -5579,20 +5495,20 @@ class PDFTemplateService {
         if (!text) return '';
         return String(text)
           .replace(/₹/g, 'Rs.')
-          .replace(/≥/g, '>=')
-          .replace(/≤/g, '<=')
-          .replace(/≠/g, '!=')
-          .replace(/×/g, 'x')
-          .replace(/÷/g, '/')
-          .replace(/°/g, ' deg')
-          .replace(/•/g, '*')
-          .replace(/—/g, '-')
-          .replace(/–/g, '-')
+          .replace(/â‰¥/g, '>=')
+          .replace(/â‰¤/g, '<=')
+          .replace(/â‰ /g, '!=')
+          .replace(/Ã—/g, 'x')
+          .replace(/Ã·/g, '/')
+          .replace(/Â°/g, ' deg')
+          .replace(/â€¢/g, '*')
+          .replace(/â€”/g, '-')
+          .replace(/â€“/g, '-')
           .replace(/"/g, '"')
           .replace(/"/g, '"')
           .replace(/'/g, "'")
           .replace(/'/g, "'")
-          .replace(/…/g, '...')
+          .replace(/â€¦/g, '...')
           .replace(/[^\x00-\x7F]/g, '');
       };
       
@@ -5707,7 +5623,7 @@ class PDFTemplateService {
       }
       
       // ============================================================
-      // SECTION 3: INVESTOR DETAILS FOR EACH SERIES (≤90 DAYS)
+      // SECTION 3: INVESTOR DETAILS FOR EACH SERIES (â‰¤90 DAYS)
       // ============================================================
       const investorsBySeries90Days = data.investors_by_series_90_days || {};
       
@@ -5840,12 +5756,10 @@ class PDFTemplateService {
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ Series Maturity Report PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Series Maturity Report:', error); }
       throw error;
     }
   }
@@ -5858,7 +5772,6 @@ class PDFTemplateService {
    */
   async fillSeriesDetails(seriesData) {
     try {
-      if (import.meta.env.DEV) { console.log('📄 Generating Series Details PDF...'); }
       
       const pdfDoc = await this.loadTemplate();
       const pages = pdfDoc.getPages();
@@ -6175,12 +6088,10 @@ class PDFTemplateService {
       }
       
       const pdfBytes = await pdfDoc.save();
-      if (import.meta.env.DEV) { console.log('✅ Series Details PDF generated successfully'); }
       
       return pdfBytes;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error filling Series Details PDF:', error); }
       throw error;
     }
   }
@@ -6188,3 +6099,5 @@ class PDFTemplateService {
 
 // Export singleton instance
 export default new PDFTemplateService();
+
+

@@ -6,19 +6,10 @@ import './ProtectedRoute.css';
 const ProtectedRoute = ({ children, module, requiredPermission = 'view' }) => {
   const { user, hasPermission } = useAuth();
 
-  // CRITICAL DEBUG: Log every permission check
-  if (import.meta.env.DEV) {
-    console.log('🔒 ProtectedRoute Check:', {
-      module,
-      requiredPermission,
-      userRole: user?.role,
-      hasPermission: hasPermission(module, requiredPermission)
-    });
-  }
+  // Critical permission check - logging removed for security
 
   // If no module specified, just check if user is authenticated
   if (!module) {
-    if (import.meta.env.DEV) { console.log('⚠️ No module specified - allowing access'); }
     return children;
   }
 
@@ -52,10 +43,7 @@ const ProtectedRoute = ({ children, module, requiredPermission = 'view' }) => {
               page_url: window.location.pathname
             }
           });
-          
-          if (import.meta.env.DEV) { console.log('✅ Unauthorized access attempt logged to audit trail'); }
         } catch (error) {
-          if (import.meta.env.DEV) { console.error('❌ Failed to log unauthorized access:', error); }
         }
       };
       
@@ -64,11 +52,6 @@ const ProtectedRoute = ({ children, module, requiredPermission = 'view' }) => {
   }, [hasAccess, user, module, requiredPermission]);
   
   if (!hasAccess) {
-    if (import.meta.env.DEV) { console.error('🚨 ACCESS DENIED:', {
-      module,
-      requiredPermission,
-      userRole: user?.role
-    }); }
     
     return (
       <div className="access-denied-container">
@@ -105,12 +88,6 @@ const ProtectedRoute = ({ children, module, requiredPermission = 'view' }) => {
       </div>
     );
   }
-
-  if (import.meta.env.DEV) { console.log('✅ ACCESS GRANTED:', {
-    module,
-    requiredPermission,
-    userRole: user?.role
-  }); }
 
   return children;
 };

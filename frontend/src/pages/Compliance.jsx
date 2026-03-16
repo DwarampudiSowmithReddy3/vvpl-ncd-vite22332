@@ -55,10 +55,7 @@ const Compliance = () => {
     const loadComplianceSeries = async () => {
       try {
         setError(null);
-        
-        if (import.meta.env.DEV) { console.log('🔄 Loading compliance series from backend...'); }
         const response = await apiService.getComplianceSeries(searchTerm || null);
-        if (import.meta.env.DEV) { console.log('✅ Compliance series loaded:', response); }
         
         // Backend returns { all_series, categorized, total_count }
         // Use categorized data directly from backend (100% backend)
@@ -103,10 +100,7 @@ const Compliance = () => {
         // Also set all series for count
         setComplianceSeries(response.all_series || []);
         
-        if (import.meta.env.DEV) { console.log('✅ Categorized series set from backend'); }
-        
       } catch (err) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to load compliance series:', err); }
         setError(err.message || 'Failed to load compliance data');
       }
     };
@@ -151,10 +145,8 @@ const Compliance = () => {
           viewedBy: user?.name || user?.full_name
         }
       ).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log compliance view:', error); }
       });
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error viewing compliance details:', error); }
     }
   };
 

@@ -11,13 +11,13 @@ class EncryptionService {
     this.encryptionEnabled = import.meta.env.VITE_ENABLE_ENCRYPTION !== 'false';
     
     if (this.encryptionEnabled && !this.encryptionKey) {
-      if (import.meta.env.DEV) { console.warn('⚠️ Encryption is enabled but no VITE_ENCRYPTION_KEY found in environment'); }
+      // No logs in production
     }
     
     if (this.encryptionEnabled) {
-      if (import.meta.env.DEV) { console.log('✅ Frontend encryption service initialized'); }
+      // No logs in production
     } else {
-      if (import.meta.env.DEV) { console.log('ℹ️ Frontend encryption is disabled'); }
+      // No logs in production
     }
   }
 
@@ -104,7 +104,7 @@ class EncryptionService {
       return decoder.decode(decrypted);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Fernet decryption error:', error); }
+      // No logs in production
       throw error;
     }
   }
@@ -133,11 +133,10 @@ class EncryptionService {
       // Parse JSON
       const data = JSON.parse(decryptedText);
       
-      console.debug('✅ Successfully decrypted response data');
       return data;
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Decryption failed:', error); }
+      // No logs in production
       throw new Error(`Failed to decrypt response: ${error.message}`);
     }
   }
@@ -150,18 +149,15 @@ class EncryptionService {
   async processResponse(response) {
     // Check if response is encrypted
     if (this.isEncrypted(response)) {
-      console.debug('🔐 Response is encrypted, decrypting...');
       return await this.decrypt(response.data);
     }
     
     // If encryption is disabled or response is not encrypted
     if (response && typeof response === 'object' && 'data' in response && response.encrypted === false) {
-      console.debug('ℹ️ Response is not encrypted (encryption disabled on server)');
       return response.data;
     }
     
     // Return as-is if not in encrypted format
-    console.debug('ℹ️ Response is not in encrypted format, returning as-is');
     return response;
   }
 

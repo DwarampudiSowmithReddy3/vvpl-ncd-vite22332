@@ -109,36 +109,21 @@ const Investors = () => {
       setLoading(true);
       setError(null);
 
-      if (import.meta.env.DEV) { console.log('🔄 Loading investors data from backend...'); }
-
       // Load investors, statistics, and series in parallel
       const [investorsData, statsData, seriesData, uniqueSeriesData] = await Promise.all([
         apiService.searchInvestors({ status: 'active', limit: 1000 }).catch(err => {
-          if (import.meta.env.DEV) { console.error('❌ Error loading investors:', err); }
           return { investors: [] };
         }),
         apiService.getInvestorStatistics().catch(err => {
-          if (import.meta.env.DEV) { console.error('❌ Error loading statistics:', err); }
           return { total_investors: 0, kyc_completed: 0, kyc_pending: 0, kyc_rejected: 0, total_investment: 0 };
         }),
         apiService.getSeries().catch(err => {
-          if (import.meta.env.DEV) { console.error('❌ Error loading series:', err); }
           return [];
         }),
         apiService.getUniqueSeriesForFilters().catch(err => {
-          if (import.meta.env.DEV) { console.error('❌ Error loading unique series:', err); }
           return { series: [] };
         })
       ]);
-
-      if (import.meta.env.DEV) {
-        console.log('✅ Data loaded:', {
-          investors: investorsData.investors?.length || 0,
-          stats: statsData,
-          series: seriesData.length || 0,
-          uniqueSeries: uniqueSeriesData.series?.length || 0
-        });
-      }
 
       // Set investors (already formatted from backend)
       setInvestors(investorsData.investors || []);
@@ -171,7 +156,6 @@ const Investors = () => {
       setLoading(false);
 
     } catch (err) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading data:', err); }
       setError('Failed to load data: ' + (err.message || 'Unknown error'));
       
       // CRITICAL FIX: Set loading to false even on error
@@ -211,13 +195,11 @@ const Investors = () => {
         const result = await apiService.searchInvestors(params);
         setFilteredInvestors(result.investors || []);
       } catch (err) {
-        if (import.meta.env.DEV) { console.error('Error filtering investors:', err); }
       }
     };
 
     loadFilteredInvestors();
   }, [searchTerm]);
-
 
   // Helper functions
   const getStatusColor = (status) => {
@@ -235,7 +217,6 @@ const Investors = () => {
 
   const handleSeriesClick = (seriesName) => {
     // Navigate to series details page
-    if (import.meta.env.DEV) { console.log('Series clicked:', seriesName); }
 
     // Create a dynamic mapping function for series names to IDs
     const getSeriesId = (seriesName) => {
@@ -303,9 +284,7 @@ const Investors = () => {
           user_role: user?.role || user?.displayRole
         }
       });
-      if (import.meta.env.DEV) { console.log('✅ Investors export logged'); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to log investors export:', error); }
     }
   };
 
@@ -404,12 +383,10 @@ const Investors = () => {
       }
 
       if (documentUploadPromises.length > 0) {
-        if (import.meta.env.DEV) { console.log(`📤 Uploading ${documentUploadPromises.length} KYC document(s)...`); }
+        // Log removed
         try {
           await Promise.all(documentUploadPromises);
-          if (import.meta.env.DEV) { console.log('✅ KYC documents uploaded successfully'); }
         } catch (uploadError) {
-          if (import.meta.env.DEV) { console.error('❌ Error uploading KYC documents:', uploadError); }
           toast.error('Investor created, but some documents failed to upload.', 'Partial Success');
         }
       }
@@ -435,9 +412,7 @@ const Investors = () => {
             user_role: user?.role || user?.displayRole
           }
         });
-        if (import.meta.env.DEV) { console.log('✅ Investor creation logged'); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to log investor creation:', error); }
       }
 
       // Reload data
@@ -481,8 +456,6 @@ const Investors = () => {
     } catch (error) {
       // CRITICAL: Hide creating investor animation on error
       setShowCreatingInvestor(false);
-      
-      if (import.meta.env.DEV) { console.error('Error creating investor:', error); }
       toast.error(error.message || 'Failed to create investor. Please try again.', 'Creation Failed');
     } finally {
       // CRITICAL: Ensure animation is always closed
@@ -501,7 +474,6 @@ const Investors = () => {
 
     // NO FRONTEND CHECKS - Just show investor details
     // Backend will validate everything when investment is submitted
-    if (import.meta.env.DEV) { console.log('Found investor:', investor.investorId); }
     setSelectedInvestor(investor);
     setShowInvestorDetails(true);
   };
@@ -512,22 +484,15 @@ const Investors = () => {
 
     // Load series with backend-calculated status
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Loading available series from backend...'); }
       const response = await apiService.getAvailableSeriesForInvestment();
-      if (import.meta.env.DEV) { console.log('✅ Backend response:', response); }
-      if (import.meta.env.DEV) { console.log('✅ Series count:', response.series?.length || 0); }
 
       if (response.series && response.series.length > 0) {
         setAvailableSeriesForInvestment(response.series);
-        if (import.meta.env.DEV) { console.log('✅ Series loaded successfully:', response.series.length); }
       } else {
-        if (import.meta.env.DEV) { console.warn('⚠️ No series returned from backend'); }
         setAvailableSeriesForInvestment([]);
         toast.info('No series are currently accepting investments', 'No Series Available');
       }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading series:', error); }
-      if (import.meta.env.DEV) { console.error('❌ Error details:', error.message); }
       setAvailableSeriesForInvestment([]);
       toast.error('Failed to load series. Please try again.', 'Error');
     }
@@ -535,7 +500,6 @@ const Investors = () => {
 
   const handleSeriesSelect = (series) => {
     // Backend only returns series that are accepting investments
-    if (import.meta.env.DEV) { console.log('Series selected:', series.name); }
     setSelectedSeries(series);
     setShowSeriesSelection(false);
     setShowInvestmentForm(true);
@@ -549,7 +513,6 @@ const Investors = () => {
 
     // Prevent double submission
     if (isSubmittingInvestment) {
-      if (import.meta.env.DEV) { console.log('⚠️ Investment already in progress, ignoring duplicate click'); }
       return;
     }
 
@@ -597,7 +560,6 @@ const Investors = () => {
       await loadData();
 
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error creating investment:', error); }
       toast.error(error.message || 'Failed to create investment. Please try again.', 'Creation Failed');
     } finally {
       setIsSubmittingInvestment(false); // Re-enable button
@@ -863,14 +825,6 @@ const Investors = () => {
                           }}
                         >
                           {(() => {
-                            if (import.meta.env.DEV) {
-                              console.log(`🔍 DEBUG: Investor ${investor.name}:`, {
-                                hasSeries: !!investor.series,
-                                seriesLength: investor.series?.length || 0,
-                                seriesData: investor.series,
-                                seriesType: typeof investor.series
-                              });
-                            }
 
                             // Simple, robust rendering
                             if (!investor.series || !Array.isArray(investor.series) || investor.series.length === 0) {
@@ -878,7 +832,6 @@ const Investors = () => {
                             }
 
                             return investor.series.map((seriesName, idx) => {
-                              if (import.meta.env.DEV) { console.log(`🔍 Rendering series ${idx}:`, seriesName); }
                               return (
                                 <div
                                   key={idx}
@@ -1645,7 +1598,7 @@ const Investors = () => {
                                 <h4 className="series-title">{series.name}</h4>
                                 {/* All series are accepting investments */}
                                 <span className="series-status-badge accepting">
-                                  ✓ Accepting Investments
+                                  âœ“ Accepting Investments
                                 </span>
                               </div>
                               <div className="series-interest-rate">
@@ -1709,7 +1662,7 @@ const Investors = () => {
                   </div>
                 ) : (
                   <div className="no-series-found">
-                    <div className="no-results-icon">🔍</div>
+                    <div className="no-results-icon">ðŸ”</div>
                     <h4>No Series Found</h4>
                     {seriesSearchTerm ? (
                       <div>
@@ -1826,7 +1779,7 @@ const Investors = () => {
                       />
                       {investmentDocument && (
                         <div className="investment-file-selected">
-                          <span>✓ File selected: {investmentDocument.name}</span>
+                          <span>âœ“ File selected: {investmentDocument.name}</span>
                         </div>
                       )}
                     </div>
@@ -2099,4 +2052,5 @@ const Investors = () => {
 };
 
 export default Investors;
+
 

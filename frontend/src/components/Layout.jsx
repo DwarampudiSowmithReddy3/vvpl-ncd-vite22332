@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
@@ -91,7 +91,7 @@ const Layout = ({ children, isInvestor = false }) => {
       // if (location.pathname !== '/login' && location.pathname !== '/') {
       //   auditService.logPageAccess(user, pageName).catch(error => {
       //     if (import.meta.env.DEV) {
-      //       console.error('Failed to log page access:', error);
+      //
       //     }
       //   });
       // }
@@ -243,7 +243,7 @@ const Layout = ({ children, isInvestor = false }) => {
                 cursor: showFloatingGreeting ? 'not-allowed' : 'pointer'
               }}
             >
-              ☰
+              â˜°
             </button>
             {/* Show logo in header center when sidebar is closed on mobile */}
             {!sidebarOpen && (
@@ -334,7 +334,7 @@ const Layout = ({ children, isInvestor = false }) => {
           {children}
         </main>
         <footer className="layout-footer">
-          <p className="footer-text">© 2026 VAIBHAV VYAPAAR | All Rights Reserved.</p>
+          <p className="footer-text">Â© 2026 VAIBHAV VYAPAAR | All Rights Reserved.</p>
         </footer>
       </div>
 
@@ -382,10 +382,7 @@ const Layout = ({ children, isInvestor = false }) => {
                         user_role: user?.role || user?.displayRole
                       }
                     });
-                    
-                    if (import.meta.env.DEV) { console.log('✅ SOP download logged to audit trail'); }
                   } catch (error) {
-                    if (import.meta.env.DEV) { console.error('❌ Failed to log SOP download:', error); }
                     // Don't prevent download if logging fails
                   }
                   
@@ -407,3 +404,4 @@ const Layout = ({ children, isInvestor = false }) => {
 };
 
 export default Layout;
+

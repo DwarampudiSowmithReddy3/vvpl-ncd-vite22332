@@ -16,8 +16,6 @@ import './NCDSeries.css';
 import { HiOutlineEye, HiOutlineTrash } from "react-icons/hi";
 import { HiOutlineDocumentText } from "react-icons/hi";
 
-
-
 const NCDSeries = () => {
   const navigate = useNavigate();
   const { showCreateButton, canEdit, canDelete } = usePermissions();
@@ -85,10 +83,7 @@ const NCDSeries = () => {
   // Fetch series from backend API
   const fetchSeries = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching series from backend...'); }
       const seriesData = await apiService.getSeries();
-      if (import.meta.env.DEV) { console.log('✅ Fetched', seriesData.length, 'series from backend'); }
-      if (import.meta.env.DEV) { console.log('📊 Raw series data:', seriesData); }
       
       // Transform backend format (snake_case) to frontend format (camelCase)
       const transformedSeries = seriesData.map(s => ({
@@ -125,15 +120,12 @@ const NCDSeries = () => {
         progressPercentage: s.progress_percentage || 0,
         investors: s.investor_count || 0  // FIXED: Use investor_count from backend
       }));
-      
-      if (import.meta.env.DEV) { console.log('✅ Transformed series:', transformedSeries); }
       setSeries(transformedSeries);
       
       // Set loading to false after data is loaded
       setLoading(false);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching series:', error); }
       const friendlyError = getUserFriendlyError(error, 'Failed to load series data. Please refresh the page.');
       toast.error(friendlyError, 'Failed to Load Series');
       
@@ -209,7 +201,6 @@ const NCDSeries = () => {
       
       return 'N/A';
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error formatting date:', error); }
       return 'N/A';
     }
   };
@@ -266,7 +257,6 @@ const NCDSeries = () => {
       // Parse and format the date
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) {
-        if (import.meta.env.DEV) { console.error('Invalid date:', dateStr); }
         return null;
       }
       
@@ -306,7 +296,6 @@ const NCDSeries = () => {
     };
 
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Creating series via backend API...'); }
       
       // Ensure ALL date fields are strings before sending
       const cleanedSeriesData = {
@@ -319,21 +308,11 @@ const NCDSeries = () => {
         release_date: seriesData.release_date ? String(seriesData.release_date) : null
       };
       
-      if (import.meta.env.DEV) { console.log('📊 Cleaned series data being sent:', cleanedSeriesData); }
-      if (import.meta.env.DEV) { console.log('📊 Date types:', {
-        issue_date: typeof cleanedSeriesData.issue_date,
-        maturity_date: typeof cleanedSeriesData.maturity_date,
-        subscription_start_date: typeof cleanedSeriesData.subscription_start_date
-      }); }
-      
       // Call backend API to create series in MySQL database
       const response = await apiService.createSeries(cleanedSeriesData);
       
-      if (import.meta.env.DEV) { console.log('✅ Series created successfully:', response); }
-      
       // Upload documents to S3 if provided
       if (formData.termSheet || formData.offerDocument || formData.boardResolution) {
-        if (import.meta.env.DEV) { console.log('🔄 Uploading documents to S3...'); }
         try {
           await apiService.uploadSeriesDocuments(
             response.id,  // series_id from response
@@ -341,9 +320,7 @@ const NCDSeries = () => {
             formData.offerDocument,
             formData.boardResolution
           );
-          if (import.meta.env.DEV) { console.log('✅ Documents uploaded successfully to S3'); }
         } catch (docError) {
-          if (import.meta.env.DEV) { console.error('❌ Error uploading documents:', docError); }
           const friendlyError = getUserFriendlyError(docError, 'Failed to upload documents.');
           
           // CRITICAL: Close animation even if document upload fails
@@ -357,18 +334,13 @@ const NCDSeries = () => {
           return;
         }
       } else {
-        if (import.meta.env.DEV) { console.log('⚠️ No documents provided for upload'); }
       }
       
       // CRITICAL: Close animation IMMEDIATELY after upload completes
-      if (import.meta.env.DEV) { console.log('🔄 Closing animation NOW...'); }
       setShowCreatingAnimation(false);
-      if (import.meta.env.DEV) { console.log('✅ Animation closed'); }
       
       // CRITICAL: Close animation IMMEDIATELY after upload completes
-      if (import.meta.env.DEV) { console.log('🔄 Closing animation NOW...'); }
       setShowCreatingAnimation(false);
-      if (import.meta.env.DEV) { console.log('✅ Animation closed'); }
       
       // Add audit log for series creation (non-blocking)
       try {
@@ -380,9 +352,7 @@ const NCDSeries = () => {
           status: 'DRAFT'
         }, user);
       } catch (auditError) {
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('⚠️ Failed to log audit (non-critical):', auditError); }
-        }
+        /* Audit log error silenced */
       }
       
       // Show success message
@@ -392,19 +362,15 @@ const NCDSeries = () => {
       );
       
       // Refresh series list in this page (non-blocking)
-      if (import.meta.env.DEV) { console.log('🔄 Refreshing series list in NCDSeries page...'); }
       try {
         await fetchSeries();
-        if (import.meta.env.DEV) { console.log('✅ Series list refreshed in NCDSeries page'); }
       } catch (fetchError) {
-        if (import.meta.env.DEV) { console.error('⚠️ Error refreshing series list (non-critical):', fetchError); }
+        /* Fetch error silenced */
       }
       
       // CRITICAL: Refresh DataContext series data so other pages (Approval, Dashboard) see the new series
-      if (import.meta.env.DEV) { console.log('🔄 Triggering DataContext series refresh...'); }
       if (forceSeriesRefresh) {
         forceSeriesRefresh();
-        if (import.meta.env.DEV) { console.log('✅ DataContext series refresh triggered'); }
       }
       
       // Close form and reset
@@ -443,13 +409,10 @@ const NCDSeries = () => {
     } catch (error) {
       // Hide creating animation on error
       setShowCreatingAnimation(false);
-      
-      if (import.meta.env.DEV) { console.error('❌ Error creating series:', error); }
       const friendlyError = getUserFriendlyError(error, 'Failed to create series. Please try again.');
       toast.error(friendlyError, 'Creation Failed');
     } finally {
       // CRITICAL: Ensure animation is always closed, even if there's an error
-      if (import.meta.env.DEV) { console.log('🔄 Finally block: Ensuring animation is closed...'); }
       setShowCreatingAnimation(false);
     }
   };
@@ -499,16 +462,11 @@ const NCDSeries = () => {
           return;
         }
         
-        if (import.meta.env.DEV) { console.log('🔄 Deleting series via backend API...'); }
-        
         // Call backend API to delete series
         await apiService.deleteSeries(seriesToDelete.id);
         
-        if (import.meta.env.DEV) { console.log('✅ Series deleted successfully'); }
-        
         // Add audit log for series deletion using auditService
         await auditService.logSeriesDelete(seriesToDelete, user).catch(error => {
-          if (import.meta.env.DEV) { console.error('Failed to log series deletion:', error); }
         });
         
         // Also add to local audit log for backward compatibility
@@ -536,7 +494,6 @@ const NCDSeries = () => {
         toast.success(`Series "${seriesToDelete.name}" has been deleted successfully.`, 'Series Deleted');
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error deleting series:', error); }
         const friendlyError = getUserFriendlyError(error, 'Failed to delete series. Please try again.');
         toast.error(friendlyError, 'Delete Failed');
       }
@@ -556,14 +513,7 @@ const NCDSeries = () => {
   const activeSeries = series.filter(s => getSeriesStatus(s) === 'active');
   const maturedSeries = series.filter(s => getSeriesStatus(s) === 'matured');
 
-  // DEBUG: Log series data to check fields
-  if (import.meta.env.DEV) {
-    console.log('🔍 DEBUG - Active series data:', activeSeries.map(s => ({
-      name: s.name,
-      seriesCode: s.seriesCode,
-      debentureTrustee: s.debentureTrustee
-    })));
-  }
+  /* Diagnostic logs removed */
 
   return (
     <Layout>
@@ -1593,7 +1543,7 @@ const NCDSeries = () => {
                       </div>
                       {formData.termSheet && (
                         <div className="file-selected">
-                          <span>✓ {formData.termSheet.name}</span>
+                          <span>âœ“ {formData.termSheet.name}</span>
                         </div>
                       )}
                     </div>
@@ -1625,7 +1575,7 @@ const NCDSeries = () => {
                       </div>
                       {formData.offerDocument && (
                         <div className="file-selected">
-                          <span>✓ {formData.offerDocument.name}</span>
+                          <span>âœ“ {formData.offerDocument.name}</span>
                         </div>
                       )}
                     </div>
@@ -1657,7 +1607,7 @@ const NCDSeries = () => {
                       </div>
                       {formData.boardResolution && (
                         <div className="file-selected">
-                          <span>✓ {formData.boardResolution.name}</span>
+                          <span>âœ“ {formData.boardResolution.name}</span>
                         </div>
                       )}
                     </div>
@@ -1830,6 +1780,5 @@ const NCDSeries = () => {
 };
 
 export default NCDSeries;
-
 
 

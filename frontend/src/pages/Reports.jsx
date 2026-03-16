@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -22,11 +22,6 @@ import { FaRegFileAlt } from "react-icons/fa";
 import { MdOutlineFileDownload } from "react-icons/md";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-
-
-
-
-
 
 const Reports = () => {
   const { showCreateButton, canEdit } = usePermissions();
@@ -64,9 +59,7 @@ const Reports = () => {
     try {
       const data = await apiService.getReportStatistics();
       setStatistics(data);
-      if (import.meta.env.DEV) { console.log('✅ Report statistics loaded:', data); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching report statistics:', error); }
     }
   };
 
@@ -74,9 +67,7 @@ const Reports = () => {
     try {
       const dates = await apiService.getLastGeneratedDates();
       setLastGeneratedDates(dates);
-      if (import.meta.env.DEV) { console.log('✅ Last generated dates loaded:', dates); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching last generated dates:', error); }
     }
   };
 
@@ -161,14 +152,9 @@ const Reports = () => {
             user_role: user?.role || user?.displayRole
           }
         });
-        if (import.meta.env.DEV) { console.log('✅ Report PDF download logged'); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to log report PDF download:', error); }
       }
-      
-      if (import.meta.env.DEV) { console.log('Report PDF generated successfully:', fileName); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error generating report PDF:', error); }
       alert('Error generating PDF: ' + error.message);
     }
   };
@@ -199,7 +185,7 @@ const Reports = () => {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setTextColor(150, 150, 150);
-      doc.text('© 2026 LOANFRONT | All Rights Reserved', pageWidth / 2, pageHeight - 10, { align: 'center' });
+      doc.text('Â© 2026 LOANFRONT | All Rights Reserved', pageWidth / 2, pageHeight - 10, { align: 'center' });
       doc.text('Page ' + i + ' of ' + totalPages, pageWidth - 30, pageHeight - 10);
       doc.text('Confidential Report', 20, pageHeight - 10);
     }
@@ -535,11 +521,8 @@ const Reports = () => {
           user_role: user?.role || user?.displayRole
         }
       }).catch(error => {
-        if (import.meta.env.DEV) { console.error('❌ Failed to log report download:', error); }
       });
-      if (import.meta.env.DEV) { console.log('✅ Report download logged'); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error logging report download:', error); }
     }
     
     // Close preview after download
@@ -618,10 +601,8 @@ const Reports = () => {
             user_role: user?.role || user?.displayRole
           }
         }).catch(error => {
-          if (import.meta.env.DEV) { console.error('Failed to log report download:', error); }
         });
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('Error logging report download:', error); }
       }
       
       // Refresh statistics
@@ -632,7 +613,6 @@ const Reports = () => {
       setSelectedReportForDownload(null);
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Error downloading report:', error); }
       alert(`Error downloading report: ${error.message}`);
     } finally {
       setDownloadingFormat(null);
@@ -648,7 +628,6 @@ const Reports = () => {
       name: reportName,
       dateRange: 'All Time'
     }, user).catch(error => {
-      if (import.meta.env.DEV) { console.error('Failed to log report generation:', error); }
     });
     
     // Also add to local audit log for backward compatibility
@@ -761,7 +740,6 @@ const Reports = () => {
             </div>
           </div>
         </div>
-
 
         <div className="reports-categories">
           {reportCategories.map((category, catIndex) => (
@@ -1065,4 +1043,5 @@ const Reports = () => {
 };
 
 export default Reports;
+
 

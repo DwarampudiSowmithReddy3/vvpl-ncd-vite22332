@@ -45,7 +45,6 @@ const CommunicationSimple = () => {
         const data = await apiService.getCommunicationTemplates(communicationType);
         setTemplates(data || []);
       } catch (error) {
-        console.error('Error fetching templates:', error);
         setTemplates([]);
       }
     };
@@ -59,7 +58,6 @@ const CommunicationSimple = () => {
         const data = await apiService.getCommunicationVariables();
         setVariables(data || []);
       } catch (error) {
-        console.error('Error fetching variables:', error);
         setVariables([]);
       }
     };
@@ -74,7 +72,6 @@ const CommunicationSimple = () => {
         const data = await apiService.getSeriesForCommunication(searchTerm, statusFilter);
         setSeries(data || []);
       } catch (error) {
-        console.error('Error fetching series:', error);
         setSeries([]);
       } finally {
         setLoading(false);
@@ -103,7 +100,6 @@ const CommunicationSimple = () => {
         const statsData = await apiService.getCommunicationHistoryStats();
         setStats(statsData);
       } catch (error) {
-        console.error('Error fetching history:', error);
         setHistory([]);
       }
     };
@@ -164,9 +160,8 @@ const CommunicationSimple = () => {
           communicationType,
           successfulCount: response.successful,
           failedCount: response.failed,
-          seriesCount: selectedSeries.length
         }
-      ).catch(err => console.error('Audit log failed:', err));
+      );
 
       alert(`Successfully sent ${response.successful} messages! ${response.failed > 0 ? `${response.failed} failed.` : ''}`);
 
@@ -176,7 +171,6 @@ const CommunicationSimple = () => {
       setSelectedSeries([]);
 
     } catch (error) {
-      console.error('Error sending messages:', error);
       alert(`Error: ${error.message}`);
     } finally {
       setSending(false);
@@ -476,3 +470,4 @@ const CommunicationSimple = () => {
 };
 
 export default CommunicationSimple;
+

@@ -76,20 +76,16 @@ const Communication = () => {
   useEffect(() => {
     const fetchTemplates = async () => {
       try {
-        if (import.meta.env.DEV) { console.log('📊 Fetching templates from backend...'); }
         
         // Fetch SMS templates
         const smsResponse = await apiService.getCommunicationTemplates('SMS');
-        if (import.meta.env.DEV) { console.log('✅ SMS templates fetched:', smsResponse.templates); }
         setSmsTemplates(smsResponse.templates || []);
         
         // Fetch Email templates
         const emailResponse = await apiService.getCommunicationTemplates('Email');
-        if (import.meta.env.DEV) { console.log('✅ Email templates fetched:', emailResponse.templates); }
         setEmailTemplates(emailResponse.templates || []);
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching templates:', error); }
       }
     };
 
@@ -101,12 +97,9 @@ const Communication = () => {
     const fetchSeries = async () => {
       try {
         setLoadingSeries(true);
-        if (import.meta.env.DEV) { console.log('📊 Fetching series from backend with filters...'); }
         const response = await apiService.getSeriesWithInvestors(searchTerm, statusFilter);
-        if (import.meta.env.DEV) { console.log('✅ Series fetched:', response.series); }
         setSeries(response.series || []);
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching series:', error); }
         setSeries([]);
       } finally {
         setLoadingSeries(false);
@@ -125,20 +118,16 @@ const Communication = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        if (import.meta.env.DEV) { console.log('📊 Fetching communication history from backend...'); }
         const history = await apiService.getCommunicationHistory({ 
           type: historyFilter === 'all' ? null : historyFilter,
           limit: 100 
         });
-        if (import.meta.env.DEV) { console.log('✅ Communication history fetched:', history); }
         setCommunicationHistory(history || []);
         
         // Fetch stats
         const stats = await apiService.getCommunicationHistoryStats();
-        if (import.meta.env.DEV) { console.log('✅ Communication history stats fetched:', stats); }
         setHistoryStats(stats);
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching communication history:', error); }
         setCommunicationHistory([]);
       }
     };
@@ -157,12 +146,9 @@ const Communication = () => {
       }
 
       try {
-        if (import.meta.env.DEV) { console.log('🔍 Searching investors from backend...'); }
         const response = await apiService.searchInvestorsForCommunication(searchTerm);
-        if (import.meta.env.DEV) { console.log('✅ Investors search results:', response.investors); }
         setSearchedInvestors(response.investors || []);
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error searching investors:', error); }
         setSearchedInvestors([]);
       }
     };
@@ -183,9 +169,7 @@ const Communication = () => {
     }
 
     try {
-      if (import.meta.env.DEV) { console.log(`📊 Fetching investors for series ${seriesId}...`); }
       const response = await apiService.getInvestorsForCommunication(seriesId);
-      if (import.meta.env.DEV) { console.log(`✅ Investors fetched:`, response.investors); }
       
       setSeriesInvestorsMap(prev => {
         const newMap = new Map(prev);
@@ -195,7 +179,6 @@ const Communication = () => {
       
       return response.investors || [];
     } catch (error) {
-      if (import.meta.env.DEV) { console.error(`❌ Error fetching investors for series ${seriesId}:`, error); }
       return [];
     }
   };
@@ -233,12 +216,9 @@ const Communication = () => {
 
   // Get investors for selected series from backend data
   const getInvestorsForSeries = (seriesId) => {
-    if (import.meta.env.DEV) { console.log(`🔍 Getting investors for series ID: ${seriesId}`); }
     
     // Get investors from the map (already fetched from backend)
     const investors = seriesInvestorsMap.get(seriesId) || [];
-    
-    if (import.meta.env.DEV) { console.log(`✅ Found ${investors.length} investors for series ${seriesId}`); }
     return investors;
   };
 
@@ -393,17 +373,13 @@ const Communication = () => {
 
   // Handle individual investor selection/deselection
   const handleInvestorToggle = (seriesId, investorId) => {
-    if (import.meta.env.DEV) { console.log(`=== INVESTOR TOGGLE START ===`); }
-    if (import.meta.env.DEV) { console.log(`Series ID: ${seriesId}, Investor: ${investorId}`); }
     
     // Get current state
     const currentSelectedInvestors = selectedInvestors.get(seriesId) || new Set();
     const wasSelected = currentSelectedInvestors.has(investorId);
-    
-    if (import.meta.env.DEV) { console.log(`Was selected: ${wasSelected}`); }
     if (import.meta.env.DEV) {
 
-      if (import.meta.env.DEV) { console.log(`Current investors in series ${seriesId}:`, Array.from(currentSelectedInvestors)); }
+      // Log removed
 
     }
     
@@ -413,17 +389,15 @@ const Communication = () => {
     if (wasSelected) {
       // Deselect investor
       newSeriesSet.delete(investorId);
-      if (import.meta.env.DEV) { console.log(`DESELECTING investor ${investorId}`); }
     } else {
       // Select investor
       newSeriesSet.add(investorId);
-      if (import.meta.env.DEV) { console.log(`SELECTING investor ${investorId}`); }
     }
     
     if (import.meta.env.DEV) {
 
     
-      if (import.meta.env.DEV) { console.log(`New investors in series ${seriesId}:`, Array.from(newSeriesSet)); }
+      // Log removed
 
     
     }
@@ -435,11 +409,9 @@ const Communication = () => {
       if (newSeriesSet.size === 0) {
         // No investors selected for this series, remove it
         newMap.delete(seriesId);
-        if (import.meta.env.DEV) { console.log(`Removed series ${seriesId} from map - no investors`); }
       } else {
         // Update the series with new investor set
         newMap.set(seriesId, newSeriesSet);
-        if (import.meta.env.DEV) { console.log(`Updated series ${seriesId} in map`); }
       }
       
       return newMap;
@@ -450,7 +422,6 @@ const Communication = () => {
       // Remove series from selected list
       setSelectedSeries(prev => {
         const filtered = prev.filter(s => s !== seriesId);
-        if (import.meta.env.DEV) { console.log(`Removed series ${seriesId} from selected series list`); }
         return filtered;
       });
       
@@ -464,14 +435,11 @@ const Communication = () => {
       // Ensure series is in selected list
       setSelectedSeries(prev => {
         if (!prev.includes(seriesId)) {
-          if (import.meta.env.DEV) { console.log(`Added series ${seriesId} to selected series list`); }
           return [...prev, seriesId];
         }
         return prev;
       });
     }
-    
-    if (import.meta.env.DEV) { console.log(`=== INVESTOR TOGGLE END ===`); }
   };
 
   // Select all investors for a series
@@ -524,7 +492,6 @@ const Communication = () => {
     setShowEmailSentAnimation(true); // Show animation immediately
 
     try {
-      if (import.meta.env.DEV) { console.log('📤 Sending messages via backend API...'); }
       
       // Prepare data for backend - Convert type to uppercase
       const messageData = {
@@ -536,12 +503,8 @@ const Communication = () => {
         template_id: selectedTemplate ? parseInt(selectedTemplate) : null // Include selected template ID
       };
       
-      if (import.meta.env.DEV) { console.log('📦 Message data:', messageData); }
-      
       // Call backend API to send messages
       const response = await apiService.sendBulkMessages(messageData);
-      
-      if (import.meta.env.DEV) { console.log('✅ Backend response:', response); }
       
       // Close animation when response comes
       setShowEmailSentAnimation(false);
@@ -563,7 +526,6 @@ const Communication = () => {
           action: 'communication_send'
         }
       ).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log communication:', error); }
       });
       
       // Show success or partial success message
@@ -591,7 +553,6 @@ const Communication = () => {
       handleClearAllSelections();
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error sending messages:', error); }
       
       // Close animation on error
       setShowEmailSentAnimation(false);
@@ -613,9 +574,7 @@ const Communication = () => {
     const template = templates.find(t => t.id === parseInt(templateId));
     if (template) {
       setMessageContent(template.content);
-      if (import.meta.env.DEV) { console.log('✅ Template selected:', template.name, 'Content:', template.content); }
     } else {
-      if (import.meta.env.DEV) { console.log('❌ Template not found for ID:', templateId); }
     }
   };
 
@@ -964,7 +923,7 @@ const Communication = () => {
                     {/* No Results */}
                     {searchTerm.trim() && !showInvestorSearchResults && series.length === 0 && (
                       <div className="no-results">
-                        <div className="no-results-icon">🔍</div>
+                        <div className="no-results-icon">ðŸ”</div>
                         <h4>No results found</h4>
                         <p>No series or investors match your search term "{searchTerm}"</p>
                         <button 
@@ -1240,3 +1199,4 @@ const Communication = () => {
 };
 
 export default Communication;
+

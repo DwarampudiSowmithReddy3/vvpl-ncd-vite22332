@@ -64,15 +64,18 @@ const Approval = () => {
   // Load documents for a series
   const loadSeriesDocuments = async (seriesId) => {
     try {
-      if (import.meta.env.DEV) { console.log('🔄 Loading documents for series:', seriesId); }
       const response = await apiService.getSeriesDocuments(seriesId);
       setSeriesDocuments(prev => ({
         ...prev,
         [seriesId]: response.documents || []
       }));
-      if (import.meta.env.DEV) { console.log('✅ Documents loaded:', response.documents); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error loading documents:', error); }
+      const friendlyError = getUserFriendlyError(error, 'Failed to load documents');
+      showError(friendlyError);
+      setSeriesDocuments(prev => ({
+        ...prev,
+        [seriesId]: []
+      }));
     }
   };
 
@@ -125,12 +128,7 @@ const Approval = () => {
     
     try {
       setActionLoading(true);
-      if (import.meta.env.DEV) { console.log('🔄 Saving edits via backend API:', selectedSeries.id); }
-      if (import.meta.env.DEV) {
-
-        if (import.meta.env.DEV) { console.log('📝 Edit data (camelCase):', editData); }
-
-      }
+      /* Log removed per security policy */
       
       // Convert camelCase to snake_case for backend
       const backendData = {
@@ -162,7 +160,7 @@ const Approval = () => {
       if (import.meta.env.DEV) {
 
       
-        if (import.meta.env.DEV) { console.log('📤 Sending to backend (snake_case):', backendData); }
+        // Log removed
 
       
       }
@@ -170,10 +168,8 @@ const Approval = () => {
       // Call backend API - ALL LOGIC IN BACKEND
       const response = await apiService.updateSeries(selectedSeries.id, backendData);
       
-      if (import.meta.env.DEV) { console.log('✅ Series updated successfully:', response); }
-      
       // Backend handles:
-      // - Change tracking (old → new values)
+      // - Change tracking (old â†’ new values)
       // - Insert EDITED record into series_approvals table
       // - Update last_modified_by and last_modified_at
       // - Audit log creation
@@ -191,7 +187,6 @@ const Approval = () => {
       }
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed to update series:', error); }
       const friendlyError = getUserFriendlyError(error, 'Failed to update series. Please try again.');
       showError(friendlyError);
     } finally {
@@ -203,12 +198,9 @@ const Approval = () => {
     if (selectedSeries) {
       try {
         setActionLoading(true);
-        if (import.meta.env.DEV) { console.log('🔄 Approving series via backend API:', selectedSeries.id); }
         
         // Call backend API - ALL LOGIC IN BACKEND
         const response = await apiService.approveSeries(selectedSeries.id, editData);
-        
-        if (import.meta.env.DEV) { console.log('✅ Series approved successfully:', response); }
         
         // Backend handles:
         // - Status calculation
@@ -227,7 +219,6 @@ const Approval = () => {
         }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to approve series:', error); }
         const friendlyError = getUserFriendlyError(error, 'Failed to approve series. Please try again.');
         showError(friendlyError);
       } finally {
@@ -244,14 +235,11 @@ const Approval = () => {
     if (selectedSeries && rejectionReason.trim()) {
       try {
         setActionLoading(true);
-        if (import.meta.env.DEV) { console.log('🔄 Rejecting series via backend API:', selectedSeries.id); }
         
         // Call backend API - ALL LOGIC IN BACKEND
         const response = await apiService.rejectSeries(selectedSeries.id, {
           reason: rejectionReason.trim()
         });
-        
-        if (import.meta.env.DEV) { console.log('✅ Series rejected successfully:', response); }
         
         // Backend handles:
         // - Status update to REJECTED
@@ -272,7 +260,6 @@ const Approval = () => {
         }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to reject series:', error); }
         const friendlyError = getUserFriendlyError(error, 'Failed to reject series. Please try again.');
         showError(friendlyError);
       } finally {
@@ -783,7 +770,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded ✓</span>
+                          <span>Uploaded âœ“</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'term_sheet') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'term_sheet').view_url)}
@@ -825,7 +812,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded ✓</span>
+                          <span>Uploaded âœ“</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'offer_document') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'offer_document').view_url)}
@@ -867,7 +854,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded ✓</span>
+                          <span>Uploaded âœ“</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'board_resolution') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'board_resolution').view_url)}

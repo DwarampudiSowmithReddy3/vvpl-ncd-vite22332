@@ -25,8 +25,6 @@ import { IoWarningOutline, IoPeopleOutline } from "react-icons/io5";
 import { MdTrendingDown } from "react-icons/md";
 import UpcomingPayoutCalendar from '../components/UpcomingPayoutCalendar';
 
-
-
 const Dashboard = () => {
   const navigate = useNavigate();
   const { canView } = usePermissions();
@@ -54,8 +52,6 @@ const Dashboard = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [complianceData, setComplianceData] = useState({}); // Store compliance data from backend
   const [maturityBuckets, setMaturityBuckets] = useState([]); // Store maturity distribution from backend
-
-  console.log('📊 Dashboard render - loading:', loading, 'dataLoaded:', dataLoaded, 'animationComplete:', animationComplete, 'justLoggedIn:', justLoggedIn);
   const [lockinBuckets, setLockinBuckets] = useState([]); // Store lock-in distribution from backend
   const [calendarData, setCalendarData] = useState(null); // Store calendar data from backend
   const [topInvestors, setTopInvestors] = useState([]); // Store top investors from backend
@@ -97,7 +93,6 @@ const Dashboard = () => {
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === 'investors' || e.key === 'series') {
-        if (import.meta.env.DEV) { console.log('📊 Dashboard: localStorage changed, refreshing metrics'); }
         setRefreshTrigger(prev => prev + 1);
       }
     };
@@ -107,7 +102,6 @@ const Dashboard = () => {
 
     // Also listen for custom events from same tab
     const handleCustomRefresh = () => {
-      if (import.meta.env.DEV) { console.log('📊 Dashboard: Custom refresh event received'); }
       setRefreshTrigger(prev => prev + 1);
     };
 
@@ -159,11 +153,9 @@ const Dashboard = () => {
   
   // Debug: Log when series changes
   useEffect(() => {
-    if (import.meta.env.DEV) { console.log('📊 Dashboard: Series updated, count:', series.length); }
     
     // If series just loaded (went from 0 to > 0), trigger a refresh of dependent data
     if (series.length > 0) {
-      if (import.meta.env.DEV) { console.log('✅ Series loaded'); }
     }
   }, [series, seriesRefreshTrigger]);
   
@@ -173,18 +165,15 @@ const Dashboard = () => {
   // Fetch payout stats from backend
   useEffect(() => {
     const fetchPayoutStats = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching payout stats from backend...'); }
       setLoadingStates(prev => ({ ...prev, payouts: true }));
       
       try {
         const stats = await getInterestPayoutStats();
-        if (import.meta.env.DEV) { console.log('✅ Payout stats loaded:', stats); }
         
         setInterestPayoutStats(stats);
         setLoadingStates(prev => ({ ...prev, payouts: false }));
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching payout stats:', error); }
         // Keep default values on error
         const currentDate = new Date();
         const currentMonth = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -210,12 +199,10 @@ const Dashboard = () => {
   // Fetch total investments from backend (sum of all confirmed investments across all series)
   useEffect(() => {
     const fetchTotalInvestments = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching total investments from backend...'); }
       setLoadingStates(prev => ({ ...prev, metrics: true }));
       
       try {
         const metrics = await apiService.getDashboardMetrics();
-        if (import.meta.env.DEV) { console.log('✅ Dashboard metrics loaded:', metrics); }
         
         // Set total investments (sum of all confirmed investments)
         setTotalInvestments(metrics.total_funds_raised || 0);
@@ -230,7 +217,6 @@ const Dashboard = () => {
         setLoadingStates(prev => ({ ...prev, metrics: false }));
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching total investments:', error); }
         setTotalInvestments(0);
         setActiveSeriesCount(0);
         setAverageInterestRate('0.0');
@@ -256,7 +242,7 @@ const Dashboard = () => {
       // TEMPORARILY DISABLED - audit logging was causing infinite loop
       // auditService.logDashboardMetricsView(user).catch(error => {
       //   if (import.meta.env.DEV) {
-      //     console.error('Failed to log dashboard metrics view:', error);
+      //
       //   }
       // });
     }
@@ -265,17 +251,14 @@ const Dashboard = () => {
   // Fetch Pending KYC count from backend (from Investors page)
   useEffect(() => {
     const fetchPendingKYC = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching pending KYC count from backend...'); }
       
       try {
         const investorStats = await apiService.getInvestorStatistics();
-        if (import.meta.env.DEV) { console.log('✅ Investor statistics loaded:', investorStats); }
         
         // Set pending KYC count
         setPendingKYC(investorStats.kyc_pending || 0);
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching pending KYC:', error); }
         setPendingKYC(0);
       }
     };
@@ -286,11 +269,9 @@ const Dashboard = () => {
   // Fetch compliance data from backend for ACTIVE and MATURED series only
   useEffect(() => {
     const fetchComplianceData = async () => {
-      if (import.meta.env.DEV) { console.log('🔍 Compliance useEffect triggered, series.length:', series.length, 'seriesLoading:', seriesLoading); }
       
       // Wait for series to finish loading
       if (seriesLoading) {
-        if (import.meta.env.DEV) { console.log('⏳ Series still loading, waiting...'); }
         setLoadingStates(prev => ({ ...prev, compliance: true }));
         return;
       }
@@ -299,7 +280,6 @@ const Dashboard = () => {
       setLoadingStates(prev => ({ ...prev, compliance: true }));
       
       if (!series || series.length === 0) {
-        if (import.meta.env.DEV) { console.log('⏭️ No series loaded yet, skipping compliance fetch'); }
         setComplianceData({});
         setLoadingStates(prev => ({ ...prev, compliance: false }));
         return;
@@ -310,16 +290,11 @@ const Dashboard = () => {
         s.status === 'active' || s.status === 'matured'
       );
 
-      if (import.meta.env.DEV) { console.log('🔍 Active/Matured series count:', activeAndMaturedSeries.length); }
-
       if (activeAndMaturedSeries.length === 0) {
-        if (import.meta.env.DEV) { console.log('⏭️ No active or matured series found, skipping compliance fetch'); }
         setComplianceData({});
         setLoadingStates(prev => ({ ...prev, compliance: false }));
         return;
       }
-
-      if (import.meta.env.DEV) { console.log('🔄 Fetching compliance data from backend for', activeAndMaturedSeries.length, 'active/matured series...'); }
       
       try {
         // OPTIMIZED: Load compliance data incrementally instead of waiting for all
@@ -340,10 +315,7 @@ const Dashboard = () => {
               ...prev,
               [s.name]: complianceMap[s.name]
             }));
-            
-            if (import.meta.env.DEV) { console.log(`✅ Compliance loaded for ${s.name}`); }
           } catch (error) {
-            if (import.meta.env.DEV) { console.error(`❌ Failed to fetch compliance for series ${s.id}:`, error); }
             // Set default values on error
             complianceMap[s.name] = { pre: 0, post: 0, recurring: 0 };
             setComplianceData(prev => ({
@@ -354,10 +326,8 @@ const Dashboard = () => {
         }
         
         setLoadingStates(prev => ({ ...prev, compliance: false }));
-        if (import.meta.env.DEV) { console.log('✅ All compliance data loaded:', complianceMap); }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching compliance data:', error); }
         setLoadingStates(prev => ({ ...prev, compliance: false }));
       }
     };
@@ -371,11 +341,8 @@ const Dashboard = () => {
       // Set loading state immediately
       setLoadingStates(prev => ({ ...prev, distribution: true }));
       
-      if (import.meta.env.DEV) { console.log('🔄 Fetching maturity & lock-in distribution from backend...', 'Series count:', series.length); }
-      
       try {
         const distribution = await apiService.getMaturityLockinDistribution();
-        if (import.meta.env.DEV) { console.log('📦 Distribution API response:', distribution); }
         
         // If backend returns empty arrays, use default structure with zeros
         const defaultMaturityBuckets = [
@@ -400,13 +367,8 @@ const Dashboard = () => {
           : defaultLockinBuckets);
         
         setLoadingStates(prev => ({ ...prev, distribution: false }));
-        if (import.meta.env.DEV) { console.log('✅ Distribution data loaded:', {
-          maturityBuckets: distribution.maturity_buckets?.length || 0,
-          lockinBuckets: distribution.lockin_buckets?.length || 0
-        }); }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching distribution data:', error); }
         // Set default empty buckets on error
         setMaturityBuckets([
           { label: '< 3 months', amount: 0, series_count: 0, percentage: 0, color: 'blue' },
@@ -430,7 +392,6 @@ const Dashboard = () => {
   // Fetch upcoming maturity calendar data from backend
   useEffect(() => {
     const fetchCalendarData = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching upcoming maturity calendar from backend...'); }
       setLoadingStates(prev => ({ ...prev, calendar: true }));
       
       try {
@@ -438,10 +399,8 @@ const Dashboard = () => {
         
         setCalendarData(calendar);
         setLoadingStates(prev => ({ ...prev, calendar: false }));
-        if (import.meta.env.DEV) { console.log('✅ Calendar data loaded:', calendar); }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching calendar data:', error); }
         setCalendarData(null);
         setLoadingStates(prev => ({ ...prev, calendar: false }));
       }
@@ -453,16 +412,13 @@ const Dashboard = () => {
   // Fetch top investors from backend
   useEffect(() => {
     const fetchTopInvestors = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching top investors from backend...'); }
       setLoadingStates(prev => ({ ...prev, topInvestors: true }));
       
       try {
         const response = await apiService.getTopInvestors(10);
         setTopInvestors(response.topInvestors || []);
         setLoadingStates(prev => ({ ...prev, topInvestors: false }));
-        if (import.meta.env.DEV) { console.log('✅ Top investors loaded:', response.topInvestors?.length || 0); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching top investors:', error); }
         setTopInvestors([]);
         setLoadingStates(prev => ({ ...prev, topInvestors: false }));
       }
@@ -474,21 +430,17 @@ const Dashboard = () => {
   // Fetch grievance stats from backend (same as Grievance Management page)
   useEffect(() => {
     const fetchGrievanceStats = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching grievance stats from backend...'); }
       setLoadingStates(prev => ({ ...prev, grievances: true }));
       
       try {
         // Fetch stats for investor grievances
         const investorStats = await apiService.getGrievanceStats('investor');
-        if (import.meta.env.DEV) { console.log('✅ Investor grievance stats loaded:', investorStats); }
         
         // Fetch stats for trustee grievances
         const trusteeStats = await apiService.getGrievanceStats('trustee');
-        if (import.meta.env.DEV) { console.log('✅ Trustee grievance stats loaded:', trusteeStats); }
         
         // Fetch overall stats (all grievances)
         const allStats = await apiService.getGrievanceStats();
-        if (import.meta.env.DEV) { console.log('✅ All grievance stats loaded:', allStats); }
         
         setGrievanceStats({
           investor: investorStats,
@@ -498,7 +450,6 @@ const Dashboard = () => {
         setLoadingStates(prev => ({ ...prev, grievances: false }));
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching grievance stats:', error); }
         // Keep default values on error
         setGrievanceStats({
           investor: { total: 0, pending: 0, in_progress: 0, resolved: 0 },
@@ -515,16 +466,10 @@ const Dashboard = () => {
   // Fetch satisfaction metrics from backend (Investor Satisfaction Index)
   useEffect(() => {
     const fetchSatisfactionMetrics = async () => {
-      if (import.meta.env.DEV) { console.log('🔄 Fetching satisfaction metrics from backend...'); }
       setLoadingStates(prev => ({ ...prev, satisfaction: true }));
       
       try {
         const metrics = await apiService.getSatisfactionMetrics();
-        if (import.meta.env.DEV) { console.log('✅ Satisfaction metrics loaded:', metrics); }
-        if (import.meta.env.DEV) { console.log('📊 Retention Rate from backend:', metrics.retention_rate); }
-        if (import.meta.env.DEV) { console.log('📊 Retained Investors:', metrics.retained_investors); }
-        if (import.meta.env.DEV) { console.log('📊 Churned Investors:', metrics.churned_investors); }
-        if (import.meta.env.DEV) { console.log('📊 Total Investors Who Invested:', metrics.total_investors_who_invested); }
         
         setSatisfactionMetrics({
           retention_rate: metrics.retention_rate || 100,
@@ -536,7 +481,6 @@ const Dashboard = () => {
         setLoadingStates(prev => ({ ...prev, satisfaction: false }));
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Error fetching satisfaction metrics:', error); }
         // Keep default values on error
         setSatisfactionMetrics({
           retention_rate: 100,
@@ -551,7 +495,6 @@ const Dashboard = () => {
 
     fetchSatisfactionMetrics();
   }, [refreshTrigger, seriesRefreshTrigger]); // Re-fetch when refresh triggered
-
 
   // REMOVE ALL FRONTEND LOGIC - getTopInvestorsByInvestment function deleted
   // Top investors now come from backend only
@@ -608,10 +551,8 @@ const Dashboard = () => {
   const earlyRedemptionAmount = satisfactionMetrics.early_redemption_amount || 0;
   
   // Debug retention rate
-  if (import.meta.env.DEV) { console.log('🎯 Current Retention Rate being displayed:', retentionRate); }
   
   // Debug calendar data
-  if (import.meta.env.DEV) { console.log('📅 Dashboard calendarData:', calendarData); }
   
   // Dynamic calendar date (today)
   return (
@@ -647,7 +588,7 @@ const Dashboard = () => {
             <p className="dashboard-subtitle">Overview of the NCD portfolio and investor activity.</p>
           </div>
           <div className="header-right">
-            {import.meta.env.DEV && console.log('📅 Rendering calendar with data:', calendarData)}
+            {/* Calendar display area */}
             <UpcomingPayoutCalendar 
               calendarData={calendarData}
               type="maturity"
@@ -679,7 +620,7 @@ const Dashboard = () => {
                     <MdTrendingUp size={20} />
                   </div>
                 </div>
-                <div className="portfolio-card-value">₹{(totalInvestments / 10000000).toFixed(2)} Cr</div>
+                <div className="portfolio-card-value">{formatCurrency(totalInvestments)}</div>
                 <div className="portfolio-card-currency">INR</div>
               </div>
             </div>
@@ -728,7 +669,6 @@ const Dashboard = () => {
           </div>
         </div>
 
-
         {/* Dashboard Sections - Maturity Left, Payouts Right */}
         <div className="dashboard-sections" style={{ gridTemplateColumns: '2fr 1.2fr' }}>
           {/* Maturity & Lock-In Distribution - Left Side with More Width */}
@@ -766,7 +706,7 @@ const Dashboard = () => {
                         <div className="compact-bucket-cell">
                           <div className="compact-bucket-info">
                             <div className="compact-bucket-label">{bucket.label}</div>
-                            <div className="compact-amount-inline">₹{(bucket.amount / 10000000).toFixed(2)} Cr ({bucket.series_count} series)</div>
+                            <div className="compact-amount-inline">{formatCurrency(bucket.amount)} ({bucket.series_count} series)</div>
                           </div>
                           <div className="compact-progress-bar-container">
                             <div className="compact-progress-track">
@@ -793,7 +733,7 @@ const Dashboard = () => {
                         <div className="compact-bucket-cell">
                           <div className="compact-bucket-info">
                             <div className="compact-bucket-label">{bucket.label}</div>
-                            <div className="compact-amount-inline">₹{(bucket.amount / 10000000).toFixed(2)} Cr ({bucket.series_count} series)</div>
+                            <div className="compact-amount-inline">{formatCurrency(bucket.amount)} ({bucket.series_count} series)</div>
                           </div>
                           <div className="compact-progress-bar-container">
                             <div className="compact-progress-track">
@@ -939,7 +879,6 @@ const Dashboard = () => {
                 const progress = s.progressPercentage || 0;
                 
                 // Debug logging
-                if (import.meta.env.DEV) { console.log(`📊 Series: ${s.name}, Funds: ₹${s.fundsRaised}, Target: ₹${s.targetAmount}, Progress: ${progress}%`); }
                 
                 // Get compliance data from backend (not DataContext)
                 const compliance = complianceData[s.name] || { pre: 0, post: 0, recurring: 0 };
@@ -1246,3 +1185,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+

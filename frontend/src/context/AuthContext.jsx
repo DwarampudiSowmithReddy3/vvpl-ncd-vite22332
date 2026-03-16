@@ -187,27 +187,10 @@ export const AuthProvider = ({ children }) => {
           try {
             const backendPermissions = await apiService.getPermissions();
             setPermissions(backendPermissions);
-            
-            // SECURITY: Only log in development mode
-            if (import.meta.env.DEV) {
-              if (import.meta.env.DEV) {
-
-                if (import.meta.env.DEV) { console.log('✅ Loaded permissions from backend:', Object.keys(backendPermissions)); }
-
-              }
-            }
-          } catch (permError) {
-            // SECURITY: Only log in development mode
-            if (import.meta.env.DEV) {
-              if (import.meta.env.DEV) { console.warn('⚠️ Failed to load permissions from backend, using defaults:', permError.message); }
-            }
+          } catch (error) {
             setPermissions(PERMISSIONS);
           }
         } catch (error) {
-          // SECURITY: Only log in development mode
-          if (import.meta.env.DEV) {
-            if (import.meta.env.DEV) { console.error('Auth check failed:', error); }
-          }
           apiService.logout();
           localStorage.removeItem('user');
           localStorage.removeItem('authToken');
@@ -246,29 +229,9 @@ export const AuthProvider = ({ children }) => {
       
       // CRITICAL FIX: Load permissions from backend after login
       try {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('🔄 Loading permissions from backend after login...'); }
-        }
-        
         const backendPermissions = await apiService.getPermissions();
         setPermissions(backendPermissions);
-        
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) {
-
-            if (import.meta.env.DEV) { console.log('✅ Loaded permissions from backend:', Object.keys(backendPermissions)); }
-
-          }
-          if (import.meta.env.DEV) { console.log('✅ User role permissions:', backendPermissions[userData.role]); }
-        }
       } catch (permError) {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ Failed to load permissions from backend:', permError); }
-          if (import.meta.env.DEV) { console.warn('⚠️ Using hardcoded permissions as fallback'); }
-        }
         setPermissions(PERMISSIONS);
       }
       
@@ -294,7 +257,7 @@ export const AuthProvider = ({ children }) => {
         window.dispatchEvent(new CustomEvent('auditLogRefresh'));
         
       } catch (auditError) {
-        if (import.meta.env.DEV) { console.error('Failed to log login audit:', auditError); }
+        // Silently fail - audit logging should not break login
       }
       
       setLoading(false);
@@ -305,8 +268,6 @@ export const AuthProvider = ({ children }) => {
       };
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('Login failed:', error.message); }
-      
       // Log failed login attempt
       try {
         await apiService.createAuditLog({
@@ -325,7 +286,7 @@ export const AuthProvider = ({ children }) => {
           }
         });
       } catch (auditError) {
-        if (import.meta.env.DEV) { console.error('Failed to log failed login audit:', auditError); }
+        // Silently fail - audit logging should not break login
       }
       
       setLoading(false);
@@ -348,16 +309,7 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user has permission for a specific module and action
   const hasPermission = (module, action = 'view') => {
-    // SECURITY: Only log in development mode
-    if (import.meta.env.DEV) {
-      if (import.meta.env.DEV) { console.log('🔍 hasPermission called:', { module, action, userRole: user?.role }); }
-    }
-    
     if (!user || !user.role) {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.warn('⚠️ No user or role - DENYING access'); }
-      }
       return false;
     }
     
@@ -365,44 +317,14 @@ export const AuthProvider = ({ children }) => {
     // Even Super Admin and Admin should use database permissions for consistency
     const userPermissions = permissions[user.role];
     if (!userPermissions) {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.error('❌ No permissions found for role:', user.role); }
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.error('❌ Available roles in permissions:', Object.keys(permissions)); }
-
-        }
-      }
       return false;
     }
     
     if (!userPermissions[module]) {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.error('❌ Module not found in permissions:', module); }
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.error('❌ Available modules:', Object.keys(userPermissions)); }
-
-        }
-      }
       return false;
     }
     
     const hasAccess = userPermissions[module][action] === true;
-    
-    // SECURITY: Only log in development mode
-    if (import.meta.env.DEV) {
-      if (import.meta.env.DEV) { console.log(`${hasAccess ? '✅' : '❌'} Permission check result:`, {
-        module,
-        action,
-        role: user.role,
-        hasAccess,
-        permissionValue: userPermissions[module][action],
-        usingBackendPermissions: true
-      }); }
-    }
     
     return hasAccess;
   };
@@ -414,52 +336,14 @@ export const AuthProvider = ({ children }) => {
 
   // Update permissions (for admin interface) - FIXED VERSION WITH API CALLS
   const updatePermissions = async (newPermissions) => {
-    // SECURITY: Only log in development mode
-    if (import.meta.env.DEV) {
-      if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: updatePermissions called in AuthContext!'); }
-      if (import.meta.env.DEV) {
-
-        if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: newPermissions keys:', Object.keys(newPermissions)); }
-
-      }
-    }
-    
     try {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Updating permissions...', Object.keys(newPermissions)); }
-
-        }
-      }
-      
       // First, try to update permissions in the backend
       try {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Sending permissions to backend...'); }
-          if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: About to call apiService.updatePermissions - CHECK NETWORK TAB!'); }
-        }
-        
         // Send the permissions to backend
         const result = await apiService.updatePermissions(newPermissions);
         
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('✅ AuthContext: Backend permissions updated successfully:', result); }
-        }
-        
         // CRITICAL FIX: Fetch the updated permissions from backend to ensure consistency
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('🔄 AuthContext: Fetching updated permissions from backend...'); }
-        }
-        
         const updatedPermissions = await apiService.getPermissions();
-        
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('✅ AuthContext: Fetched updated permissions from backend'); }
-        }
         
         // Update the local permissions state with what the backend actually saved
         setPermissions(updatedPermissions);
@@ -470,19 +354,9 @@ export const AuthProvider = ({ children }) => {
         // Also save permissions to localStorage as backup
         localStorage.setItem('userPermissions', JSON.stringify(updatedPermissions));
         
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('✅ AuthContext: Permissions updated and verified from backend'); }
-        }
-        
         return { success: true, message: result.message || 'Permissions updated successfully' };
         
       } catch (backendError) {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ AuthContext: Backend update failed:', backendError); }
-        }
-        
         return { 
           success: false, 
           error: backendError.message || 'Failed to update permissions'
@@ -490,10 +364,6 @@ export const AuthProvider = ({ children }) => {
       }
       
     } catch (error) {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.error('❌ AuthContext: Error updating permissions:', error); }
-      }
       return { success: false, error: error.message };
     }
   };
@@ -508,16 +378,7 @@ export const AuthProvider = ({ children }) => {
       try {
         // Call backend logout endpoint
         await apiService.logout();
-        
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.log('✅ Logout successful'); }
-        }
       } catch (error) {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ Logout error:', error); }
-        }
         // Continue with local logout even if backend fails
       }
     }

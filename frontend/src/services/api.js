@@ -1,7 +1,7 @@
 // API Service for NCD Management System
 import encryptionService from './encryptionService';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
 class ApiService {
   constructor() {
@@ -62,30 +62,16 @@ class ApiService {
       delete config.headers['Content-Type'];
     }
 
-    // SECURITY: Only log in development mode
-    if (import.meta.env.DEV) {
-      if (import.meta.env.DEV) { console.log('🔄 API Request:', url); }
-      if (import.meta.env.DEV) {
 
-        if (import.meta.env.DEV) { console.log('🔑 Auth token present:', !!this.token || !!localStorage.getItem('authToken')); }
-
-      }
-    }
 
     try {
       const response = await fetch(url, config);
       
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) { console.log('📡 API Response status:', response.status, response.statusText); }
-      }
+
       
       // Handle authentication errors
       if (response.status === 401) {
-        // SECURITY: Don't log token details in production
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ 401 Unauthorized - Token might be expired or invalid'); }
-        }
+
         
         this.setToken(null);
         
@@ -98,10 +84,7 @@ class ApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         
-        // SECURITY: Only log error details in development
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ API Error response:', errorData); }
-        }
+
         
         // Better error message formatting
         let errorMessage = `HTTP ${response.status}`;
@@ -123,46 +106,21 @@ class ApiService {
       
       const data = await response.json();
       
-      // SECURITY: Only log response data in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.log('✅ API Response data (raw):', data); }
-
-        }
-      }
       
       // Decrypt response if encrypted (async operation)
       try {
         const processedData = await encryptionService.processResponse(data);
         
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) {
 
-            if (import.meta.env.DEV) { console.log('✅ API Response data (processed):', processedData); }
-
-          }
-        }
         
         return processedData;
       } catch (decryptError) {
-        // SECURITY: Only log in development mode
-        if (import.meta.env.DEV) {
-          if (import.meta.env.DEV) { console.error('❌ Decryption error:', decryptError); }
-          if (import.meta.env.DEV) { console.warn('⚠️ Returning raw data due to decryption failure'); }
-        }
+
         return data;
       }
     } catch (error) {
-      // SECURITY: Only log in development mode
-      if (import.meta.env.DEV) {
-        if (import.meta.env.DEV) {
 
-          if (import.meta.env.DEV) { console.error(`❌ API Error (${endpoint}):`, error); }
-
-        }
-      }
       throw error;
     }
   }
@@ -199,7 +157,6 @@ class ApiService {
       
       return processedData;
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Login failed:', error.message); }
       throw error;
     }
   }
@@ -219,7 +176,6 @@ class ApiService {
       this.clearToken();
       return response;
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Logout failed:', error.message); }
       // Clear token even if logout fails
       this.clearToken();
       throw error;
@@ -235,7 +191,6 @@ class ApiService {
   //     if (!token) return;
   //
   //     // Use regular fetch with keepalive instead of sendBeacon
-  //     // sendBeacon doesn't support Authorization headers properly
   //     try {
   //       await fetch(`${API_BASE_URL}/auth/track-activity`, {
   //         method: 'POST',
@@ -247,14 +202,10 @@ class ApiService {
   //         keepalive: true // This ensures the request completes even if page is closing
   //       });
   //     } catch (fetchError) {
-  //       // Silently fail - this is called during page unload
-  //       if (import.meta.env.DEV) {
-  //         if (import.meta.env.DEV) { console.log('Activity tracking request sent (may complete after page unload)'); }
-  //       }
+  //       // Silently fail
   //     }
   //   } catch (error) {
-  //     // Don't throw error as this is called during page unload
-  //     if (import.meta.env.DEV) { console.log('Activity tracking attempted'); }
+  //     // Silently fail
   //   }
   // }
 
@@ -296,13 +247,10 @@ class ApiService {
 
   // Permissions endpoints
   async getPermissions() {
-    if (import.meta.env.DEV) { console.log('🔄 API Service: Getting permissions from backend...'); }
     return await this.request('/permissions/');
   }
 
   async updatePermissions(permissionsData) {
-    if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: API Service updatePermissions called!'); }
-    if (import.meta.env.DEV) { console.log('🚨 CRITICAL DEBUG: This should appear in Network tab as PUT /permissions/'); }
     return await this.request('/permissions/', {
       method: 'PUT',
       body: JSON.stringify(permissionsData),
@@ -463,18 +411,14 @@ class ApiService {
       body: formData,
     };
     
-    if (import.meta.env.DEV) { console.log('📤 Uploading 3 documents to:', url); }
-    
     const response = await fetch(url, config);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (import.meta.env.DEV) { console.error('❌ Document upload failed:', errorData); }
       throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
     }
     
     const result = await response.json();
-    if (import.meta.env.DEV) { console.log('✅ Documents uploaded successfully:', result); }
     return result;
   }
 
@@ -659,12 +603,9 @@ class ApiService {
 
   async getInvestorInvestmentDocuments(investorId) {
     try {
-      console.log(`🔄 Fetching investment documents for investor: ${investorId}`);
       const response = await this.request(`/investors/${investorId}/investment-documents`);
-      console.log('✅ Investment documents fetched:', response);
       return response;
     } catch (error) {
-      console.error('❌ Error fetching investment documents:', error);
       throw error;
     }
   }
@@ -844,17 +785,13 @@ class ApiService {
       body: formData,
     };
     
-    if (import.meta.env.DEV) { console.log(`📤 Updating ${documentType} for investor ${investorId}`); }
-    
     const response = await fetch(url, config);
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (import.meta.env.DEV) { console.error('❌ Document update failed:', errorData); }
       throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
     }
     
     const result = await response.json();
-    if (import.meta.env.DEV) { console.log('✅ Document updated successfully:', result); }
     return result;
   }
 
@@ -935,18 +872,14 @@ class ApiService {
       body: formData,
     };
     
-    if (import.meta.env.DEV) { console.log('📤 Uploading compliance document to:', url); }
-    
     const response = await fetch(url, config);
     
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      if (import.meta.env.DEV) { console.error('❌ Compliance document upload failed:', errorData); }
       throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
     }
     
     const result = await response.json();
-    if (import.meta.env.DEV) { console.log('✅ Compliance document uploaded successfully:', result); }
     return result;
   }
 
@@ -970,20 +903,12 @@ class ApiService {
 
   // Get available series for investment (with backend-calculated status)
   async getAvailableSeriesForInvestment() {
-    if (import.meta.env.DEV) { console.log('🔄 Calling getAvailableSeriesForInvestment...'); }
-    if (import.meta.env.DEV) { console.log('🔄 Endpoint: /investors/series/available-for-investment'); }
-    if (import.meta.env.DEV) { console.log('🔄 Method: GET'); }
-    
     try {
       const result = await this.request('/investors/series/available-for-investment', {
         method: 'GET'
       });
-      if (import.meta.env.DEV) { console.log('✅ getAvailableSeriesForInvestment SUCCESS:', result); }
       return result;
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ getAvailableSeriesForInvestment FAILED:', error); }
-      if (import.meta.env.DEV) { console.error('❌ Error message:', error.message); }
-      if (import.meta.env.DEV) { console.error('❌ Error stack:', error.stack); }
       throw error;
     }
   }
@@ -1289,18 +1214,16 @@ class ApiService {
 
   // Helper method for blob requests
   async requestBlob(url) {
-    const token = localStorage.getItem('token');
-    const response = await fetch(`${this.baseURL}${url}`, {
+    const config = {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
+      headers: this.getHeaders()
+    };
+
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'Request failed');
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `Request failed: HTTP ${response.status}`);
     }
 
     return await response.blob();

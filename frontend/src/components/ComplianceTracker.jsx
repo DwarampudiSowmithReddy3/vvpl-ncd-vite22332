@@ -7,6 +7,8 @@ import apiService from '../services/api';
 import auditService from '../services/auditService';
 import jsPDF from 'jspdf';
 import { PDFDocument, PDFPage, rgb } from 'pdf-lib';
+import Lottie from 'lottie-react';
+import documentDownloadAnimation from '../assets/animations/document-download.json';
 import './ComplianceTracker.css';
 import { 
   HiOutlineDownload,
@@ -39,6 +41,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAddDocumentModal, setShowAddDocumentModal] = useState(false);
   const [showTimeSheetModal, setShowTimeSheetModal] = useState(false);
+  const [showUploadAnimation, setShowUploadAnimation] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [timesheetData, setTimesheetData] = useState({}); // Store timesheet data: {itemId: {year: {month: status}}}
   
@@ -48,7 +51,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       if (!showTimeSheetModal || !seriesData?.seriesId) return;
       
       try {
-        if (import.meta.env.DEV) { console.log('🔄 Loading timesheet data for year:', selectedYear); }
         
         const monthlyData = {};
         const prePostSubmissionDates = {}; // Store submission dates for pre/post items
@@ -93,10 +95,8 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
         }
         
         setTimesheetData({ monthly: monthlyData, prePostDates: prePostSubmissionDates });
-        if (import.meta.env.DEV) { console.log('✅ Timesheet data loaded:', { monthlyData, prePostSubmissionDates }); }
         
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to load timesheet data:', error); }
       }
     };
     
@@ -203,7 +203,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       
       try {
         setLoading(true);
-        if (import.meta.env.DEV) { console.log('🔄 Loading compliance data for tab:', activeTab); }
         
         // For recurring items: load data for selected month
         // For pre/post items: load data without month (year=null, month=null)
@@ -213,7 +212,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
         if (activeTab === 'recurring') {
           year = selectedDate.getFullYear();
           month = selectedDate.getMonth() + 1;
-          if (import.meta.env.DEV) { console.log('📅 Loading recurring items for:', year, '-', month); }
         }
         
         const response = await apiService.getSeriesCompliance(seriesData.seriesId, year, month);
@@ -231,9 +229,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           }));
         
         setComplianceItems(items);
-        if (import.meta.env.DEV) { console.log('✅ Loaded', items.length, 'items for', activeTab, 'tab'); }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('❌ Failed to load:', error); }
       } finally {
         setLoading(false);
       }
@@ -269,8 +265,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       const item = complianceItems.find(i => i.id === itemId);
       if (!item) return;
       
-      if (import.meta.env.DEV) { console.log('🔄 Submitting item', itemId); }
-      
       // For recurring items: use selected date
       // For pre/post items: year=null, month=null
       let year = null;
@@ -279,9 +273,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       if (item.section === 'recurring') {
         year = selectedDate.getFullYear();
         month = selectedDate.getMonth() + 1;
-        if (import.meta.env.DEV) { console.log('📅 Recurring item - using date:', year, '-', month); }
       } else {
-        if (import.meta.env.DEV) { console.log('📄 Pre/Post item - no date tracking'); }
       }
       
       // Save to backend
@@ -296,8 +288,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
         }
       );
       
-      if (import.meta.env.DEV) { console.log('✅ Saved to backend'); }
-      
       // Add audit log for status update
       auditService.logComplianceStatusUpdated({
         seriesId: seriesData.seriesId,
@@ -310,7 +300,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
         year: year,
         month: month
       }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log compliance status update:', error); }
       });
       
       // Reload data for current view
@@ -335,7 +324,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       
       toast.success('Compliance status updated successfully!', 'Status Updated');
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Failed:', error); }
       toast.error('Failed to update compliance status. Please try again.', 'Update Failed');
     }
   };
@@ -769,8 +757,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       const seriesName = seriesData?.seriesName || 'Series A NCD';
       
       if (import.meta.env.DEV) {
-        console.log(`🔄 Exporting ${exportFormat.toUpperCase()} report for ${seriesName}`);
-        console.log('Selected sections:', selectedSections);
+        // Log removed
       }
       
       // Load ALL compliance data for all sections (not just current tab)
@@ -802,12 +789,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           title: item.title,
           completed: item.status === 'received' || item.status === 'submitted'
         }));
-        
-        if (import.meta.env.DEV) {
-          console.log('📊 All compliance data loaded:', allComplianceData);
-        }
       } catch (error) {
-        if (import.meta.env.DEV) { console.error('Error loading compliance data:', error); }
       }
       
       if (exportFormat === 'pdf') {
@@ -998,12 +980,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           link.click();
           window.URL.revokeObjectURL(url);
           document.body.removeChild(link);
-          
-          if (import.meta.env.DEV) {
-            console.log('✅ PDF generated and downloaded using template:', fileName);
-          }
         } catch (error) {
-          if (import.meta.env.DEV) { console.error('❌ Error generating PDF from template:', error); }
           throw error;
         }
       } else if (exportFormat === 'excel') {
@@ -1024,22 +1001,17 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           return sum;
         }, 0)
       }).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log compliance report export:', error); }
       });
       
       toast.success(`${exportFormat.toUpperCase()} report exported successfully!`, 'Export Complete');
       setShowExportModal(false);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting report:', error); }
       toast.error('Failed to export compliance report. Please try again.', 'Export Failed');
     }
   };
 
   const handleTimeSheetExport = async () => {
     try {
-      if (import.meta.env.DEV) {
-        console.log('🔄 Exporting TimeSheet for year:', selectedYear);
-      }
 
       // Helper function to convert 0-255 RGB to 0-1 range for pdf-lib
       const rgbNormalized = (r, g, b) => rgb(r / 255, g / 255, b / 255);
@@ -1103,10 +1075,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       const currentSection = sectionMap[activeTab] || 'post';
       const sectionItems = complianceItems.filter(item => item.section === currentSection);
       const months = getValidMonths();
-
-      if (import.meta.env.DEV) {
-        console.log('📊 TimeSheet data:', { activeTab, currentSection, itemCount: sectionItems.length, months });
-      }
 
       if (sectionItems.length > 0) {
         // Add section title
@@ -1250,10 +1218,6 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(link);
 
-      if (import.meta.env.DEV) {
-        console.log('✅ TimeSheet PDF generated and downloaded:', fileName);
-      }
-
       // Log the export
       auditService.logComplianceTimeSheetExported(user, {
         seriesId: seriesData.seriesId,
@@ -1262,13 +1226,11 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
         format: 'pdf',
         recordCount: sectionItems.length
       }).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log timesheet export:', error); }
       });
 
       toast.success('TimeSheet exported successfully!', 'Export Complete');
       setShowTimeSheetModal(false);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error exporting timesheet:', error); }
       toast.error('Failed to export timesheet. Please try again.', 'Export Failed');
     }
   };
@@ -1281,9 +1243,10 @@ const handleDocumentSubmit = async (e) => {
     }
 
     try {
-      // Upload document to S3 via backend API
-      if (import.meta.env.DEV) { console.log('Uploading document:', documentForm); }
+      // Show upload animation
+      setShowUploadAnimation(true);
       
+      // Upload document to S3 via backend API
       const result = await apiService.uploadComplianceDocument(
         seriesData?.seriesId,
         documentForm.title,
@@ -1291,8 +1254,6 @@ const handleDocumentSubmit = async (e) => {
         documentForm.description,
         documentForm.file
       );
-      
-      if (import.meta.env.DEV) { console.log('✅ Document uploaded:', result); }
       
       // Add audit log for compliance document upload
       auditService.logComplianceDocumentAdded({
@@ -1303,7 +1264,6 @@ const handleDocumentSubmit = async (e) => {
         fileName: documentForm.file.name,
         fileSize: documentForm.file.size
       }, user).catch(error => {
-        if (import.meta.env.DEV) { console.error('Failed to log document upload:', error); }
       });
       
       toast.success(`Document "${documentForm.title}" uploaded successfully!`, 'Document Uploaded');
@@ -1316,9 +1276,16 @@ const handleDocumentSubmit = async (e) => {
         description: '',
         legalReference: ''
       });
-      setShowAddDocumentModal(false);
+      
+      // Close animation after 1 second, then close modal
+      setTimeout(() => {
+        setShowUploadAnimation(false);
+        setShowAddDocumentModal(false);
+      }, 1000);
+      
     } catch (error) {
-      console.error('❌ Error uploading document:', error);
+      // Hide animation on error
+      setShowUploadAnimation(false);
       toast.error(error.message || 'Failed to upload document', 'Upload Error');
     }
   };
@@ -1770,6 +1737,70 @@ const handleDocumentSubmit = async (e) => {
             </div>
           </div>
         )}
+        {/* Upload Animation Overlay */}
+        {showUploadAnimation && (
+          <div style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 99999,
+            background: 'white',
+            borderRadius: '20px',
+            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+            border: '1px solid #e2e8f0',
+            width: '550px',
+            overflow: 'hidden',
+            animation: 'greetingEnter 0.5s ease-out'
+          }}>
+            <div style={{
+              padding: '32px 48px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '20px'
+            }}>
+              {/* Lottie Animation */}
+              <div style={{ width: '240px', height: '240px' }}>
+                <Lottie
+                  animationData={documentDownloadAnimation}
+                  loop={false}
+                  autoplay={true}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%'
+                  }}
+                />
+              </div>
+              
+              {/* Text Content */}
+              <div style={{
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: 600,
+                  color: '#000000',
+                  margin: 0
+                }}>
+                  Uploading Document...
+                </h2>
+                <p style={{
+                  fontSize: '16px',
+                  fontWeight: 400,
+                  color: '#64748b',
+                  margin: 0
+                }}>
+                  Please wait while we upload your document
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Time Sheet Modal */}
         {showTimeSheetModal && (
           <div className="modal-overlay">
@@ -1814,7 +1845,7 @@ const handleDocumentSubmit = async (e) => {
                           {getValidMonths().map(month => (
                             <td key={month} className="month-cell">
                               <div className={`status-indicator ${getTimeSheetValue(index + 1, month, activeTab) ? 'completed' : 'pending'}`}>
-                                {getTimeSheetValue(index + 1, month, activeTab) ? '✓' : '—'}
+                                {getTimeSheetValue(index + 1, month, activeTab) ? 'âœ“' : 'â€”'}
                               </div>
                             </td>
                           ))}

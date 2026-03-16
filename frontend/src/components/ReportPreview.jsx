@@ -92,10 +92,8 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
     try {
       setLoadingSeries(true);
       const data = await apiService.getSeries({ status: 'active' });
-      if (import.meta.env.DEV) { console.log('✅ Series list fetched:', data); }
       setSeriesList(data || []);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching series list:', error); }
       setSeriesList([]);
     } finally {
       setLoadingSeries(false);
@@ -132,18 +130,12 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           const payoutSeriesId = selectedSeries !== 'all' ? 
             seriesList.find(s => s.series_code === selectedSeries)?.id : null;
           
-          if (import.meta.env.DEV) { console.log('📊 Payout Statement - Date Selection Type:', dateSelectionType); }
-          if (import.meta.env.DEV) { console.log('📊 Payout Statement - Selected Month:', selectedMonth); }
-          if (import.meta.env.DEV) { console.log('📊 Payout Statement - Date Range:', dateRange); }
-          
           // Determine parameters based on date selection type
           if (dateSelectionType === 'month') {
             // Use month parameter
-            if (import.meta.env.DEV) { console.log('📊 Fetching by MONTH:', selectedMonth); }
             data = await apiService.getPayoutStatementReport(null, null, selectedMonth, payoutSeriesId);
           } else {
             // Use date range
-            if (import.meta.env.DEV) { console.log('📊 Fetching by DATE RANGE:', startDate, 'to', endDate); }
             data = await apiService.getPayoutStatementReport(startDate, endDate, null, payoutSeriesId);
           }
           
@@ -159,7 +151,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Series-wise Performance':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Series-wise Performance Report'); }
           data = await apiService.getSeriesPerformanceReport();
           
           // Transform backend data to frontend format
@@ -171,7 +162,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Investor Portfolio Summary':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Investor Portfolio Summary Report'); }
           data = await apiService.getInvestorPortfolioReport(null, null, null, null);
           
           // Transform backend data to frontend format
@@ -183,7 +173,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'KYC Status Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching KYC Status Report'); }
           data = await apiService.getKYCStatusReport();
           
           // Transform backend data to frontend format
@@ -195,7 +184,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'New Investor Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching New Investor Report'); }
           const investorIdFilter = selectedInvestorId.trim() || null;
           data = await apiService.getNewInvestorsReport(startDate, endDate, investorIdFilter);
           
@@ -208,7 +196,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'RBI Compliance Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching RBI Compliance Report'); }
           const rbiSeriesId = selectedSeries !== 'all' ? 
             seriesList.find(s => s.series_code === selectedSeries)?.id : null;
           data = await apiService.getRBIComplianceReport(rbiSeriesId, selectedSecurityType);
@@ -222,7 +209,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'SEBI Disclosure Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching SEBI Disclosure Report'); }
           const sebiSeriesId = selectedSeries !== 'all' ? 
             seriesList.find(s => s.series_code === selectedSeries)?.id : null;
           data = await apiService.getSEBIDisclosureReport(sebiSeriesId);
@@ -236,30 +222,16 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Audit Trail Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Audit Trail Report'); }
           const auditSeriesId = selectedSeries !== 'all' ? 
             seriesList.find(s => s.series_code === selectedSeries)?.id : null;
           data = await apiService.getAuditTrailReport(startDate, endDate, auditSeriesId);
           
           // LOG THE ACTUAL DATA TO DEBUG
-          if (import.meta.env.DEV) { console.log('🔍 AUDIT TRAIL DATA RECEIVED:'); }
-          if (import.meta.env.DEV) { console.log('  - Investments:', data?.investments?.length || 0); }
-          if (import.meta.env.DEV) { console.log('  - Completed Payouts:', data?.completed_payouts?.length || 0); }
-          if (import.meta.env.DEV) { console.log('  - Pending Payouts:', data?.pending_payouts?.length || 0); }
-          if (import.meta.env.DEV) { console.log('  - Upcoming Payouts:', data?.upcoming_payouts?.length || 0); }
           
           if (data?.completed_payouts && data.completed_payouts.length > 0) {
-            if (import.meta.env.DEV) { console.log('🔍 SAMPLE COMPLETED PAYOUT:', data.completed_payouts[0]); }
-            if (import.meta.env.DEV) { console.log('  - paid_timestamp:', data.completed_payouts[0].paid_timestamp); }
-            if (import.meta.env.DEV) { console.log('  - paid_timestamp type:', typeof data.completed_payouts[0].paid_timestamp); }
-            if (import.meta.env.DEV) { console.log('  - paid_timestamp length:', data.completed_payouts[0].paid_timestamp?.length); }
           }
           
           if (data?.investments && data.investments.length > 0) {
-            if (import.meta.env.DEV) { console.log('🔍 SAMPLE INVESTMENT:', data.investments[0]); }
-            if (import.meta.env.DEV) { console.log('  - created_at:', data.investments[0].created_at); }
-            if (import.meta.env.DEV) { console.log('  - created_at type:', typeof data.investments[0].created_at); }
-            if (import.meta.env.DEV) { console.log('  - created_at length:', data.investments[0].created_at?.length); }
           }
           
           // Transform backend data to frontend format
@@ -272,7 +244,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Daily Activity Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Daily Activity Report'); }
           const activityRole = selectedSeries !== 'all' ? selectedSeries : null;
           data = await apiService.getDailyActivityReport(startDate, endDate, activityRole);
           
@@ -286,7 +257,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Subscription Trend Analysis':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Subscription Trend Analysis'); }
           data = await apiService.getSubscriptionTrendAnalysis();
           
           // Transform backend data to frontend format
@@ -297,7 +267,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           break;
         
         case 'Series Maturity Report':
-          if (import.meta.env.DEV) { console.log('📊 Fetching Series Maturity Report'); }
           data = await apiService.getSeriesMaturityReport();
           
           // Transform backend data to frontend format
@@ -315,13 +284,8 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
             dateRange: { startDate, endDate }
           };
       }
-      
-      if (import.meta.env.DEV) { console.log('✅ Report data fetched:', data); }
-      if (import.meta.env.DEV) { console.log('✅ Investment details:', data?.investment_details); }
-      if (import.meta.env.DEV) { console.log('✅ Investment details length:', data?.investment_details?.length); }
       setReportData(data);
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error fetching report data:', error); }
       // Set error state but keep basic structure
       setReportData({
         reportPeriod: `${new Date(startDate).toLocaleDateString('en-GB')} - ${new Date(endDate).toLocaleDateString('en-GB')}`,
@@ -370,41 +334,25 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           user_role: user?.role || user?.displayRole
         }
       });
-      if (import.meta.env.DEV) { console.log('✅ Report download logged'); }
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error logging report download:', error); }
     }
   };
 
   const handleDownload = async () => {
     try {
-      if (import.meta.env.DEV) { console.log('📥 Starting download for:', reportName); }
-      if (import.meta.env.DEV) { console.log('📄 Selected format:', selectedFormat); }
-      if (import.meta.env.DEV) { console.log('📊 Report data being passed:', reportData); }
       if (import.meta.env.DEV) {
 
-        if (import.meta.env.DEV) { console.log('📊 Report data keys:', reportData ? Object.keys(reportData) : 'null'); }
+        // Log removed
 
       }
-      if (import.meta.env.DEV) { console.log('📊 Series breakdown:', reportData?.series_breakdown); }
-      if (import.meta.env.DEV) { console.log('📊 Investment details:', reportData?.investment_details); }
       
       // DEBUG: Log actual payout data to see timestamp values
       if (reportName === 'Audit Trail Report') {
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - Completed Payouts:', reportData?.completed_payouts); }
         if (reportData?.completed_payouts && reportData.completed_payouts.length > 0) {
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - First completed payout:', reportData.completed_payouts[0]); }
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - paid_timestamp:', reportData.completed_payouts[0].paid_timestamp); }
         }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - Pending Payouts:', reportData?.pending_payouts); }
         if (reportData?.pending_payouts && reportData.pending_payouts.length > 0) {
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - First pending payout:', reportData.pending_payouts[0]); }
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - scheduled_timestamp:', reportData.pending_payouts[0].scheduled_timestamp); }
         }
-        if (import.meta.env.DEV) { console.log('🔍 DEBUG - Investments:', reportData?.investments); }
         if (reportData?.investments && reportData.investments.length > 0) {
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - First investment:', reportData.investments[0]); }
-          if (import.meta.env.DEV) { console.log('🔍 DEBUG - created_at:', reportData.investments[0].created_at); }
         }
       }
       
@@ -416,25 +364,19 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
       if (reportName === 'Monthly Collection Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for Monthly Collection Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service...'); }
           const pdfBytes = await pdfTemplateService.fillMonthlyCollectionReport(reportData);
           const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Monthly Collection Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service...'); }
           excelExportService.exportMonthlyCollectionReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Monthly Collection Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service...'); }
           excelExportService.exportMonthlyCollectionReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Monthly_Collection_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         } else {
@@ -444,7 +386,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
       } else if (reportName === 'Payout Statement') {
         if (selectedFormat === 'PDF') {
           // Capture chart images before generating PDF
-          if (import.meta.env.DEV) { console.log('📸 Capturing chart images...'); }
           const html2canvas = (await import('html2canvas')).default;
           
           const chartImages = {};
@@ -460,13 +401,10 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
               // Get all recharts-wrapper elements within the visual analytics section
               const allChartWrappers = Array.from(document.querySelectorAll('.recharts-wrapper'));
               
-              if (import.meta.env.DEV) { console.log(`📊 Found ${allChartWrappers.length} total chart wrappers`); }
-              
               // The last 3 charts should be from Payout Statement (Pie, Bar, Line)
               const payoutCharts = allChartWrappers.slice(-3);
               
               if (payoutCharts.length >= 3) {
-                if (import.meta.env.DEV) { console.log('📊 Capturing Payout Statement charts...'); }
                 
                 // Capture Pie Chart (Status Distribution)
                 const pieCanvas = await html2canvas(payoutCharts[0], {
@@ -476,7 +414,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                   useCORS: true
                 });
                 chartImages.pieChart = pieCanvas.toDataURL('image/png');
-                if (import.meta.env.DEV) { console.log('✅ Captured Pie chart'); }
                 
                 // Capture Bar Chart (Series-wise Comparison)
                 const barCanvas = await html2canvas(payoutCharts[1], {
@@ -486,7 +423,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                   useCORS: true
                 });
                 chartImages.barChart = barCanvas.toDataURL('image/png');
-                if (import.meta.env.DEV) { console.log('✅ Captured Bar chart'); }
                 
                 // Capture Line Chart (Monthly Trend)
                 const lineCanvas = await html2canvas(payoutCharts[2], {
@@ -496,44 +432,33 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                   useCORS: true
                 });
                 chartImages.lineChart = lineCanvas.toDataURL('image/png');
-                if (import.meta.env.DEV) { console.log('✅ Captured Line chart'); }
               } else {
-                if (import.meta.env.DEV) { console.log('⚠️ Not enough charts found'); }
               }
             } else {
-              if (import.meta.env.DEV) { console.log('⚠️ Visual analytics section not found'); }
             }
           } catch (chartError) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not capture charts:', chartError); }
           }
           
           // Use PDF template service for Payout Statement with chart images
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Payout Statement...'); }
           const pdfBytes = await pdfTemplateService.fillPayoutStatementReport(reportData, chartImages);
           const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Payout Statement
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Payout Statement...'); }
           excelExportService.exportPayoutStatementReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Payout Statement
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Payout Statement...'); }
           excelExportService.exportPayoutStatementReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Payout_Statement_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Series-wise Performance') {
         if (selectedFormat === 'PDF') {
           // Capture chart images before generating PDF
-          if (import.meta.env.DEV) { console.log('📸 Capturing chart images for Series-wise Performance...'); }
           const html2canvas = (await import('html2canvas')).default;
           
           const chartImages = {
@@ -546,11 +471,9 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           try {
             // Find all chart containers
             const allChartWrappers = Array.from(document.querySelectorAll('.recharts-wrapper'));
-            if (import.meta.env.DEV) { console.log(`📊 Found ${allChartWrappers.length} total chart wrappers`); }
             
             // First chart should be the Series Comparison Bar Chart
             if (allChartWrappers.length > 0) {
-              if (import.meta.env.DEV) { console.log('📊 Capturing Series Comparison Bar Chart...'); }
               const comparisonCanvas = await html2canvas(allChartWrappers[0], {
                 backgroundColor: '#ffffff',
                 scale: 2,
@@ -558,7 +481,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 useCORS: true
               });
               chartImages.comparisonChart = comparisonCanvas.toDataURL('image/png');
-              if (import.meta.env.DEV) { console.log('✅ Captured Series Comparison chart'); }
             }
             
             // Remaining charts are per-series (2 charts per series: Line + Pie)
@@ -566,7 +488,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
             const seriesChartWrappers = allChartWrappers.slice(1);
             if (import.meta.env.DEV) {
 
-              if (import.meta.env.DEV) { console.log(`📊 Processing ${seriesChartWrappers.length} series charts (${seriesChartWrappers.length / 2} series)`); }
+              // Log removed
 
             }
             
@@ -577,7 +499,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
               if (seriesChartWrappers[i]) {
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`📊 Capturing series ${Math.floor(i / 2) + 1} - Line Chart...`); }
+                  // Log removed
 
                 }
                 const lineCanvas = await html2canvas(seriesChartWrappers[i], {
@@ -589,7 +511,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 seriesChartData.lineChart = lineCanvas.toDataURL('image/png');
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`✅ Captured series ${Math.floor(i / 2) + 1} Line chart`); }
+                  // Log removed
 
                 }
               }
@@ -598,7 +520,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
               if (seriesChartWrappers[i + 1]) {
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`📊 Capturing series ${Math.floor(i / 2) + 1} - Pie Chart...`); }
+                  // Log removed
 
                 }
                 const pieCanvas = await html2canvas(seriesChartWrappers[i + 1], {
@@ -610,7 +532,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 seriesChartData.pieChart = pieCanvas.toDataURL('image/png');
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`✅ Captured series ${Math.floor(i / 2) + 1} Pie chart`); }
+                  // Log removed
 
                 }
               }
@@ -621,41 +543,33 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
             if (import.meta.env.DEV) {
 
             
-              if (import.meta.env.DEV) { console.log(`✅ Total charts captured: 1 comparison + ${chartImages.seriesCharts.length} series (${chartImages.seriesCharts.length * 2} charts)`); }
+              // Log removed
 
             
             }
           } catch (chartError) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not capture charts:', chartError); }
           }
           
           // Use PDF template service for Series-wise Performance Report with chart images
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Series-wise Performance...'); }
           const pdfBytes = await pdfTemplateService.fillSeriesPerformanceReport(reportData, chartImages);
           const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Series-wise Performance
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Series-wise Performance...'); }
           excelExportService.exportSeriesPerformanceReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Series-wise Performance
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Series-wise Performance...'); }
           excelExportService.exportSeriesPerformanceReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Series_Performance_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Investor Portfolio Summary') {
         if (selectedFormat === 'PDF') {
           // Capture chart images before generating PDF
-          if (import.meta.env.DEV) { console.log('📸 Capturing chart images for Investor Portfolio Summary...'); }
           const html2canvas = (await import('html2canvas')).default;
           
           const chartImages = {
@@ -668,12 +582,11 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           try {
             // Find all chart containers
             const allChartWrappers = Array.from(document.querySelectorAll('.recharts-wrapper'));
-            if (import.meta.env.DEV) { console.log(`📊 Found ${allChartWrappers.length} total chart wrappers for Investor Portfolio`); }
             
             // Process charts in pairs (2 charts per investor: Pie + Line)
             if (import.meta.env.DEV) {
 
-              if (import.meta.env.DEV) { console.log(`📊 Processing ${allChartWrappers.length} investor charts (${allChartWrappers.length / 2} investors)`); }
+              // Log removed
 
             }
             
@@ -684,7 +597,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
               if (allChartWrappers[i]) {
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`📊 Capturing investor ${Math.floor(i / 2) + 1} - Pie Chart...`); }
+                  // Log removed
 
                 }
                 const pieCanvas = await html2canvas(allChartWrappers[i], {
@@ -696,7 +609,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 investorChartData.pieChart = pieCanvas.toDataURL('image/png');
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`✅ Captured investor ${Math.floor(i / 2) + 1} Pie chart`); }
+                  // Log removed
 
                 }
               }
@@ -705,7 +618,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
               if (allChartWrappers[i + 1]) {
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`📊 Capturing investor ${Math.floor(i / 2) + 1} - Line Chart...`); }
+                  // Log removed
 
                 }
                 const lineCanvas = await html2canvas(allChartWrappers[i + 1], {
@@ -717,7 +630,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 investorChartData.lineChart = lineCanvas.toDataURL('image/png');
                 if (import.meta.env.DEV) {
 
-                  if (import.meta.env.DEV) { console.log(`✅ Captured investor ${Math.floor(i / 2) + 1} Line chart`); }
+                  // Log removed
 
                 }
               }
@@ -728,167 +641,128 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
             if (import.meta.env.DEV) {
 
             
-              if (import.meta.env.DEV) { console.log(`✅ Total charts captured: ${chartImages.investorCharts.length} investors (${chartImages.investorCharts.length * 2} charts)`); }
+              // Log removed
 
             
             }
           } catch (chartError) {
-            if (import.meta.env.DEV) { console.warn('⚠️ Could not capture charts:', chartError); }
           }
           
           // Use PDF template service for Investor Portfolio Summary Report with chart images
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Investor Portfolio Summary...'); }
           const pdfBytes = await pdfTemplateService.fillInvestorPortfolioReport(reportData, chartImages);
           const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Investor Portfolio Summary
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Investor Portfolio Summary...'); }
           excelExportService.exportInvestorPortfolioReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Investor Portfolio Summary
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Investor Portfolio Summary...'); }
           excelExportService.exportInvestorPortfolioReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Investor_Portfolio_Summary_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'KYC Status Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for KYC Status Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for KYC Status Report...'); }
           const pdfBytes = await pdfTemplateService.fillKYCStatusReport(reportData);
           const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for KYC Status Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for KYC Status Report...'); }
           excelExportService.exportKYCStatusReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for KYC Status Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for KYC Status Report...'); }
           excelExportService.exportKYCStatusReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `KYC_Status_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'New Investor Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for New Investor Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for New Investor Report...'); }
           const pdfBytes = await pdfTemplateService.fillNewInvestorReport(reportData);
           const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for New Investor Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for New Investor Report...'); }
           excelExportService.exportNewInvestorReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for New Investor Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for New Investor Report...'); }
           excelExportService.exportNewInvestorReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `New_Investor_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'RBI Compliance Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for RBI Compliance Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for RBI Compliance Report...'); }
           const pdfBytes = await pdfTemplateService.fillRBIComplianceReport(reportData);
           const filename = 'reports.pdf';
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for RBI Compliance Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for RBI Compliance Report...'); }
           excelExportService.exportRBIComplianceReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `RBI_Compliance_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for RBI Compliance Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for RBI Compliance Report...'); }
           excelExportService.exportRBIComplianceReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `RBI_Compliance_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'SEBI Disclosure Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for SEBI Disclosure Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for SEBI Disclosure Report...'); }
           const pdfBytes = await pdfTemplateService.fillSEBIDisclosureReport(reportData);
           const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for SEBI Disclosure Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for SEBI Disclosure Report...'); }
           excelExportService.exportSEBIDisclosureReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for SEBI Disclosure Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for SEBI Disclosure Report...'); }
           excelExportService.exportSEBIDisclosureReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `SEBI_Disclosure_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Audit Trail Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for Audit Trail Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Audit Trail Report...'); }
           const pdfBytes = await pdfTemplateService.fillAuditTrailReport(reportData);
           const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Audit Trail Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Audit Trail Report...'); }
           excelExportService.exportAuditTrailReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Audit Trail Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Audit Trail Report...'); }
           excelExportService.exportAuditTrailReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Audit_Trail_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Daily Activity Report') {
         if (selectedFormat === 'PDF') {
           // Capture pie chart as image
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Daily Activity Report...'); }
-          if (import.meta.env.DEV) { console.log('📸 Capturing pie chart...'); }
           
           let chartImageDataUrl = null;
           const chartElement = document.getElementById('daily-activity-pie-chart');
@@ -902,40 +776,30 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 useCORS: true
               });
               chartImageDataUrl = canvas.toDataURL('image/png');
-              if (import.meta.env.DEV) { console.log('✅ Pie chart captured successfully'); }
             } catch (error) {
-              if (import.meta.env.DEV) { console.error('❌ Error capturing pie chart:', error); }
             }
           } else {
-            if (import.meta.env.DEV) { console.warn('⚠️ Pie chart element not found'); }
           }
           
           const pdfBytes = await pdfTemplateService.fillDailyActivityReport(reportData, chartImageDataUrl);
           const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Daily Activity Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Daily Activity Report...'); }
           excelExportService.exportDailyActivityReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Daily Activity Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Daily Activity Report...'); }
           excelExportService.exportDailyActivityReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Daily_Activity_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Subscription Trend Analysis') {
         if (selectedFormat === 'PDF') {
           // Capture bar chart as image
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Subscription Trend Analysis...'); }
-          if (import.meta.env.DEV) { console.log('📸 Capturing bar chart...'); }
           
           let chartImageDataUrl = null;
           const chartElement = document.getElementById('subscription-trend-bar-chart');
@@ -949,57 +813,43 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
                 useCORS: true
               });
               chartImageDataUrl = canvas.toDataURL('image/png');
-              if (import.meta.env.DEV) { console.log('✅ Bar chart captured successfully'); }
             } catch (error) {
-              if (import.meta.env.DEV) { console.error('❌ Error capturing bar chart:', error); }
             }
           } else {
-            if (import.meta.env.DEV) { console.warn('⚠️ Bar chart element not found'); }
           }
           
           const pdfBytes = await pdfTemplateService.fillSubscriptionTrendAnalysis(reportData, chartImageDataUrl);
           const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Subscription Trend Analysis
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Subscription Trend Analysis...'); }
           excelExportService.exportSubscriptionTrendAnalysis(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Subscription Trend Analysis
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Subscription Trend Analysis...'); }
           excelExportService.exportSubscriptionTrendAnalysisCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Subscription_Trend_Analysis_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
       } else if (reportName === 'Series Maturity Report') {
         if (selectedFormat === 'PDF') {
           // Use PDF template service for Series Maturity Report
-          if (import.meta.env.DEV) { console.log('📄 Using PDF template service for Series Maturity Report...'); }
           const pdfBytes = await pdfTemplateService.fillSeriesMaturityReport(reportData);
           const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
           pdfTemplateService.downloadPDF(pdfBytes, filename);
-          if (import.meta.env.DEV) { console.log('✅ PDF downloaded successfully'); }
           // Log the download
           await logReportDownload(reportName, 'PDF', filename);
         } else if (selectedFormat === 'Excel') {
           // Use Excel export service for Series Maturity Report
-          if (import.meta.env.DEV) { console.log('📊 Using Excel export service for Series Maturity Report...'); }
           excelExportService.exportSeriesMaturityReport(reportData);
-          if (import.meta.env.DEV) { console.log('✅ Excel downloaded successfully'); }
           const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
           await logReportDownload(reportName, 'Excel', filename);
         } else if (selectedFormat === 'CSV') {
           // Use CSV export service for Series Maturity Report
-          if (import.meta.env.DEV) { console.log('📊 Using CSV export service for Series Maturity Report...'); }
           excelExportService.exportSeriesMaturityReportCSV(reportData);
-          if (import.meta.env.DEV) { console.log('✅ CSV downloaded successfully'); }
           const filename = `Series_Maturity_Report_${new Date().toISOString().split('T')[0]}.csv`;
           await logReportDownload(reportName, 'CSV', filename);
         }
@@ -1010,7 +860,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
       
       // Log the report download to backend
       try {
-        if (import.meta.env.DEV) { console.log('📝 Logging report download to backend...'); }
         await apiService.request('/reports/log-download', {
           method: 'POST',
           headers: {
@@ -1022,23 +871,16 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
             record_count: getRecordCount(reportData)
           })
         });
-        if (import.meta.env.DEV) { console.log('✅ Report download logged successfully'); }
         
         // Notify parent to refresh statistics
         if (onReportGenerated) {
           onReportGenerated();
         }
       } catch (logError) {
-        if (import.meta.env.DEV) {
-
-          if (import.meta.env.DEV) { console.error('⚠️ Error logging report download (non-critical):', logError); }
-
-        }
-        // Don't fail the download if logging fails
+        /* Log error silenced */
       }
       
     } catch (error) {
-      if (import.meta.env.DEV) { console.error('❌ Error downloading report:', error); }
       alert(`Error generating ${selectedFormat}: ${error.message}`);
     }
   };
@@ -2029,8 +1871,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
 
                 {/* Investor Details Table */}
                 {(() => {
-                  if (import.meta.env.DEV) { console.log(`📊 Series ${seriesDetail.series_code} - investor_details:`, seriesDetail.investor_details); }
-                  if (import.meta.env.DEV) { console.log(`📊 Series ${seriesDetail.series_code} - investor_details length:`, seriesDetail.investor_details?.length); }
                   return null;
                 })()}
                 {seriesDetail.investor_details && seriesDetail.investor_details.length > 0 && (
@@ -2193,11 +2033,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
   );
 
   const renderInvestorPortfolio = () => {
-    if (import.meta.env.DEV) { console.log('🎨 Rendering Investor Portfolio'); }
-    if (import.meta.env.DEV) { console.log('📊 Loading state:', loading); }
-    if (import.meta.env.DEV) { console.log('📊 Report data:', reportData); }
-    if (import.meta.env.DEV) { console.log('📊 Summary:', reportData?.summary); }
-    if (import.meta.env.DEV) { console.log('📊 Investor breakdown:', reportData?.investor_breakdown); }
     
     if (loading) {
       return (
@@ -2230,7 +2065,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           <div className="report-card">
             <div className="card-header"><MdAssessment className="header-icon" /><h3>Portfolio Overview</h3></div>
             <div className="card-content">
-              {console.log('📊 Summary data:', reportData.summary)}
+              {/* Summary data */}
               <div className="kpi-grid">
                 <div className="kpi-item">
                   <FaUsers className="kpi-icon" />
@@ -2655,13 +2490,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
   };
 
   const renderKYCStatus = () => {
-    if (import.meta.env.DEV) { console.log('🎨 Rendering KYC Status Report'); }
-    if (import.meta.env.DEV) { console.log('📊 Loading state:', loading); }
-    if (import.meta.env.DEV) { console.log('📊 Report data:', reportData); }
-    if (import.meta.env.DEV) { console.log('📊 Summary:', reportData?.summary); }
-    if (import.meta.env.DEV) { console.log('📊 Banking details:', reportData?.banking_details); }
-    if (import.meta.env.DEV) { console.log('📊 KYC details:', reportData?.kyc_details); }
-    if (import.meta.env.DEV) { console.log('📊 Personal details:', reportData?.personal_details); }
     
     return (
       <div className="report-content">
@@ -2846,9 +2674,6 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
   };
 
   const renderNewInvestor = () => {
-    if (import.meta.env.DEV) { console.log('🎨 Rendering New Investor Report'); }
-    if (import.meta.env.DEV) { console.log('📊 Loading state:', loading); }
-    if (import.meta.env.DEV) { console.log('📊 Report data:', reportData); }
     
     return (
       <div className="report-content">
@@ -4835,7 +4660,7 @@ const ReportPreview = ({ reportName, onClose, onDownload, onReportGenerated }) =
           </div>
         )}
 
-        {/* SECTION 3: Investor Details for Each Series (≤90 Days) */}
+        {/* SECTION 3: Investor Details for Each Series (â‰¤90 Days) */}
         {seriesMaturing90Days.map((series, seriesIdx) => {
           const investors = investorsBySeries90Days[series.series_id] || [];
           

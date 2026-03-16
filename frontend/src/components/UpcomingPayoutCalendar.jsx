@@ -69,7 +69,6 @@ const UpcomingPayoutCalendar = ({ calendarData, payouts = [], type = 'payout' })
 
   // If no calendar data from backend, show default calendar
   if (type === 'maturity' && (!calendarData || !calendarData.calendar_display)) {
-    if (import.meta.env.DEV) { console.log('⚠️ Calendar showing default - no backend data:', calendarData); }
     // Show default calendar instead of hiding
     const defaultDay = new Date().getDate().toString().padStart(2, '0');
     const defaultMonth = new Date().toLocaleString('default', { month: 'short' }).toUpperCase();
@@ -143,8 +142,6 @@ const UpcomingPayoutCalendar = ({ calendarData, payouts = [], type = 'payout' })
   const { calendar_display, series_list } = calendarData || {};
   const day = calendar_display?.day || 'N/A';
   const month = calendar_display?.month || 'INVALID';
-
-  if (import.meta.env.DEV) { console.log('✅ Calendar rendering with:', { day, month, series_count: series_list?.length }); }
 
   const popupTitle = type === 'maturity' ? 'Upcoming Series Maturity' : 'Upcoming Payouts';
 
@@ -407,3 +404,4 @@ style.innerHTML = `
 document.head.appendChild(style);
 
 export default UpcomingPayoutCalendar;
+
