@@ -3,6 +3,7 @@ from typing import List, Dict, Any
 from app.models.pydantic.models import UserInDB
 from app.core.auth import get_current_user
 from app.core.database import get_db
+from app.core.permissions import has_permission
 from datetime import datetime
 import logging
 import json
@@ -122,11 +123,11 @@ async def update_permissions(
     permissions_data: Dict[str, Any],
     current_user: UserInDB = Depends(get_current_user)
 ):
-    """Update permissions (requires view_permissions permission)"""
+    """Update permissions (requires edit_permissions permission or Super Admin role)"""
     try:
-        # Check if user has permission to update permissions
+        # Check if user is Super Admin or has edit_permissions permission
         db = get_db()
-        if not has_permission(current_user, "edit_permissions", db):
+        if current_user.role != "Super Admin" and not has_permission(current_user, "edit_permissions", db):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You don't have permission to update permissions"

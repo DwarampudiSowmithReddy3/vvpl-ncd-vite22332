@@ -51,6 +51,7 @@ const Dashboard = () => {
   const [showUpcomingPayouts, setShowUpcomingPayouts] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0); // Add refresh trigger
   const [complianceData, setComplianceData] = useState({}); // Store compliance data from backend
+  const [dashboardSeries, setDashboardSeries] = useState([]); // Series for performance section, fetched independently
   const [maturityBuckets, setMaturityBuckets] = useState([]); // Store maturity distribution from backend
   const [lockinBuckets, setLockinBuckets] = useState([]); // Store lock-in distribution from backend
   const [calendarData, setCalendarData] = useState(null); // Store calendar data from backend
@@ -269,71 +270,64 @@ const Dashboard = () => {
   // Fetch compliance data from backend for ACTIVE and MATURED series only
   useEffect(() => {
     const fetchComplianceData = async () => {
-      
-      // Wait for series to finish loading
-      if (seriesLoading) {
-        setLoadingStates(prev => ({ ...prev, compliance: true }));
-        return;
-      }
-      
-      // Set loading state immediately
       setLoadingStates(prev => ({ ...prev, compliance: true }));
       
-      if (!series || series.length === 0) {
-        setComplianceData({});
-        setLoadingStates(prev => ({ ...prev, compliance: false }));
-        return;
-      }
-
-      // Filter to only ACTIVE and MATURED series (same as Compliance page)
-      const activeAndMaturedSeries = series.filter(s => 
-        s.status === 'active' || s.status === 'matured'
-      );
-
-      if (activeAndMaturedSeries.length === 0) {
-        setComplianceData({});
-        setLoadingStates(prev => ({ ...prev, compliance: false }));
-        return;
-      }
-      
       try {
-        // OPTIMIZED: Load compliance data incrementally instead of waiting for all
-        const complianceMap = {};
-        
-        // Fetch each series compliance data sequentially but update UI immediately
+        // Fetch series directly from backend - no dependency on DataContext series
+        const seriesData = await apiService.getSeries();
+
+        // Transform to camelCase for rendering (same as DataContext does)
+        const transformed = seriesData.map(s => ({
+          id: s.id,
+          name: s.name,
+          status: s.status,
+          investors: s.investor_count || 0,
+          fundsRaised: s.funds_raised || 0,
+          targetAmount: s.target_amount || 0,
+          progressPercentage: s.progress_percentage || 0,
+        }));
+        setDashboardSeries(transformed);
+
+        const activeAndMaturedSeries = seriesData.filter(s =>
+          s.status === 'active' || s.status === 'matured'
+        );
+
+        if (!activeAndMaturedSeries || activeAndMaturedSeries.length === 0) {
+          setComplianceData({});
+          setLoadingStates(prev => ({ ...prev, compliance: false }));
+          return;
+        }
+
+        // Fetch each series compliance data and update UI incrementally
         for (const s of activeAndMaturedSeries) {
           try {
             const summary = await apiService.getSeriesComplianceSummary(s.id);
-            complianceMap[s.name] = {
-              pre: summary.pre_percentage || 0,
-              post: summary.post_percentage || 0,
-              recurring: summary.recurring_percentage || 0
-            };
-            
-            // Update UI immediately after each series loads
             setComplianceData(prev => ({
               ...prev,
-              [s.name]: complianceMap[s.name]
+              [s.name]: {
+                pre: summary.pre_percentage || 0,
+                post: summary.post_percentage || 0,
+                recurring: summary.recurring_percentage || 0
+              }
             }));
           } catch (error) {
-            // Set default values on error
-            complianceMap[s.name] = { pre: 0, post: 0, recurring: 0 };
             setComplianceData(prev => ({
               ...prev,
-              [s.name]: complianceMap[s.name]
+              [s.name]: { pre: 0, post: 0, recurring: 0 }
             }));
           }
         }
-        
+
         setLoadingStates(prev => ({ ...prev, compliance: false }));
-        
+
       } catch (error) {
+        setComplianceData({});
         setLoadingStates(prev => ({ ...prev, compliance: false }));
       }
     };
 
     fetchComplianceData();
-  }, [series, seriesLoading, refreshTrigger, seriesRefreshTrigger]); // Re-fetch when series changes, loading completes, or refresh triggered
+  }, [refreshTrigger]); // Only re-fetch on manual refresh, not on series changes
 
   // Fetch maturity and lock-in distribution from backend
   useEffect(() => {
@@ -867,12 +861,12 @@ const Dashboard = () => {
                 }}></div>
                 <p style={{ marginTop: '16px', color: '#6b7280' }}>Loading compliance data...</p>
               </div>
-            ) : series.length === 0 ? (
+            ) : dashboardSeries.length === 0 ? (
               <div style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>
                 <p>No series data available</p>
               </div>
             ) : (
-              series
+              dashboardSeries
                 .map((s) => {
                 // Get progress from backend (NOT calculated in frontend)
                 // FIXED: Use progressPercentage (camelCase) not progress_percentage

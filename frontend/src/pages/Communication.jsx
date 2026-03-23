@@ -923,7 +923,6 @@ const Communication = () => {
                     {/* No Results */}
                     {searchTerm.trim() && !showInvestorSearchResults && series.length === 0 && (
                       <div className="no-results">
-                        <div className="no-results-icon">ðŸ”</div>
                         <h4>No results found</h4>
                         <p>No series or investors match your search term "{searchTerm}"</p>
                         <button 

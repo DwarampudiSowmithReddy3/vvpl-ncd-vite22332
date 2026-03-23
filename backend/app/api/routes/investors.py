@@ -741,15 +741,83 @@ async def get_investor(
                     })
         
         # Transform aggregated investments to transactions for frontend
-        # SHOW ALL transactions including exited series (for Recent Transactions history)
+        # SHOW ALL transactions including exited series and maturity returns
         transactions = []
         for inv in investments:
-            # Show transaction type based on status field
+            # Incoming investment transaction
             transactions.append({
-                "type": "Investment" if inv['status'] == 'active' else "Exit",
+                "type": "Investment",
                 "series": inv['series_name'],
                 "date": inv['first_investment_date'],
-                "amount": inv['amount']
+                "amount": inv['amount'],
+                "direction": "outgoing"
+            })
+            # If exited (early exit after lock-in), show principal return
+            if inv['status'] == 'exited':
+                # Get exit date from investments table
+                exit_query = """
+                SELECT exit_date FROM investments
+                WHERE investor_id = %s AND series_id = %s AND exit_date IS NOT NULL
+                ORDER BY exit_date DESC LIMIT 1
+                """
+                exit_result = db.execute_query(exit_query, (db_id, inv['series_id']))
+                exit_date = exit_result[0]['exit_date'].strftime('%Y-%m-%d') if exit_result and exit_result[0]['exit_date'] else inv['last_investment_date']
+                transactions.append({
+                    "type": "Exit - Principal Return",
+                    "series": inv['series_name'],
+                    "date": exit_date,
+                    "amount": inv['amount'],
+                    "direction": "incoming"
+                })
+
+        # Check for matured series and add maturity principal returns
+        for inv in investments:
+            if inv['status'] == 'active':
+                series_maturity_query = """
+                SELECT maturity_date, status FROM ncd_series WHERE id = %s
+                """
+                maturity_result = db.execute_query(series_maturity_query, (inv['series_id'],))
+                if maturity_result:
+                    mat_date = maturity_result[0]['maturity_date']
+                    from datetime import date as date_cls
+                    if mat_date and date_cls.today() >= (mat_date if not isinstance(mat_date, str) else date_cls.fromisoformat(mat_date)):
+                        mat_date_str = mat_date.strftime('%Y-%m-%d') if not isinstance(mat_date, str) else mat_date
+                        transactions.append({
+                            "type": "Maturity - Principal Return",
+                            "series": inv['series_name'],
+                            "date": mat_date_str,
+                            "amount": inv['amount'],
+                            "direction": "incoming"
+                        })
+
+        # Sort transactions by date descending
+        transactions.sort(key=lambda x: x['date'] or '', reverse=True)
+
+        # Fetch recent interest payouts for this investor
+        interest_payouts_query = """
+        SELECT 
+            ip.payout_month,
+            ip.payout_date,
+            ip.amount,
+            ip.status,
+            ip.paid_date,
+            s.name as series_name
+        FROM interest_payouts ip
+        JOIN ncd_series s ON ip.series_id = s.id
+        WHERE ip.investor_id = %s AND ip.is_active = 1
+        ORDER BY ip.paid_date DESC, ip.payout_date DESC
+        LIMIT 20
+        """
+        payouts_result = db.execute_query(interest_payouts_query, (db_id,))
+        interest_payouts = []
+        for p in (payouts_result or []):
+            interest_payouts.append({
+                "series": p['series_name'],
+                "month": p['payout_month'],
+                "payoutDate": p['payout_date'],
+                "amount": float(p['amount']) if p['amount'] else 0.0,
+                "status": p['status'],
+                "paidDate": p['paid_date'].strftime('%Y-%m-%d') if p['paid_date'] else None
             })
         
         # Return data in BOTH formats - backend (snake_case) AND frontend (camelCase)
@@ -811,6 +879,7 @@ async def get_investor(
             "kycDocuments": kyc_documents,
             "holdings": holdings,
             "transactions": transactions,
+            "interestPayouts": interest_payouts,
             
             # Raw data arrays
             "documents": documents,

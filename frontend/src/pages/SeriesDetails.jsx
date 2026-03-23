@@ -492,10 +492,7 @@ const SeriesDetails = () => {
         );
       }
 
-      if (uploadPromises.length === 0) {
-        alert('Please select at least one document to upload.');
-        return;
-      }
+
 
       // Upload all documents
       if (import.meta.env.DEV) {
@@ -963,7 +960,13 @@ const SeriesDetails = () => {
                             }
                             
                             // Proceed with opening document
-                            window.open(doc.download_url, '_blank');
+                            // Backend returns 'view_url' (not 'download_url') - use correct field
+                            const docUrl = doc.view_url || doc.download_url;
+                            if (docUrl) {
+                              window.open(docUrl, '_blank');
+                            } else {
+                              alert('Document URL is not available. Please try again or contact support.');
+                            }
                           }}
                           title="View Document (Link expires in 5 minutes)"
                         >

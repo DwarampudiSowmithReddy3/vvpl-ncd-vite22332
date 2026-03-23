@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿﻿import React, { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
@@ -47,7 +47,7 @@ const Approval = () => {
     }
   }, [minLoadTimeComplete, seriesLoading]);
 
-  // Only show DRAFT series in approval page
+  // Show only DRAFT series in approval page (filtering by status, not validation)
   const draftSeries = series.filter(s => s.status === 'DRAFT');
 
   // Helper function to get ordinal suffix (1st, 2nd, 3rd, etc.)
@@ -770,7 +770,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded âœ“</span>
+                          <span>Uploaded ✓</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'term_sheet') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'term_sheet').view_url)}
@@ -812,7 +812,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded âœ“</span>
+                          <span>Uploaded ✓</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'offer_document') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'offer_document').view_url)}
@@ -854,7 +854,7 @@ const Approval = () => {
                         />
                       ) : (
                         <div className="value" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span>Uploaded âœ“</span>
+                          <span>Uploaded ✓</span>
                           {selectedSeries?.id && seriesDocuments[selectedSeries.id]?.find(d => d.document_type === 'board_resolution') && (
                             <button
                               onClick={() => handleViewDocument(seriesDocuments[selectedSeries.id].find(d => d.document_type === 'board_resolution').view_url)}
@@ -1088,3 +1088,5 @@ const Approval = () => {
 };
 
 export default Approval;
+
+

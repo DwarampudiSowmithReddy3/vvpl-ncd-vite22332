@@ -326,13 +326,6 @@ const Investors = () => {
     setShowCreatingInvestor(true);
 
     try {
-      // Validate Investor ID is provided
-      if (!formData.investorId || !formData.investorId.trim()) {
-        setShowCreatingInvestor(false);
-        toast.error('Investor ID is required', 'Validation Error');
-        return;
-      }
-
       // Create investor data
       const investorData = {
         investor_id: formData.investorId.trim().toUpperCase(), // Use manual ID
@@ -467,11 +460,6 @@ const Investors = () => {
   const handleInvestorSearch = async () => {
     const investor = investors.find(inv => inv.investorId === investorSearchTerm.trim());
 
-    if (!investor) {
-      toast.error('Investor not found. Please check the Investor ID.', 'Not Found');
-      return;
-    }
-
     // NO FRONTEND CHECKS - Just show investor details
     // Backend will validate everything when investment is submitted
     setSelectedInvestor(investor);
@@ -506,11 +494,6 @@ const Investors = () => {
   };
 
   const handleInvestmentSubmit = async () => {
-    if (!investmentAmount || !investmentDocument) {
-      toast.error('Please fill all required fields and upload document.', 'Validation Error');
-      return;
-    }
-
     // Prevent double submission
     if (isSubmittingInvestment) {
       return;
@@ -1662,7 +1645,6 @@ const Investors = () => {
                   </div>
                 ) : (
                   <div className="no-series-found">
-                    <div className="no-results-icon">ðŸ”</div>
                     <h4>No Series Found</h4>
                     {seriesSearchTerm ? (
                       <div>

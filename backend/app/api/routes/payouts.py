@@ -2066,16 +2066,28 @@ async def get_unique_series_names(
         
         logger.info("📊 Fetching unique series names for filter dropdown")
         
-        # Get unique series names from payouts table
+        # Get unique series names from ALL active investments (not just saved payouts)
+        # This ensures series with scheduled/calculated payouts also appear in filter
+        current_date = datetime.now()
+        current_month_number = current_date.year * 12 + current_date.month
+
         query = """
         SELECT DISTINCT s.name as series_name
-        FROM interest_payouts p
-        INNER JOIN ncd_series s ON p.series_id = s.id
+        FROM ncd_series s
+        INNER JOIN investments i ON i.series_id = s.id
         WHERE s.is_active = 1
+        AND s.series_start_date <= CURDATE()
+        AND (
+            (i.status = 'confirmed')
+            OR
+            (i.status = 'cancelled' AND i.exit_date IS NOT NULL
+             AND YEAR(i.exit_date) * 12 + MONTH(i.exit_date) >= %s)
+        )
+        AND (s.maturity_date IS NULL OR YEAR(s.maturity_date) * 12 + MONTH(s.maturity_date) >= %s)
         ORDER BY s.name ASC
         """
         
-        result = db.execute_query(query)
+        result = db.execute_query(query, (current_month_number, current_month_number))
         
         series_names = [row['series_name'] for row in result]
         
@@ -2120,16 +2132,27 @@ async def get_unique_series_for_export(
         
         logger.info("📊 Fetching unique series for export dropdown")
         
-        # Get unique series with IDs from payouts table
+        # Get unique series with IDs from ALL active investments (not just saved payouts)
+        current_date = datetime.now()
+        current_month_number = current_date.year * 12 + current_date.month
+
         query = """
         SELECT DISTINCT s.id, s.name
-        FROM interest_payouts p
-        INNER JOIN ncd_series s ON p.series_id = s.id
+        FROM ncd_series s
+        INNER JOIN investments i ON i.series_id = s.id
         WHERE s.is_active = 1
+        AND s.series_start_date <= CURDATE()
+        AND (
+            (i.status = 'confirmed')
+            OR
+            (i.status = 'cancelled' AND i.exit_date IS NOT NULL
+             AND YEAR(i.exit_date) * 12 + MONTH(i.exit_date) >= %s)
+        )
+        AND (s.maturity_date IS NULL OR YEAR(s.maturity_date) * 12 + MONTH(s.maturity_date) >= %s)
         ORDER BY s.name ASC
         """
         
-        result = db.execute_query(query)
+        result = db.execute_query(query, (current_month_number, current_month_number))
         
         series_list = [
             {

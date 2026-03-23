@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿﻿﻿﻿﻿﻿﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -636,19 +636,6 @@ The original file data was not stored in this demo version.`;
         return;
       }
 
-      // Check if series is matured (should not happen as button is hidden, but double-check)
-      if (holding.isMatured) {
-        toast.error('Cannot exit from matured series. Series has already ended.', 'Series Matured');
-        return;
-      }
-
-      // Check lock-in period (should not happen as button is hidden, but double-check)
-      if (!holding.isLockInCompleted) {
-        const lockInDate = holding.lockInDate ? new Date(holding.lockInDate).toLocaleDateString('en-GB') : 'N/A';
-        toast.error(`Cannot exit during lock-in period. Lock-in ends on ${lockInDate}`, 'Lock-in Active');
-        return;
-      }
-
       // Find series ID from series list
       const seriesData = series.find(s => s.name === seriesName);
       if (!seriesData) {
@@ -735,7 +722,7 @@ The original file data was not stored in this demo version.`;
 
     try {
       const userConfirmed = confirm(
-        `âš ï¸ PERMANENT DELETE WARNING\n\n` +
+        ` ⚠️ PERMANENT DELETE WARNING\n\n` +
         `This will permanently delete investor "${investor.name}" (ID: ${investor.investorId}).\n\n` +
         `This action cannot be undone.\n\n` +
         `Do you want to proceed?`
@@ -900,7 +887,7 @@ The original file data was not stored in this demo version.`;
           ) : (
             <div className="deleted-notice">
               <span className="deleted-text">
-                ðŸš« DELETED ACCOUNT - View Only
+                🚫 DELETED ACCOUNT - View Only
               </span>
               <p className="deleted-subtext">
                 This investor account has been permanently deleted. Data is preserved for reference only.
@@ -908,11 +895,11 @@ The original file data was not stored in this demo version.`;
               {investor.refundAmount && (
                 <div className="refund-info">
                   <p className="refund-amount">
-                    ðŸ’° Net Refund: ₹{investor.refundAmount.toLocaleString('en-IN')}
+                    💰 Net Refund: ₹{investor.refundAmount.toLocaleString('en-IN')}
                   </p>
                   {investor.penaltyAmount > 0 && (
                     <p className="penalty-amount">
-                      âš ï¸ Penalties Applied: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
+                       ⚠️ Penalties Applied: ₹{investor.penaltyAmount.toLocaleString('en-IN')}
                     </p>
                   )}
                   {investor.refundDetails && investor.refundDetails.length > 0 && (
@@ -925,11 +912,11 @@ The original file data was not stored in this demo version.`;
                             <p className="lockin-status">
                               {detail.lockInStatus === 'completed' ? (
                                 <span className="lockin-completed">
-                                  âœ… Lock-in completed ({detail.monthsCompleted}/{detail.lockInRequired} months)
+                                  ✅ Lock-in completed ({detail.monthsCompleted}/{detail.lockInRequired} months)
                                 </span>
                               ) : (
                                 <span className="lockin-violation">
-                                  âš ï¸ Early exit penalty ({detail.monthsCompleted}/{detail.lockInRequired} months, ₹{detail.penaltyAmount?.toLocaleString('en-IN')} penalty)
+                                   ⚠️ Early exit penalty ({detail.monthsCompleted}/{detail.lockInRequired} months, ₹{detail.penaltyAmount?.toLocaleString('en-IN')} penalty)
                                 </span>
                               )}
                             </p>
@@ -1047,7 +1034,7 @@ The original file data was not stored in this demo version.`;
                     onClick={() => setShowPartialExitInfo(!showPartialExitInfo)}
                     title="Information about partial series exit"
                   >
-                    â„¹ï¸
+                    ℹ️
                   </button>
                   {showPartialExitInfo && (
                     <div className="info-tooltip-popup">
@@ -1319,7 +1306,7 @@ The original file data was not stored in this demo version.`;
                   {investor.transactions.map((transaction, index) => (
                     <div key={`${transaction.series}-${transaction.date}-${transaction.amount}-${index}`} className="transaction-item">
                       <div className="transaction-info">
-                        <div className="transaction-type">Investment</div>
+                        <div className="transaction-type">{transaction.type}</div>
                         <div className="transaction-details">
                           {transaction.series} • {transaction.date}
                         </div>
@@ -1327,8 +1314,8 @@ The original file data was not stored in this demo version.`;
                           <div className="transaction-description">{transaction.description}</div>
                         )}
                       </div>
-                      <span className={`transaction-amount ${transaction.type === 'Interest Credit' ? 'positive' : 'neutral'}`}>
-                        {transaction.type === 'Interest Credit' ? '+' : ''} {formatCurrency(transaction.amount)}
+                      <span className={`transaction-amount ${transaction.direction === 'incoming' ? 'positive' : 'outgoing'}`}>
+                        {transaction.direction === 'incoming' ? '+' : '-'} {formatCurrency(transaction.amount)}
                       </span>
                     </div>
                   ))}
@@ -1337,6 +1324,42 @@ The original file data was not stored in this demo version.`;
                 <div className="empty-state">
                   <p>No transactions available</p>
                   <span>Transactions will appear here once the investor makes investments</span>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Interest Payouts */}
+            <div className="section-card transactions-section">
+              <h2 className="section-title">Recent Interest Payouts</h2>
+              {investor.interestPayouts && investor.interestPayouts.length > 0 ? (
+                <div className="transactions-list">
+                  {investor.interestPayouts.map((payout, index) => (
+                    <div key={`payout-${payout.series}-${payout.month}-${index}`} className="transaction-item">
+                      <div className="transaction-info">
+                        <div className="transaction-type">Interest Payout</div>
+                        <div className="transaction-details">
+                          {payout.series} • {payout.month}
+                        </div>
+                        <div className="transaction-details">
+                          Payout Date: {payout.payoutDate}
+                          {payout.paidDate && ` • Paid: ${payout.paidDate}`}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <span className="transaction-amount positive">
+                          + {formatCurrency(payout.amount)}
+                        </span>
+                        <span className={`status-pill ${payout.status === 'Paid' ? 'active' : payout.status === 'Pending' ? 'pending' : 'scheduled'}`} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                          {payout.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty-state">
+                  <p>No interest payouts yet</p>
+                  <span>Interest payouts will appear here once processed</span>
                 </div>
               )}
             </div>
@@ -1851,7 +1874,7 @@ The original file data was not stored in this demo version.`;
                     {selectedSeriesDocuments.map((document, index) => (
                       <div key={index} className="document-card">
                         <div className="document-info">
-                          <div className="document-icon">ðŸ“„</div>
+                          <div className="document-icon">📄</div>
                           <div className="document-details">
                             <div className="document-name">{document.type}</div>
                             <div className="document-meta">
@@ -1875,7 +1898,7 @@ The original file data was not stored in this demo version.`;
                   </div>
                 ) : (
                   <div className="no-documents-found">
-                    <div className="no-docs-icon">ðŸ“„</div>
+                    <div className="no-docs-icon">📄</div>
                     <p>No documents uploaded for this series yet</p>
                     <span>Documents will appear here once they are uploaded from the Series Details page.</span>
                   </div>
@@ -1890,7 +1913,7 @@ The original file data was not stored in this demo version.`;
           <div className="modal-overlay" onClick={cancelExitSeries}>
             <div className="modal-content exit-confirm-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header exit-warning">
-                <div className="warning-icon">âš ï¸</div>
+                <div className="warning-icon">⚠️</div>
                 <h2>Confirm Series Exit</h2>
                 <button className="close-button" onClick={cancelExitSeries}>×</button>
               </div>
@@ -1918,10 +1941,10 @@ The original file data was not stored in this demo version.`;
                 <div className="exit-consequences">
                   <p className="consequences-title">What happens when you exit:</p>
                   <ul className="consequences-list">
-                    <li>âœ“ Investment will be marked as exited</li>
-                    <li>âœ“ No further interest payouts will be processed</li>
-                    <li>âœ“ Principal amount settlement will be initiated</li>
-                    <li>âœ— This action cannot be reversed</li>
+                    <li>✓ Investment will be marked as exited</li>
+                    <li>✓ No further interest payouts will be processed</li>
+                    <li>✓ Principal amount settlement will be initiated</li>
+                    <li>✗ This action cannot be reversed</li>
                   </ul>
                 </div>
               </div>
@@ -1942,4 +1965,6 @@ The original file data was not stored in this demo version.`;
 };
 
 export default InvestorDetails;
+
+
 

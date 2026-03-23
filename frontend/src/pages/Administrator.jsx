@@ -206,43 +206,10 @@ const Administrator = () => {
   }, [auditLogs, fromDate, toDate]);
 
   const validateForm = (data, isEdit = false) => {
+    // All validation moved to backend - frontend only checks for empty form submission
     const newErrors = {};
-    
-    if (isEdit) {
-      if (data.newPassword && data.newPassword !== data.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-      if (data.newPassword && data.newPassword.length < 6) {
-        newErrors.newPassword = 'Password must be at least 6 characters';
-      }
-    } else {
-      if (!data.userId.trim()) newErrors.userId = 'User ID is required';
-      if (!data.username.trim()) newErrors.username = 'Username is required';
-      if (!data.fullName.trim()) newErrors.fullName = 'Full name is required';
-      if (!data.password) newErrors.password = 'Password is required';
-      if (data.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-      if (data.password !== data.confirmPassword) {
-        newErrors.confirmPassword = 'Passwords do not match';
-      }
-      if (!data.email.trim()) newErrors.email = 'Email is required';
-      if (!/\S+@\S+\.\S+/.test(data.email)) newErrors.email = 'Email is invalid';
-      
-      // Check for duplicates
-      const duplicateUserId = users.find(u => u.userId && u.userId.toLowerCase() === data.userId.toLowerCase());
-      if (duplicateUserId) newErrors.userId = 'User ID already exists';
-      
-      const duplicateUsername = users.find(u => u.username && u.username.toLowerCase() === data.username.toLowerCase());
-      if (duplicateUsername) newErrors.username = 'Username already exists';
-      
-      const duplicateEmail = users.find(u => u.email && u.email.toLowerCase() === data.email.toLowerCase());
-      if (duplicateEmail) newErrors.email = 'Email already exists';
-      
-      const duplicatePhone = users.find(u => u.phone && u.phone === data.phone);
-      if (duplicatePhone) newErrors.phone = 'Phone number already exists';
-    }
-    
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return true; // Always return true - let backend validate
   };
 
   const generateUserId = () => {

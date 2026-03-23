@@ -237,10 +237,6 @@ const InterestPayout = () => {
 
   // Process uploaded Excel file
   const handleImportSubmit = async () => {
-    if (!uploadedFile) {
-      setImportStatus('error:Please select a file to upload');
-      return;
-    }
 
     try {
       setImportStatus('');

@@ -35,6 +35,11 @@ ENDPOINT_PERMISSIONS = {
     # Dashboard
     "get_dashboard_metrics": "view_dashboard",
     
+    # SOP Document
+    "get_sop_document": "view_dashboard",
+    "upload_sop_document": "edit_dashboard",
+    "delete_sop_document": "edit_dashboard",
+    
     # Compliance
     "get_compliance_series": "view_compliance",
     "get_compliance_details": "view_compliance",

@@ -690,6 +690,31 @@ class ApiService {
     return await this.request('/dashboard/satisfaction-metrics');
   }
 
+  // SOP Document endpoints
+  async getSopDocument() {
+    return await this.request('/dashboard/sop');
+  }
+
+  async uploadSopDocument(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const currentToken = localStorage.getItem('authToken') || this.token;
+    const response = await fetch(`${API_BASE_URL}/dashboard/sop/upload`, {
+      method: 'POST',
+      headers: { 'Authorization': currentToken ? `Bearer ${currentToken}` : '' },
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}`);
+    }
+    return await response.json();
+  }
+
+  async deleteSopDocument() {
+    return await this.request('/dashboard/sop', { method: 'DELETE' });
+  }
+
   // ============================================
   // INVESTOR ENDPOINTS
   // ============================================

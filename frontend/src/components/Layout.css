@@ -230,6 +230,65 @@
   background: #d1d5db;
 }
 
+.sop-upload {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.sop-upload:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.sop-upload:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sop-delete {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 0.625rem 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.sop-delete:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.sop-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sop-loading,
+.sop-not-found,
+.sop-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 0.95rem;
+  color: #64748b;
+  padding: 2rem;
+  text-align: center;
+}
+
+.sop-error {
+  color: #dc2626;
+}
+
 .header-logo {
   height: 2.5rem;
   width: auto;

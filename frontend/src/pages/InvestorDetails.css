@@ -1770,6 +1770,15 @@ END OF OLD COMPLAINTS TABLE STYLES */
   color: #059669;
 }
 
+.transaction-amount.outgoing {
+  color: #dc2626;
+}
+
+.status-pill.scheduled {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
 .more-transactions {
   text-align: center;
   font-style: italic;

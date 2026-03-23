@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -1296,27 +1296,8 @@ const handleDocumentSubmit = async (e) => {
   };
 
   const handleSeriesClick = () => {
-    // Map compliance series names to actual series IDs that SeriesDetails expects
-    const seriesNameToIdMap = {
-      'Series A NCD': '1',
-      'Series B NCD': '2', 
-      'Series C NCD': '3',
-      'Series D NCD': '4',
-      'Series E NCD': '1', // Map to existing series for demo
-      'Series F NCD': '2',
-      'Series G NCD': '3',
-      'Series H NCD': '4',
-      'Series I NCD': '1',
-      'Series J NCD': '2',
-      'Series K NCD': '3',
-      'Series L NCD': '4',
-      'Series M NCD': '1'
-    };
-    
-    // Get the series ID from the mapping, default to '1' if not found
-    const seriesName = seriesData?.seriesName || 'Series A NCD';
-    const seriesId = seriesNameToIdMap[seriesName] || '1';
-    
+    const seriesId = seriesData?.seriesId;
+    if (!seriesId) return;
     navigate(`/ncd-series/${seriesId}`);
     onClose(); // Close the compliance tracker
   };
@@ -1845,7 +1826,7 @@ const handleDocumentSubmit = async (e) => {
                           {getValidMonths().map(month => (
                             <td key={month} className="month-cell">
                               <div className={`status-indicator ${getTimeSheetValue(index + 1, month, activeTab) ? 'completed' : 'pending'}`}>
-                                {getTimeSheetValue(index + 1, month, activeTab) ? 'âœ“' : 'â€”'}
+                                {getTimeSheetValue(index + 1, month, activeTab) ? '✓' : '–'}
                               </div>
                             </td>
                           ))}

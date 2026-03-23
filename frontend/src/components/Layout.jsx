@@ -1,10 +1,9 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import auditService from '../services/auditService';
 import apiService from '../services/api';
 import Sidebar from './Sidebar';
-import ColorPickerGreeting from './ColorPickerGreeting';
 import { HiOutlineDocumentText } from 'react-icons/hi';
 import { 
   MdAccountCircle,
@@ -19,13 +18,21 @@ import {
 import './Layout.css';
 
 const Layout = ({ children, isInvestor = false }) => {
-  const { user, justLoggedIn, clearJustLoggedIn, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showFloatingGreeting, setShowFloatingGreeting] = useState(false);
   const [showSopViewer, setShowSopViewer] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [sopUrl, setSopUrl] = useState(null);
+  const [sopExists, setSopExists] = useState(false);
+  const [sopLoading, setSopLoading] = useState(false);
+  const [sopUploading, setSopUploading] = useState(false);
+  const [sopDeleting, setSopDeleting] = useState(false);
+  const [sopError, setSopError] = useState(null);
+  const sopFileInputRef = useRef(null);
+
+  const canManageSop = hasPermission('dashboard', 'edit') || user?.role === 'Super Admin';
 
   useEffect(() => {
     const handleResize = () => {
@@ -53,13 +60,6 @@ const Layout = ({ children, isInvestor = false }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showAccountMenu]);
 
-  // Show floating greeting only when user just logged in and is on dashboard
-  useEffect(() => {
-    const isDashboard = location.pathname === '/dashboard' || location.pathname === '/investor/dashboard';
-    if (isDashboard && justLoggedIn && user?.name) {
-      setShowFloatingGreeting(true);
-    }
-  }, [location.pathname, justLoggedIn, user?.name]);
 
   // Log page access for audit trail
   useEffect(() => {
@@ -86,15 +86,6 @@ const Layout = ({ children, isInvestor = false }) => {
 
       const pageName = getPageName(location.pathname);
       
-      // TEMPORARILY DISABLED - audit logging was causing 422 errors and infinite loops
-      // Log page access (but don't log login page to avoid spam)
-      // if (location.pathname !== '/login' && location.pathname !== '/') {
-      //   auditService.logPageAccess(user, pageName).catch(error => {
-      //     if (import.meta.env.DEV) {
-      //
-      //     }
-      //   });
-      // }
     }
   }, [location.pathname, user]);
 
@@ -106,10 +97,6 @@ const Layout = ({ children, isInvestor = false }) => {
     setSidebarOpen(false);
   };
 
-  const handleGreetingComplete = () => {
-    setShowFloatingGreeting(false);
-    clearJustLoggedIn(); // Clear the just logged in flag
-  };
 
   const toggleAccountMenu = () => {
     setShowAccountMenu(!showAccountMenu);
@@ -118,6 +105,55 @@ const Layout = ({ children, isInvestor = false }) => {
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const openSopViewer = async () => {
+    setSopError(null);
+    setSopLoading(true);
+    setShowSopViewer(true);
+    try {
+      const result = await apiService.getSopDocument();
+      setSopExists(result.exists);
+      setSopUrl(result.exists ? result.url : null);
+    } catch (err) {
+      setSopError('Failed to load SOP document.');
+      setSopExists(false);
+      setSopUrl(null);
+    } finally {
+      setSopLoading(false);
+    }
+  };
+
+  const handleSopUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setSopUploading(true);
+    setSopError(null);
+    try {
+      const result = await apiService.uploadSopDocument(file);
+      setSopExists(true);
+      setSopUrl(result.url);
+    } catch (err) {
+      setSopError(err.message || 'Failed to upload SOP document.');
+    } finally {
+      setSopUploading(false);
+      if (sopFileInputRef.current) sopFileInputRef.current.value = '';
+    }
+  };
+
+  const handleSopDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete the SOP document? This cannot be undone.')) return;
+    setSopDeleting(true);
+    setSopError(null);
+    try {
+      await apiService.deleteSopDocument();
+      setSopExists(false);
+      setSopUrl(null);
+    } catch (err) {
+      setSopError(err.message || 'Failed to delete SOP document.');
+    } finally {
+      setSopDeleting(false);
+    }
   };
 
   const getInitials = (name) => {
@@ -147,12 +183,11 @@ const Layout = ({ children, isInvestor = false }) => {
         isInvestor={isInvestor}
         isOpen={sidebarOpen}
         onClose={closeSidebar}
-        disabled={showFloatingGreeting}
         mobileHeaderButtons={
           <div className="mobile-header-buttons-container">
             <button 
               className="sop-document-button"
-              onClick={() => setShowSopViewer(true)}
+              onClick={openSopViewer}
               title="View SOP Document"
             >
               <HiOutlineDocumentText size={18} />
@@ -237,11 +272,6 @@ const Layout = ({ children, isInvestor = false }) => {
             <button 
               className="menu-toggle" 
               onClick={toggleSidebar}
-              disabled={showFloatingGreeting}
-              style={{ 
-                opacity: showFloatingGreeting ? 0.5 : 1,
-                cursor: showFloatingGreeting ? 'not-allowed' : 'pointer'
-              }}
             >
               â˜°
             </button>
@@ -256,7 +286,7 @@ const Layout = ({ children, isInvestor = false }) => {
             <div className="header-buttons">
               <button 
                 className="sop-document-button"
-                onClick={() => setShowSopViewer(true)}
+                onClick={openSopViewer}
                 title="View SOP Document"
               >
                 <HiOutlineDocumentText size={20} />
@@ -334,16 +364,9 @@ const Layout = ({ children, isInvestor = false }) => {
           {children}
         </main>
         <footer className="layout-footer">
-          <p className="footer-text">Â© 2026 VAIBHAV VYAPAAR | All Rights Reserved.</p>
+          <p className="footer-text">© 2026 VAIBHAV VYAPAAR | All Rights Reserved.</p>
         </footer>
       </div>
-
-      {showFloatingGreeting && (
-        <ColorPickerGreeting 
-          userName={user?.name} 
-          onComplete={handleGreetingComplete}
-        />
-      )}
 
       {showSopViewer && (
         <div className="sop-modal-overlay" onClick={() => setShowSopViewer(false)}>
@@ -353,45 +376,81 @@ const Layout = ({ children, isInvestor = false }) => {
               <button className="sop-close" onClick={() => setShowSopViewer(false)}>×</button>
             </div>
             <div className="sop-modal-body">
-              <iframe
-                title="SOP - NCD -VVPL_v1.0"
-                src="/sop_ncd_vvpl_v1.0.pdf"
-                className="sop-iframe"
-              />
+              {sopLoading ? (
+                <div className="sop-loading">Loading SOP document...</div>
+              ) : sopError ? (
+                <div className="sop-error">{sopError}</div>
+              ) : sopExists && sopUrl ? (
+                <iframe
+                  title="SOP - NCD - VVPL"
+                  src={sopUrl}
+                  className="sop-iframe"
+                />
+              ) : (
+                <div className="sop-not-found">
+                  No SOP document uploaded yet.
+                  {canManageSop && ' Use the Upload button below to add one.'}
+                </div>
+              )}
             </div>
             <div className="sop-modal-footer">
-              <button
-                className="sop-download"
-                onClick={async () => {
-                  try {
-                    // Log SOP download to audit log
-                    await apiService.createAuditLog({
-                      action: 'Document Downloaded',
-                      admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
-                      admin_role: user?.role || user?.displayRole || 'Unknown Role',
-                      details: `User downloaded SOP - NCD - VVPL document`,
-                      entity_type: 'Document',
-                      entity_id: 'sop_ncd_vvpl_v1.0.pdf',
-                      changes: {
-                        document_name: 'SOP - NCD - VVPL',
-                        file_name: 'sop_ncd_vvpl_v1.0.pdf',
-                        document_type: 'SOP',
-                        action: 'document_download',
-                        timestamp: new Date().toISOString(),
-                        username: user?.username,
-                        user_role: user?.role || user?.displayRole
-                      }
-                    });
-                  } catch (error) {
-                    // Don't prevent download if logging fails
-                  }
-                  
-                  // Proceed with download
-                  window.open("/sop_ncd_vvpl_v1.0.pdf", "_blank");
-                }}
-              >
-                Download
-              </button>
+              {sopExists && sopUrl && (
+                <button
+                  className="sop-download"
+                  onClick={async () => {
+                    try {
+                      await apiService.createAuditLog({
+                        action: 'Document Downloaded',
+                        admin_name: user?.full_name || user?.name || user?.username || 'Unknown User',
+                        admin_role: user?.role || user?.displayRole || 'Unknown Role',
+                        details: `User downloaded SOP - NCD - VVPL document`,
+                        entity_type: 'Document',
+                        entity_id: 'sop_ncd_vvpl',
+                        changes: {
+                          document_name: 'SOP - NCD - VVPL',
+                          document_type: 'SOP',
+                          action: 'document_download',
+                          timestamp: new Date().toISOString(),
+                          username: user?.username,
+                          user_role: user?.role || user?.displayRole
+                        }
+                      });
+                    } catch (error) {
+                      // Don't prevent download if logging fails
+                    }
+                    window.open(sopUrl, '_blank');
+                  }}
+                >
+                  Download
+                </button>
+              )}
+              {canManageSop && (
+                <>
+                  <input
+                    ref={sopFileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    style={{ display: 'none' }}
+                    onChange={handleSopUpload}
+                  />
+                  <button
+                    className="sop-upload"
+                    onClick={() => sopFileInputRef.current?.click()}
+                    disabled={sopUploading}
+                  >
+                    {sopUploading ? 'Uploading...' : sopExists ? 'Replace' : 'Upload'}
+                  </button>
+                  {sopExists && (
+                    <button
+                      className="sop-delete"
+                      onClick={handleSopDelete}
+                      disabled={sopDeleting}
+                    >
+                      {sopDeleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                  )}
+                </>
+              )}
               <button className="sop-close-footer" onClick={() => setShowSopViewer(false)}>
                 Close
               </button>

@@ -541,108 +541,21 @@ async def get_upcoming_maturity_calendar(
     current_user: UserInDB = Depends(get_current_user)
 ):
     """
-    Get upcoming maturity calendar data for dashboard header
+    Get upcoming maturity calendar data for dashboard header.
     PERMISSION REQUIRED: view_dashboard
-    
-    Returns calendar display data and series list for UpcomingPayoutCalendar component
     """
     try:
         db = get_db()
-        
-        # CHECK PERMISSION
+
         if not has_permission(current_user, "view_dashboard", db):
             log_unauthorized_access(db, current_user, "get_upcoming_maturity_calendar", "view_dashboard")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Access Denied: You don't have permission to view dashboard"
             )
-        
-        # Get active and upcoming series with maturity dates
-        series_query = """
-        SELECT 
-            id,
-            name,
-            series_code,
-            maturity_date,
-            status
-        FROM ncd_series
-        WHERE is_active = 1 
-        AND (status = 'active' OR status = 'upcoming')
-        AND maturity_date IS NOT NULL
-        ORDER BY maturity_date ASC
-        """
-        
-        series_data = db.execute_query(series_query)
-        
-        # Find the nearest upcoming maturity date
-        calendar_display = None
-        if series_data and len(series_data) > 0:
-            nearest_date = series_data[0]['maturity_date']
-            calendar_display = {
-                'day': nearest_date.strftime('%d'),
-                'month': nearest_date.strftime('%b').upper()
-            }
-        
-        # Format series list with days left calculation
-        today = date.today()
-        series_list = []
-        for s in series_data:
-            maturity_date = s['maturity_date']
-            days_left = (maturity_date - today).days
-            
-            series_list.append({
-                'name': s['name'],
-                'maturityDate': maturity_date.strftime('%d/%m/%Y'),
-                'status': s['status'],
-                'daysLeft': days_left
-            })
-        
-        logger.info(f"✅ Calendar data retrieved: {len(series_list)} series")
-        
-        return {
-            'calendar_display': calendar_display,
-            'series_list': series_list,
-            'timestamp': datetime.now().isoformat()
-        }
-        
-    except Exception as e:
-        logger.error(f"Error getting calendar data: {e}")
-        import traceback
-        logger.error(traceback.format_exc())
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving calendar data: {str(e)}"
-        )
 
-
-@router.get("/upcoming-maturity-calendar")
-async def get_upcoming_maturity_calendar(
-    current_user: UserInDB = Depends(get_current_user)
-):
-    """
-    Get upcoming maturity calendar data for dashboard
-    PERMISSION REQUIRED: view_dashboard
-    
-    Returns:
-    - nearest_maturity_date: The nearest upcoming maturity date
-    - calendar_display: { day, month, year } for calendar UI
-    - series_list: List of active/upcoming series with maturity info
-    - selected_series_details: Detailed breakdown for modal
-    """
-    try:
-        db = get_db()
-        
-        # CHECK PERMISSION
-        if not has_permission(current_user, "view_dashboard", db):
-            log_unauthorized_access(db, current_user, "get_upcoming_maturity_calendar", "view_dashboard")
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access Denied: You don't have permission to view dashboard"
-            )
-        
-        # Get all active and upcoming series with maturity dates (LIFETIME funds)
         series_query = """
-        SELECT 
+        SELECT
             s.id,
             s.name,
             s.maturity_date,
@@ -653,90 +566,72 @@ async def get_upcoming_maturity_calendar(
             COUNT(DISTINCT i.investor_id) as investor_count
         FROM ncd_series s
         LEFT JOIN investments i ON s.id = i.series_id AND i.status IN ('confirmed', 'cancelled')
-        WHERE s.is_active = 1 
+        WHERE s.is_active = 1
         AND (s.status = 'active' OR s.status = 'upcoming')
         AND s.maturity_date IS NOT NULL
         GROUP BY s.id, s.name, s.maturity_date, s.lock_in_date, s.status, s.interest_rate
         ORDER BY s.maturity_date ASC
         """
-        
+
         series_data = db.execute_query(series_query)
-        
-        if not series_data or len(series_data) == 0:
+
+        if not series_data:
             return {
-                'nearest_maturity_date': None,
                 'calendar_display': None,
                 'series_list': [],
-                'message': 'No active or upcoming series with maturity dates found'
+                'timestamp': datetime.now().isoformat()
             }
-        
+
         today = date.today()
-        
-        # Find nearest maturity date (future dates only)
         future_series = [s for s in series_data if s['maturity_date'] >= today]
-        
-        if not future_series:
-            # All series have matured, show the most recent one
-            nearest_series = series_data[0]
-        else:
-            nearest_series = future_series[0]
-        
+        nearest_series = future_series[0] if future_series else series_data[0]
         nearest_date = nearest_series['maturity_date']
-        
-        # Format calendar display
+
         calendar_display = {
-            'day': nearest_date.day,
-            'month': nearest_date.strftime('%b').upper(),
-            'year': nearest_date.year,
-            'full_date': nearest_date.strftime('%Y-%m-%d')
+            'day': nearest_date.strftime('%d'),
+            'month': nearest_date.strftime('%b').upper()
         }
-        
-        # Build series list with days left
+
         series_list = []
         for s in series_data:
             maturity_date = s['maturity_date']
             days_left = (maturity_date - today).days
-            
-            # Calculate lock-in status
+
             lock_in_status = None
             if s['lock_in_date']:
-                lock_in_date = s['lock_in_date']
-                days_to_lockin = (lock_in_date - today).days
-                
+                days_to_lockin = (s['lock_in_date'] - today).days
                 if days_to_lockin > 0:
                     lock_in_status = f"{days_to_lockin} days left for lock-in"
                 else:
                     lock_in_status = f"Lock-in period ended {abs(days_to_lockin)} days ago"
-            
+
             series_list.append({
-                'series_id': s['id'],
-                'series_name': s['name'],
-                'maturity_date': maturity_date.strftime('%d/%m/%Y'),
-                'maturity_date_iso': maturity_date.strftime('%Y-%m-%d'),
-                'days_left': days_left if days_left > 0 else 0,
+                'seriesId': s['id'],
+                'name': s['name'],
+                'maturityDate': maturity_date.strftime('%d/%m/%Y'),
+                'daysLeft': days_left if days_left > 0 else 0,
                 'status': s['status'],
-                'funds_raised': float(s['funds_raised']),
-                'investor_count': s['investor_count'],
-                'interest_rate': float(s['interest_rate']),
-                'lock_in_status': lock_in_status
+                'interestRate': float(s['interest_rate']),
+                'lockInStatus': lock_in_status
             })
-        
-        logger.info(f"✅ Upcoming maturity calendar data calculated successfully")
-        
+
+        logger.info(f"✅ Calendar data retrieved: {len(series_list)} series")
+
         return {
-            'nearest_maturity_date': nearest_date.strftime('%d/%m/%Y'),
             'calendar_display': calendar_display,
             'series_list': series_list,
             'timestamp': datetime.now().isoformat()
         }
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error calculating upcoming maturity calendar: {e}")
+        logger.error(f"Error getting calendar data: {e}")
         import traceback
         logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error retrieving upcoming maturity calendar: {str(e)}"
+            detail=f"Error retrieving calendar data: {str(e)}"
         )
 
 
@@ -1232,3 +1127,216 @@ async def get_satisfaction_metrics(
         logger.error(f"❌ Error calculating satisfaction metrics: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+# ============================================================
+# SOP DOCUMENT ENDPOINTS
+# ============================================================
+
+from fastapi import UploadFile, File
+import json
+
+SOP_S3_KEY = "documents/sop/sop_ncd_vvpl.pdf"
+
+
+@router.get("/sop")
+async def get_sop_document(
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Get a fresh 5-minute signed URL for the SOP document stored in S3.
+    PERMISSION REQUIRED: view_dashboard
+    """
+    try:
+        db = get_db()
+
+        if not has_permission(current_user, "view_dashboard", db):
+            log_unauthorized_access(db, current_user, "get_sop_document", "view_dashboard")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to view the SOP document"
+            )
+
+        from app.services.storage.s3_service import s3_service
+
+        if not s3_service:
+            raise HTTPException(status_code=503, detail="S3 service unavailable")
+
+        # Check if SOP exists in S3
+        exists = s3_service.check_file_exists(SOP_S3_KEY)
+        if not exists:
+            return {"exists": False, "url": None, "message": "SOP document not yet uploaded to S3"}
+
+        # Generate fresh 5-minute signed URL
+        signed_url = s3_service.generate_signed_url(SOP_S3_KEY, expiry=300)
+
+        return {
+            "exists": True,
+            "url": signed_url,
+            "s3_key": SOP_S3_KEY,
+            "message": "SOP document URL generated (expires in 5 minutes)"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting SOP document: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving SOP document: {str(e)}")
+
+
+@router.post("/sop/upload")
+async def upload_sop_document(
+    file: UploadFile = File(...),
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Upload/replace the SOP document in S3.
+    PERMISSION REQUIRED: manage_sop
+    """
+    try:
+        db = get_db()
+
+        if not has_permission(current_user, "edit_dashboard", db):
+            log_unauthorized_access(db, current_user, "upload_sop_document", "edit_dashboard")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to upload the SOP document"
+            )
+
+        from app.services.storage.s3_service import s3_service
+
+        if not s3_service:
+            raise HTTPException(status_code=503, detail="S3 service unavailable")
+
+        # Validate file is PDF
+        file_content = await file.read()
+        file_size = len(file_content)
+
+        is_valid, error_msg = s3_service.validate_file(file.filename, file_size, file_content)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail=error_msg)
+
+        # Only allow PDF
+        import os
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext != '.pdf':
+            raise HTTPException(status_code=400, detail="Only PDF files are allowed for SOP document")
+
+        # Upload to S3 (overwrites existing)
+        logger.info(f"📤 Uploading SOP to S3: {SOP_S3_KEY}")
+        s3_service.s3_client.put_object(
+            Bucket=s3_service.bucket_name,
+            Key=SOP_S3_KEY,
+            Body=file_content,
+            ContentType='application/pdf',
+            ServerSideEncryption='AES256',
+            Metadata={
+                'document_type': 'sop',
+                'original_filename': file.filename,
+                'uploaded_by': current_user.username,
+                'uploaded_at': datetime.utcnow().isoformat()
+            }
+        )
+
+        # Audit log
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            db.execute_query(audit_query, (
+                "SOP Document Uploaded",
+                current_user.full_name,
+                current_user.role,
+                f"SOP document uploaded/replaced by {current_user.username}",
+                "sop_document",
+                "sop_ncd_vvpl",
+                json.dumps({
+                    "file_name": file.filename,
+                    "file_size": file_size,
+                    "s3_key": SOP_S3_KEY,
+                    "action": "sop_upload"
+                }),
+                datetime.now()
+            ))
+        except Exception:
+            pass  # Don't fail upload if audit log fails
+
+        # Return fresh signed URL
+        signed_url = s3_service.generate_signed_url(SOP_S3_KEY, expiry=300)
+
+        logger.info(f"✅ SOP uploaded successfully")
+        return {
+            "success": True,
+            "url": signed_url,
+            "s3_key": SOP_S3_KEY,
+            "file_name": file.filename,
+            "file_size": file_size,
+            "message": "SOP document uploaded successfully"
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading SOP document: {e}")
+        raise HTTPException(status_code=500, detail=f"Error uploading SOP document: {str(e)}")
+
+
+@router.delete("/sop")
+async def delete_sop_document(
+    current_user: UserInDB = Depends(get_current_user)
+):
+    """
+    Delete the SOP document from S3.
+    PERMISSION REQUIRED: manage_sop
+    """
+    try:
+        db = get_db()
+
+        if not has_permission(current_user, "edit_dashboard", db):
+            log_unauthorized_access(db, current_user, "delete_sop_document", "edit_dashboard")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access Denied: You don't have permission to delete the SOP document"
+            )
+
+        from app.services.storage.s3_service import s3_service
+
+        if not s3_service:
+            raise HTTPException(status_code=503, detail="S3 service unavailable")
+
+        # Check if exists
+        if not s3_service.check_file_exists(SOP_S3_KEY):
+            raise HTTPException(status_code=404, detail="SOP document not found in S3")
+
+        # Delete from S3
+        success, error_msg = s3_service.delete_file(SOP_S3_KEY)
+        if not success:
+            raise HTTPException(status_code=500, detail=f"Failed to delete SOP: {error_msg}")
+
+        # Audit log
+        try:
+            audit_query = """
+            INSERT INTO audit_logs (action, admin_name, admin_role, details, entity_type, entity_id, changes, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            db.execute_query(audit_query, (
+                "SOP Document Deleted",
+                current_user.full_name,
+                current_user.role,
+                f"SOP document deleted by {current_user.username}",
+                "sop_document",
+                "sop_ncd_vvpl",
+                json.dumps({"s3_key": SOP_S3_KEY, "action": "sop_delete"}),
+                datetime.now()
+            ))
+        except Exception:
+            pass
+
+        logger.info(f"✅ SOP deleted successfully")
+        return {"success": True, "message": "SOP document deleted successfully"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting SOP document: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting SOP document: {str(e)}")

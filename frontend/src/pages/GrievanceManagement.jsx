@@ -328,18 +328,6 @@ const GrievanceManagement = () => {
 
   // Handle add new complaint - BACKEND INTEGRATION
   const handleAddComplaint = async () => {
-    if (!newComplaint.investorId || !newComplaint.issue) {
-      const fieldName = activeTab === 'investor' ? 'Investor ID' : 'Trustee Name';
-      toast.warning(`Please fill in all required fields (${fieldName} and Issue)`, 'Missing Information');
-      return;
-    }
-    
-    // Validate investor exists before creating grievance
-    if (activeTab === 'investor' && !investorValidation.isValid) {
-      toast.error('Please enter a valid Investor ID. The investor must exist in the system.', 'Invalid Investor');
-      return;
-    }
-
     try {
       
       // Prepare data for backend
