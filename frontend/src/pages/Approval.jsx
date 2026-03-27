@@ -1,4 +1,4 @@
-﻿﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useData } from '../context/DataContext';
 import { usePermissions } from '../hooks/usePermissions';
 import { useAuth } from '../context/AuthContext';
@@ -46,6 +46,15 @@ const Approval = () => {
       setLoading(false);
     }
   }, [minLoadTimeComplete, seriesLoading]);
+
+  // On mount: if series is empty and not already loading, trigger a fresh fetch.
+  // This handles the case where DataContext loaded before the auth token was available.
+  // forceSeriesRefresh is already used in this file (after approve/reject), so no new dependency.
+  useEffect(() => {
+    if (!seriesLoading && series.length === 0) {
+      forceSeriesRefresh();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Show only DRAFT series in approval page (filtering by status, not validation)
   const draftSeries = series.filter(s => s.status === 'DRAFT');

@@ -7,6 +7,7 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import Lottie from 'lottie-react';
 import loadingDotsAnimation from '../assets/animations/loading-dots-blue.json';
 import documentDownloadAnimation from '../assets/animations/document-download.json';
+import emptylistFriendsAnimation from '../assets/animations/emptylist-friends.json';
 import apiService from '../services/api';
 import './Administrator.css';
 import { MdAdminPanelSettings, MdSearch, MdPersonAdd, MdClose, MdSecurity, MdOutlineFileDownload, MdDelete } from "react-icons/md";
@@ -1329,66 +1330,113 @@ const Administrator = () => {
 
         {/* Add User Animation Overlay */}
         {showAddUserAnimation && (
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 99999,
-            background: 'white',
-            borderRadius: '20px',
-            boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
-            border: '1px solid #e2e8f0',
-            width: '550px',
-            overflow: 'hidden',
-            animation: 'greetingEnter 0.5s ease-out'
-          }}>
+          <>
+            {/* Background Blur Overlay */}
             <div style={{
-              padding: '32px 48px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '20px'
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(8px)',
+              WebkitBackdropFilter: 'blur(8px)',
+              zIndex: 99998
+            }} />
+
+            {/* Animation Card */}
+            <div style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 99999,
+              background: 'white',
+              borderRadius: '20px',
+              boxShadow: '0 25px 80px rgba(0, 0, 0, 0.4)',
+              border: '1px solid #e2e8f0',
+              width: '550px',
+              overflow: 'hidden',
+              animation: 'greetingEnter 0.5s ease-out'
             }}>
-              {/* Lottie Animation */}
-              <div style={{ width: '240px', height: '240px' }}>
-                <Lottie
-                  animationData={documentDownloadAnimation}
-                  loop={false}
-                  autoplay={true}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%'
-                  }}
-                />
-              </div>
-              
-              {/* Text Content */}
               <div style={{
-                textAlign: 'center',
+                padding: '32px 48px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px'
+                alignItems: 'center',
+                gap: '20px'
               }}>
-                <h2 style={{
-                  fontSize: '24px',
-                  fontWeight: 600,
-                  color: '#000000',
-                  margin: 0
+                {/* Lottie Animation */}
+                <div style={{ width: '240px', height: '240px' }}>
+                  <Lottie
+                    animationData={emptylistFriendsAnimation}
+                    loop={true}
+                    autoplay={true}
+                    speed={0.5}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </div>
+
+                {/* Text Content */}
+                <div style={{
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
                 }}>
-                  Creating User...
-                </h2>
-                <p style={{
-                  fontSize: '16px',
-                  fontWeight: 400,
-                  color: '#64748b',
-                  margin: 0
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: 600,
+                    color: '#000000',
+                    margin: 0
+                  }}>
+                    Creating User...
+                  </h2>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: 400,
+                    color: '#64748b',
+                    margin: 0
+                  }}>
+                    Please wait while we add the new user
+                  </p>
+                </div>
+
+                {/* Loading Dots */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  justifyContent: 'center',
+                  marginTop: '8px'
                 }}>
-                  Please wait while we add the new user
-                </p>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.2s'
+                  }}></div>
+                  <div style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    background: '#3b82f6',
+                    animation: 'pulse 1.5s ease-in-out infinite',
+                    animationDelay: '0.4s'
+                  }}></div>
+                </div>
               </div>
             </div>
-          </div>
+          </>
         )}
 
         {/* Edit User Modal */}

@@ -19,7 +19,6 @@ import { FaFileAlt } from "react-icons/fa";
 import { MdSchedule } from "react-icons/md";
 import { MdCalendarToday } from "react-icons/md";
 import { FaRegFileAlt } from "react-icons/fa";
-import { MdOutlineFileDownload } from "react-icons/md";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -37,9 +36,6 @@ const Reports = () => {
   });
   const [lastGeneratedDates, setLastGeneratedDates] = useState({});
   const [loading, setLoading] = useState(true);
-  const [showFormatModal, setShowFormatModal] = useState(false);
-  const [selectedReportForDownload, setSelectedReportForDownload] = useState(null);
-  const [downloadingFormat, setDownloadingFormat] = useState(null);
 
   // Fetch report statistics on mount
   useEffect(() => {
@@ -775,17 +771,6 @@ const Reports = () => {
                       >
                         <FaRegFileAlt size={16} /> Preview
                       </button>
-                      <button 
-                        className="generate-button"
-                        onClick={() => handleGenerateClick(report.name)}
-                        disabled={!showCreateButton('reports')}
-                        style={{ 
-                          opacity: showCreateButton('reports') ? 1 : 0.5,
-                          cursor: showCreateButton('reports') ? 'pointer' : 'not-allowed'
-                        }}
-                      >
-                        <MdOutlineFileDownload size={18} /> Generate
-                      </button>
                     </div>
                   </div>
                 ))}
@@ -805,113 +790,6 @@ const Reports = () => {
             fetchLastGeneratedDates();
           }}
         />
-      )}
-
-      {/* Format Selection Modal */}
-      {showFormatModal && (
-        <>
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            zIndex: 99998
-          }} onClick={() => setShowFormatModal(false)} />
-          
-          <div style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 99999,
-            background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.25)',
-            padding: '32px',
-            maxWidth: '500px',
-            width: '90%'
-          }}>
-            <h2 style={{
-              margin: '0 0 8px 0',
-              fontSize: '24px',
-              fontWeight: 600,
-              color: '#0f172a'
-            }}>
-              Select Download Format
-            </h2>
-            <p style={{
-              margin: '0 0 24px 0',
-              fontSize: '14px',
-              color: '#64748b'
-            }}>
-              Choose the format you want to download {selectedReportForDownload} in
-            </p>
-            
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              marginBottom: '24px'
-            }}>
-              {['PDF', 'Excel', 'CSV'].map((format) => (
-                <button
-                  key={format}
-                  onClick={() => handleFormatSelected(format)}
-                  disabled={downloadingFormat !== null}
-                  style={{
-                    padding: '12px 16px',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    background: downloadingFormat === format ? '#2563eb' : 'white',
-                    color: downloadingFormat === format ? 'white' : '#374151',
-                    fontSize: '14px',
-                    fontWeight: 500,
-                    cursor: downloadingFormat === null ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s ease',
-                    opacity: downloadingFormat === null ? 1 : 0.6
-                  }}
-                  onMouseEnter={(e) => {
-                    if (downloadingFormat === null) {
-                      e.target.style.borderColor = '#2563eb';
-                      e.target.style.background = '#f0f9ff';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (downloadingFormat === null) {
-                      e.target.style.borderColor = '#e5e7eb';
-                      e.target.style.background = 'white';
-                    }
-                  }}
-                >
-                  {downloadingFormat === format ? 'Downloading...' : `Download as ${format}`}
-                </button>
-              ))}
-            </div>
-            
-            <button
-              onClick={() => setShowFormatModal(false)}
-              disabled={downloadingFormat !== null}
-              style={{
-                width: '100%',
-                padding: '10px 16px',
-                border: '1px solid #d1d5db',
-                borderRadius: '8px',
-                background: 'white',
-                color: '#374151',
-                fontSize: '14px',
-                fontWeight: 500,
-                cursor: downloadingFormat === null ? 'pointer' : 'not-allowed',
-                opacity: downloadingFormat === null ? 1 : 0.6
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </>
       )}
 
       {previewReport && (

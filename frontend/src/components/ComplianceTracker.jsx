@@ -546,6 +546,16 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
     }));
   };
 
+  // For a given frequency, returns how many months one submission covers.
+  // Quarterly = 3 months, Annual = 12 months, Every Tranche = 1 month
+  const getCoveragePeriod = (frequency) => {
+    if (!frequency) return 1;
+    const f = frequency.toLowerCase();
+    if (f === 'quarterly') return 3;
+    if (f === 'annual' || f === 'annually') return 12;
+    return 1; // every tranche = monthly
+  };
+
   const getTimeSheetValue = (docIndex, month, section) => {
     const monthIndex = months.indexOf(month);
     const monthNumber = monthIndex + 1; // Convert to 1-based (1 = January)
@@ -558,41 +568,65 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
     
     // For pre/post items: one-time submission, but only show from submission month onwards
     if (section === 'pre' || section === 'post') {
-      // Check if item is completed
-      if (!docItem.completed) {
-        return false; // Not submitted yet
-      }
+      if (!docItem.completed) return false;
       
-      // Check if we have submission date
       const submissionDate = timesheetData?.prePostDates?.[docItem.id];
-      if (!submissionDate) {
-        // No submission date available, show as completed for all months
+      if (!submissionDate) return true;
+      
+      const submissionYear = submissionDate.getFullYear();
+      const submissionMonth = submissionDate.getMonth() + 1;
+      
+      if (selectedYear > submissionYear) return true;
+      if (selectedYear < submissionYear) return false;
+      return monthNumber >= submissionMonth;
+    }
+    
+    // ── Recurring items ──────────────────────────────────────────────────────
+    const period = getCoveragePeriod(docItem.frequency);
+    const yearData = timesheetData?.monthly?.[docItem.id]?.[selectedYear] || {};
+
+    if (period === 1) {
+      // Every Tranche: each month is independent
+      return yearData[monthNumber] !== undefined ? yearData[monthNumber] : false;
+    }
+
+    // For Quarterly (period=3) and Annual (period=12):
+    // Find all months in this year that have been submitted (true in yearData)
+    const submittedMonths = Object.keys(yearData)
+      .map(Number)
+      .filter(m => yearData[m] === true)
+      .sort((a, b) => a - b);
+
+    // Walk backwards from monthNumber to find the most recent submission
+    // whose coverage window includes monthNumber
+    for (let i = submittedMonths.length - 1; i >= 0; i--) {
+      const subMonth = submittedMonths[i];
+      if (subMonth <= monthNumber && monthNumber < subMonth + period) {
+        // monthNumber falls inside this submission's coverage window → ✓
         return true;
       }
-      
-      // Only show as completed from submission month onwards
-      const submissionYear = submissionDate.getFullYear();
-      const submissionMonth = submissionDate.getMonth() + 1; // 1-based
-      
-      // Compare with the month being displayed in timesheet
-      if (selectedYear > submissionYear) {
-        return true; // Future year, definitely submitted
-      } else if (selectedYear < submissionYear) {
-        return false; // Past year, not submitted yet
-      } else {
-        // Same year, check month
-        return monthNumber >= submissionMonth;
-      }
     }
-    
-    // For recurring items: EACH MONTH HAS SEPARATE STATUS
-    // Check the loaded timesheet data for this specific item, year, and month
-    if (timesheetData?.monthly?.[docItem.id]?.[selectedYear]?.[monthNumber] !== undefined) {
-      return timesheetData.monthly[docItem.id][selectedYear][monthNumber];
+
+    // Not inside any coverage window.
+    // Determine if this month is a "due" month (pending) or N/A.
+    // A month is "due" if it is exactly at the end of the previous coverage window,
+    // i.e. it is the first month after the last coverage window ends.
+    // If no submission yet, the very first month of the year (or series start) is due.
+    if (submittedMonths.length === 0) {
+      // Nothing submitted yet this year — month 1 is due, rest are N/A
+      return monthNumber === 1 ? false : null;
     }
-    
-    // If no data loaded yet, show as pending
-    return false;
+
+    // Find the last submission whose window ends before or at monthNumber
+    const lastSub = submittedMonths[submittedMonths.length - 1];
+    const nextDueMonth = lastSub + period;
+
+    if (monthNumber === nextDueMonth) {
+      return false; // This is the next due month → pending
+    }
+
+    // Everything else is N/A
+    return null;
   };
 
   const months = [
@@ -601,28 +635,8 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
   ];
   
   // Get valid months to display in timesheet
-  // TIMESHEET shows ALL months for planning purposes
+  // Always show all 12 months for every year for planning purposes
   const getValidMonths = () => {
-    const issueDate = seriesData?.issueDate ? new Date(seriesData.issueDate) : new Date('2026-01-15');
-    const issueYear = issueDate.getFullYear();
-    const issueMonth = issueDate.getMonth(); // 0-based
-    const maturityDate = seriesData?.maturityDate ? new Date(seriesData.maturityDate) : null;
-    const maturityYear = maturityDate ? maturityDate.getFullYear() : null;
-    const maturityMonth = maturityDate ? maturityDate.getMonth() : 11; // 0-based
-    
-    // If viewing issue year
-    if (selectedYear === issueYear) {
-      // Show months from issue month to December
-      return months.slice(issueMonth);
-    }
-    
-    // If viewing maturity year
-    if (maturityYear && selectedYear === maturityYear) {
-      // Show months from January to maturity month
-      return months.slice(0, maturityMonth + 1);
-    }
-    
-    // For all other years (between issue and maturity), show all 12 months
     return months;
   };
 
@@ -1157,7 +1171,12 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
           // Month status indicators
           months.forEach((month, monthIdx) => {
             const isCompleted = getTimeSheetValue(itemIndex + 1, month, activeTab);
-            const statusColor = isCompleted ? rgbNormalized(22, 163, 74) : rgbNormalized(180, 83, 9);
+            // null = N/A (grey), true = completed (green), false = pending (red)
+            const statusColor = isCompleted === null
+              ? rgbNormalized(180, 180, 180)
+              : isCompleted
+                ? rgbNormalized(22, 163, 74)
+                : rgbNormalized(180, 83, 9);
             const monthX = leftMargin + itemColWidth + (monthIdx * monthColWidth);
             
             // Draw vertical separator
@@ -1168,7 +1187,7 @@ const ComplianceTracker = ({ onClose, seriesData = null }) => {
               thickness: 0.5,
             });
             
-            currentPage.drawText(isCompleted ? 'Y' : 'N', {
+            currentPage.drawText(isCompleted === null ? '-' : isCompleted ? 'Y' : 'N', {
               x: monthX + (monthColWidth / 2) - 3,
               y: yPosition - 10,
               size: 8,
@@ -1823,13 +1842,23 @@ const handleDocumentSubmit = async (e) => {
                       {getComplianceBySection(activeTab).map((doc, index) => (
                         <tr key={doc.id}>
                           <td className="sno-cell">{index + 1}</td>
-                          {getValidMonths().map(month => (
-                            <td key={month} className="month-cell">
-                              <div className={`status-indicator ${getTimeSheetValue(index + 1, month, activeTab) ? 'completed' : 'pending'}`}>
-                                {getTimeSheetValue(index + 1, month, activeTab) ? '✓' : '–'}
-                              </div>
-                            </td>
-                          ))}
+                          {getValidMonths().map(month => {
+                            const val = getTimeSheetValue(index + 1, month, activeTab);
+                            if (val === null) {
+                              return (
+                                <td key={month} className="month-cell">
+                                  <div className="status-indicator na">—</div>
+                                </td>
+                              );
+                            }
+                            return (
+                              <td key={month} className="month-cell">
+                                <div className={`status-indicator ${val ? 'completed' : 'pending'}`}>
+                                  {val ? '✓' : '–'}
+                                </div>
+                              </td>
+                            );
+                          })}
                         </tr>
                       ))}
                     </tbody>

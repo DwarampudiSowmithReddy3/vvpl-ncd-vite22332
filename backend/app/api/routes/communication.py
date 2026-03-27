@@ -239,7 +239,7 @@ async def get_investors_for_communication(
         
         series_name = series_result[0]['name']
         
-        # Get all investors with investments in this series
+        # Get all investors with investments in this series (including deleted investors for reference)
         query = """
         SELECT 
             i.id,
@@ -249,14 +249,14 @@ async def get_investors_for_communication(
             i.phone,
             i.bank_name,
             i.account_number,
+            i.status,
             COALESCE(SUM(inv.amount), 0) as total_invested
         FROM investors i
         INNER JOIN investments inv ON i.id = inv.investor_id
         WHERE inv.series_id = %s 
           AND inv.status = 'confirmed'
-          AND i.status != 'deleted'
         GROUP BY i.id, i.investor_id, i.full_name, i.email, i.phone, 
-                 i.bank_name, i.account_number
+                 i.bank_name, i.account_number, i.status
         ORDER BY i.full_name
         """
         
@@ -274,7 +274,8 @@ async def get_investors_for_communication(
                 "phone": inv['phone'],
                 "bankName": inv['bank_name'],
                 "accountNumber": inv['account_number'],
-                "totalInvested": float(inv['total_invested'])
+                "totalInvested": float(inv['total_invested']),
+                "status": inv['status']
             })
         
         return {
@@ -323,7 +324,7 @@ async def search_investors(
         
         logger.info(f"🔍 Searching investors with term: {search}")
         
-        # Search investors by name, email, phone, or investor ID
+        # Search investors by name, email, phone, or investor ID (including deleted for reference)
         query = """
         SELECT DISTINCT
             i.id,
@@ -331,13 +332,13 @@ async def search_investors(
             i.full_name as name,
             i.email,
             i.phone,
+            i.status,
             GROUP_CONCAT(DISTINCT s.id) as series_ids,
             GROUP_CONCAT(DISTINCT s.name) as series_names
         FROM investors i
         INNER JOIN investments inv ON i.investor_id = inv.investor_id
         INNER JOIN ncd_series s ON inv.series_id = s.id
-        WHERE i.status = 'active'
-        AND inv.status = 'confirmed'
+        WHERE inv.status = 'confirmed'
         AND s.is_active = 1
         AND (
             i.full_name LIKE %s
@@ -345,7 +346,7 @@ async def search_investors(
             OR i.phone LIKE %s
             OR i.investor_id LIKE %s
         )
-        GROUP BY i.id, i.investor_id, i.full_name, i.email, i.phone
+        GROUP BY i.id, i.investor_id, i.full_name, i.email, i.phone, i.status
         ORDER BY i.full_name ASC
         LIMIT 50
         """
@@ -365,6 +366,7 @@ async def search_investors(
                 'name': row['name'],
                 'email': row['email'],
                 'phone': row['phone'],
+                'status': row['status'],
                 'seriesIds': [int(sid) for sid in series_ids],
                 'series': series_names
             })

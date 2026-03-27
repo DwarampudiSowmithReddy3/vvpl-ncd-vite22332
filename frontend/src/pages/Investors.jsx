@@ -111,7 +111,7 @@ const Investors = () => {
 
       // Load investors, statistics, and series in parallel
       const [investorsData, statsData, seriesData, uniqueSeriesData] = await Promise.all([
-        apiService.searchInvestors({ status: 'active', limit: 1000 }).catch(err => {
+        apiService.searchInvestors({ status: 'all', limit: 1000 }).catch(err => {
           return { investors: [] };
         }),
         apiService.getInvestorStatistics().catch(err => {
@@ -186,7 +186,7 @@ const Investors = () => {
     const loadFilteredInvestors = async () => {
       try {
         const params = {
-          status: 'active',
+          status: 'all',
           limit: 1000
         };
 

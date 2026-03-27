@@ -1199,6 +1199,12 @@
   color: #9ca3af;
 }
 
+.status-indicator.na {
+  background: #f1f5f9;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
 .document-reference {
   background: #f8fafc;
   padding: 12px;

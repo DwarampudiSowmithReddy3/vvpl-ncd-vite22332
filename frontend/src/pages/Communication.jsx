@@ -834,7 +834,22 @@ const Communication = () => {
                                       onClick={() => handleInvestorToggle(seriesItem.id, investor.investorId)}
                                     >
                                       <div className="investor-card-header">
-                                        <h4 className="investor-name">{investor.name}</h4>
+                                        <h4 className="investor-name">
+                                          {investor.name}
+                                          {investor.status === 'deleted' && (
+                                            <span style={{
+                                              marginLeft: '6px',
+                                              fontSize: '10px',
+                                              fontWeight: 700,
+                                              color: '#fff',
+                                              background: '#ef4444',
+                                              borderRadius: '4px',
+                                              padding: '1px 5px',
+                                              verticalAlign: 'middle',
+                                              letterSpacing: '0.5px'
+                                            }}>DELETED</span>
+                                          )}
+                                        </h4>
                                         <div className={`investor-checkbox ${isSelected ? 'checked' : ''}`}>
                                           {isSelected && <MdCheck size={12} />}
                                         </div>
@@ -881,7 +896,22 @@ const Communication = () => {
                                 onClick={() => handleIndividualInvestorSelect(investor)}
                               >
                                 <div className="investor-search-header">
-                                  <h4 className="investor-name">{investor.name}</h4>
+                                  <h4 className="investor-name">
+                                    {investor.name}
+                                    {investor.status === 'deleted' && (
+                                      <span style={{
+                                        marginLeft: '6px',
+                                        fontSize: '10px',
+                                        fontWeight: 700,
+                                        color: '#fff',
+                                        background: '#ef4444',
+                                        borderRadius: '4px',
+                                        padding: '1px 5px',
+                                        verticalAlign: 'middle',
+                                        letterSpacing: '0.5px'
+                                      }}>DELETED</span>
+                                    )}
+                                  </h4>
                                   <div className="investor-id-badge">{investor.investorId}</div>
                                 </div>
                                 
